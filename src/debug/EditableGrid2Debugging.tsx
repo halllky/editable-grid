@@ -1,4 +1,4 @@
-import * as EG2 from "../src"
+import * as EG2 from "../EditableGrid2"
 import React from "react"
 import { useForm } from "react-hook-form"
 import { UUID } from "uuidjs"

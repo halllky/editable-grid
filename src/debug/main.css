@@ -1,7 +1,8 @@
 @import "tailwindcss";
-@source "../src";
+@source "../EditableGrid2";
 
 @layer base {
+
   html,
   body,
   #root {

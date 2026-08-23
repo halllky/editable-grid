@@ -23,7 +23,7 @@ peerDependencies として以下が必要です:
 
 ```
 npm install
-npm run dev    # デバッグ用アプリを起動 (debug/)
+npm run dev    # デバッグ用アプリを起動 (src/debug/)
 npm run build  # dist を生成
 npm run tsc    # 型チェックのみ
 ```
