@@ -8,7 +8,7 @@ import {
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
 } from "../../EditableGrid2"
-import { createTextCellEditor } from "../custom-editor/createTextCellEditor"
+import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
 
 /**
  * EditableGrid2 を react-hook-form の useFieldArray と組み合わせて使用する際の
