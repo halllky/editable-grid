@@ -49,6 +49,8 @@ export type EditableGrid2Props<TRow> = {
   striped?: boolean
   /** セルエディタ。列定義で指定がある場合はそちらが優先される。 */
   editor?: EditableGridCellEditor
+  /** データが無い時に表示される。既定では「データがありません。」と表示される。 */
+  whenNoData?: React.ReactNode
 }
 
 /**

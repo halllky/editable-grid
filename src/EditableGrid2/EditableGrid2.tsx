@@ -344,7 +344,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                 colSpan={visibleLeafColumns.length}
                 className="halllky-eg2-empty-cell"
               >
-                データがありません
+                {props.whenNoData ?? "データがありません"}
               </td>
             </tr>
           )}

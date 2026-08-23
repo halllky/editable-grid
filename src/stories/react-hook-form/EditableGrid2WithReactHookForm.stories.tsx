@@ -7,10 +7,8 @@ import { useFieldArrayForEditableGrid2 } from "./useFieldArrayForEditableGrid2"
 
 /**
  * EditableGrid2 を react-hook-form の useFieldArray と組み合わせて使用する例。
- * `useFieldArrayForEditableGrid2`（このディレクトリ内で定義）は
- * EditableGrid2 ライブラリ本体には含まれない実装例です。
  */
-const EditableGrid2WithReactHookForm = ({
+function EditableGrid2WithReactHookForm({
   fixed3Cols,
   isLargeData,
   clearSelectionOnBlur,
@@ -18,7 +16,7 @@ const EditableGrid2WithReactHookForm = ({
   fixed3Cols: boolean
   isLargeData: boolean
   clearSelectionOnBlur: boolean
-}) => {
+}) {
 
   const { control, setValue, getValues } = useForm<{ rows: TestRow[] }>()
 
@@ -84,7 +82,7 @@ const EditableGrid2WithReactHookForm = ({
         showCheckBox
         clearSelectionOnBlur={clearSelectionOnBlur}
         isReadOnly={row => row.willBeDeleted === true}
-        className="h-96 w-1/2 resize"
+        className="h-96 self-stretch resize-y border border-gray-300"
       />
 
       <span className="text-sm font-bold mt-4">
@@ -139,6 +137,9 @@ type TestRow = {
   status?: string
 }
 
+/**
+ * Storybook におけるこの画面のメタ情報
+ */
 const meta = {
   title: 'EditableGrid2/react-hook-form との統合',
   component: EditableGrid2WithReactHookForm,

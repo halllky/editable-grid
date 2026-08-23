@@ -5,7 +5,6 @@ import {
   EditableGrid2LeafColumn,
   EditableGrid2Props,
   EditableGrid2Ref,
-  EditableGridCellEditor,
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
   TextCellEditor,
@@ -141,7 +140,7 @@ function useColumnDefHelper<
     textCell: (header, key, options) => ({
       editor: TextCellEditor,
       renderHeader: () => (
-        <div className="px-1 py-px truncate text-gray-700">
+        <div className="px-1 py-px text-sm truncate text-gray-700">
           {header}
         </div>
       ),
@@ -236,7 +235,7 @@ function useColumnDefHelper<
               onChange={handleChange}
               onClick={handleClick}
               onKeyDown={handleKeyDown}
-              className="w-full border border-black outline-none bg-white"
+              className="w-full text-sm border border-black outline-none bg-white"
             >
               {candidateValues.map(c => (
                 <option key={c.value} value={c.value}>{c.text}</option>
@@ -248,7 +247,7 @@ function useColumnDefHelper<
 
       return {
         renderHeader: () => (
-          <div className="px-1 py-px truncate text-gray-700">
+          <div className="px-1 py-px text-sm truncate text-gray-700">
             {header}
           </div>
         ),
@@ -256,7 +255,7 @@ function useColumnDefHelper<
           const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField> })
           const text = candidateValues.find(o => o.value === value)?.text ?? (value as string)
           return (
-            <div className="px-1 py-px truncate">
+            <div className="px-1 py-px truncate text-sm">
               {text}
             </div>
           )
@@ -289,7 +288,7 @@ function useColumnDefHelper<
     //#region ヘルパー: チェックボックス
     booleanCell: (header, key, options) => ({
       renderHeader: () => (
-        <div className="px-1 py-px truncate text-gray-700">
+        <div className="px-1 py-px text-sm truncate text-gray-700">
           {header}
         </div>
       ),
@@ -364,7 +363,7 @@ const RHFTextCell = <
 }) => {
   const value = ReactHookForm.useWatch({ control, name })
   return (
-    <div className={`px-1 py-px ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
+    <div className={`px-1 py-px text-sm ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
       {format ? format(value) : (value as string)}
     </div>
   )
