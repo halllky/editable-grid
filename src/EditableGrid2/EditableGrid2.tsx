@@ -263,12 +263,14 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
       />
 
       {/* 固定列用の選択範囲レイヤー (tableより手前に置くことで、sticky位置の基準をコンテナ左端にする) */}
-      <SelectedRangeForFixedColumn
-        lastFixedIndex={lastFixedIndex}
-        getPixel={getPixel}
-        anchorCell={anchorCell}
-        selectedRange={selectedRange}
-      />
+      {!isEditing && (
+        <SelectedRangeForFixedColumn
+          lastFixedIndex={lastFixedIndex}
+          getPixel={getPixel}
+          anchorCell={anchorCell}
+          selectedRange={selectedRange}
+        />
+      )}
 
       <table
         className="halllky-eg2-table"
@@ -352,12 +354,14 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
       </table>
 
       {/* スクロール列用の選択範囲レイヤー */}
-      <SelectedRangeForScrollableColumn
-        lastFixedIndex={lastFixedIndex}
-        getPixel={getPixel}
-        anchorCell={anchorCell}
-        selectedRange={selectedRange}
-      />
+      {!isEditing && (
+        <SelectedRangeForScrollableColumn
+          lastFixedIndex={lastFixedIndex}
+          getPixel={getPixel}
+          anchorCell={anchorCell}
+          selectedRange={selectedRange}
+        />
+      )}
     </div>
   )
 

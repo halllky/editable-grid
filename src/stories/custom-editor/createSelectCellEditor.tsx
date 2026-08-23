@@ -16,7 +16,6 @@ export function createSelectCellEditor(options: string[]): EditableGridCellEdito
   return React.forwardRef(function SelectCellEditor({ style, isEditing, requestCommit, requestCancel }, ref) {
 
     const [value, setValue] = React.useState('')
-    const containerRef = React.useRef<HTMLDivElement>(null)
     const selectRef = React.useRef<HTMLSelectElement>(null)
 
     const handleChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
@@ -42,18 +41,18 @@ export function createSelectCellEditor(options: string[]): EditableGridCellEdito
           if (timing === 'edit-start') selectRef.current?.showPicker?.()
         }, 0)
       },
-      getDomElement: () => containerRef.current,
-    }), [containerRef, selectRef])
+      getDomElement: () => selectRef.current,
+    }), [selectRef])
 
     return (
-      <div ref={containerRef} style={style} className="leading-none">
+      <div style={style} className="leading-none">
         <select
           ref={selectRef}
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           className="text-sm border border-black outline-none bg-white"
-          style={{ minWidth: style.minWidth }}
+          style={{ minWidth: style.width }}
         >
           {options.map(option => (
             <option key={option} value={option}>{option}</option>

@@ -126,8 +126,11 @@ export type EditableGrid2LeafColumn<TRow> = {
   invisible?: boolean
   /** 列が固定されるかどうか */
   isFixed?: boolean
-  /** 文字列の折り返しをするかどうか */
-  wrap?: boolean
+  /**
+   * @deprecated 折り返し表示はセルのレンダリング（renderBody）とセルエディタ（editor）側の責務とする。
+   * グリッド側では折り返しの有無によってスタイルを切り替えないため、この属性は使用しない。
+   */
+  wrap?: never
   /**
    * セル上でキーが押されたときのイベントハンドラ。
    * preventDefault が呼ばれた場合、キーによるセル移動やセル編集開始といった
@@ -177,9 +180,14 @@ export type EditableGridCellEditor = React.ForwardRefExoticComponent<
 /** セル編集エディタのプロパティ */
 export type EditableGridCellEditorProps = {
   /**
-   * スタイル。エディタの位置・サイズ・可視状態（非編集時は opacity: 0, pointer-events: none 等）が渡される。
+   * スタイル。エディタの位置・サイズ・可視状態
+   * （非編集時は opacity: 0, pointer-events: none 等）が渡される。
    * ルート要素（ref.getDomElement が返す要素と同一の要素、もしくはその祖先）にそのまま適用すること。
    * 適用しない場合、エディタの表示位置がずれたり、非編集時にも操作可能な状態で表示されてしまう。
+   *
+   * width, height は常にセルそのものの大きさが渡される。
+   * 折り返し表示等でエディタをセルより大きく伸縮させたい場合は、
+   * エディタ側でこれらの値を minWidth, minHeight に読み替えて使用すること。
    */
   style: Pick<React.CSSProperties,
     | "position"
@@ -188,10 +196,8 @@ export type EditableGridCellEditorProps = {
     | "pointerEvents"
     | "left"
     | "top"
-    | "minHeight"
     | "height"
     | "width"
-    | "minWidth"
   >
   /**
    * セルが実際に編集中かどうか。

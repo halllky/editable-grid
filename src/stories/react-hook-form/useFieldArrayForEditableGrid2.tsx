@@ -90,9 +90,11 @@ export type ColumnDefHelper<TRow> = {
   textCell: (
     header: string,
     key: keyof TRow,
-    options?: Partial<EditableGrid2LeafColumn<TRow>> & {
+    options?: Omit<Partial<EditableGrid2LeafColumn<TRow>>, 'wrap'> & {
       format?: (value: unknown) => string
       parse?: (value: string) => unknown
+      /** 折り返し表示をするかどうか */
+      wrap?: boolean
     }
   ) => EditableGrid2LeafColumn<TRow>
 
@@ -137,35 +139,38 @@ function useColumnDefHelper<
   return React.useMemo(() => ({
 
     //#region ヘルパー: 文字列型
-    textCell: (header, key, options) => ({
-      editor: createTextCellEditor(),
-      renderHeader: () => (
-        <div className="px-1 py-px text-sm truncate text-gray-700">
-          {header}
-        </div>
-      ),
-      renderBody: ({ context }) => (
-        <RHFTextCell
-          control={control}
-          name={`${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField>}
-          wrap={options?.wrap}
-          format={options?.format}
-        />
-      ),
-      getValueForEditor: ({ rowIndex }) => {
-        const val = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as unknown
-        return options?.format?.(val) ?? val?.toString() ?? ''
-      },
-      setValueFromEditor: ({ rowIndex, value }) => {
-        const val = options?.parse?.(value) ?? value
-        setValue(
-          `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
-          val as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
-          { shouldDirty: true }
-        )
-      },
-      ...options,
-    }),
+    textCell: (header, key, options) => {
+      const { wrap, ...restOptions } = options ?? {}
+      return {
+        editor: createTextCellEditor(wrap ?? false),
+        renderHeader: () => (
+          <div className="px-1 py-px text-sm truncate text-gray-700">
+            {header}
+          </div>
+        ),
+        renderBody: ({ context }) => (
+          <RHFTextCell
+            control={control}
+            name={`${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField>}
+            wrap={wrap}
+            format={options?.format}
+          />
+        ),
+        getValueForEditor: ({ rowIndex }) => {
+          const val = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as unknown
+          return options?.format?.(val) ?? val?.toString() ?? ''
+        },
+        setValueFromEditor: ({ rowIndex, value }) => {
+          const val = options?.parse?.(value) ?? value
+          setValue(
+            `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
+            val as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
+            { shouldDirty: true }
+          )
+        },
+        ...restOptions,
+      }
+    },
     //#endregion ヘルパー: 文字列型
 
     //#region ヘルパー: ボタン

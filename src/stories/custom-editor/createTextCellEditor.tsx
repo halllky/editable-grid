@@ -8,13 +8,20 @@ import { EditableGridCellEditor } from "../../EditableGrid2"
  * 文字列を編集するだけの最も単純なセルエディタの実装例としてここに置いている。
  * 利用側のプロジェクトにこのファイルをコピーして使うか、
  * これを参考に EditableGridCellEditor の契約を満たす自前のエディタを実装してください。
+ *
+ * @param wrap 折り返し表示をするかどうか。
+ * props.style で渡される width, height はセルそのものの大きさだが、
+ * 折り返し表示をする列ではテキストボックスを内容に応じて縦方向に伸縮させたいため、
+ * ここで minWidth, minHeight に読み替える。
  */
-export function createTextCellEditor(): EditableGridCellEditor {
+export function createTextCellEditor(wrap: boolean): EditableGridCellEditor {
 
   return React.forwardRef(function EditableGridCellEditor({ style, isEditing, requestCommit, requestCancel }, ref) {
 
     const [value, setValue] = React.useState<string>('')
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+    const { width, height, ...restStyle } = style
 
     const handleChange: React.ChangeEventHandler<HTMLTextAreaElement> = e => {
       setValue(e.target.value)
@@ -25,7 +32,8 @@ export function createTextCellEditor(): EditableGridCellEditor {
       // 編集を確定させる
       if (isEditing) {
         if (e.key === 'Enter' || e.key === 'Tab') {
-          if (e.shiftKey) return; // セル内改行のため普通のEnterでは編集終了しないようにする
+          // セル内改行のため普通のEnterでは編集終了しないようにする
+          if (wrap && e.shiftKey) return;
 
           requestCommit(value)
           e.preventDefault()
@@ -55,9 +63,18 @@ export function createTextCellEditor(): EditableGridCellEditor {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         className="px-1 py-px text-sm resize-none field-sizing-content outline-none border border-black bg-white"
-        style={style}
+        style={{
+          ...restStyle,
+
+          // wrapの指定によってwidth方向とheight方向のどちらに伸縮させるかを分ける。
+          width: wrap ? width : undefined,
+          minWidth: wrap ? undefined : width,
+          minHeight: wrap ? height : undefined,
+
+          // 編集中でないときはグリッドの下限を超えて余計なスクロールが出るのを防ぐため height を固定する
+          height: isEditing ? undefined : height,
+        }}
       />
     )
   })
-
 }

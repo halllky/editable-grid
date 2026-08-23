@@ -21,12 +21,15 @@ function CellEditorExample() {
         data={fields}
         columns={[() => [{
           // 改行なしテキスト エディタ用設定 ここから
-          editor: createTextCellEditor(),
+          editor: createTextCellEditor(false),
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.singleLine`) ?? "",
-          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.singleLine`, value),
+          setValueFromEditor: ({ rowIndex, value }) => {
+            // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
+            setValue(`rows.${rowIndex}.singleLine`, value.replace(/[\r\n\u2028\u2029]/g, ''))
+          },
           // 改行なしテキスト エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>1.改行なし</CellText>,
+          renderHeader: () => <CellText>改行なし</CellText>,
           renderBody: ({ context }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.singleLine`, control })
             return <CellText>{watched}</CellText>
@@ -34,16 +37,15 @@ function CellEditorExample() {
           defaultWidth: 152,
         }, {
           // 改行ありテキスト エディタ用設定 ここから
-          wrap: true,
-          editor: createTextCellEditor(),
+          editor: createTextCellEditor(true),
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.multiLine`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.multiLine`, value),
           // 改行ありテキスト エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>2.改行あり</CellText>,
+          renderHeader: () => <CellText>改行あり（※1）</CellText>,
           renderBody: ({ context }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.multiLine`, control })
-            return <CellText break>{watched}</CellText>
+            return <CellText wrap>{watched}</CellText>
           },
           defaultWidth: 224,
         }, {
@@ -61,7 +63,7 @@ function CellEditorExample() {
           },
           // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>3.選択肢</CellText>,
+          renderHeader: () => <CellText>選択肢</CellText>,
           renderBody: ({ context }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.option`, control })
             return <CellText>{watched}</CellText>
@@ -82,7 +84,7 @@ function CellEditorExample() {
           },
           // チェックボックス エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>4.チェックボックス</CellText>,
+          renderHeader: () => <CellText>チェックボックス（※2）</CellText>,
           renderBody: ({ context, isReadOnly }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.checkbox`, control })
             return (
@@ -100,16 +102,14 @@ function CellEditorExample() {
               </label>
             )
           },
-          defaultWidth: 144,
+          defaultWidth: 188,
         }], [control, getValues, setValue]]}
         className="border border-gray-500 resize-y"
       />
-      <ol className="text-sm list-decimal list-inside">
-        <li>改行なし</li>
-        <li>改行あり。エディタ内で Shift + Enter で改行可能</li>
-        <li>選択肢</li>
-        <li>チェックボックス。セルエディタなしで直接値をトグルする例</li>
-      </ol>
+      <ul className="text-sm">
+        <li>※1：エディタ内で Shift + Enter で改行可能</li>
+        <li>※2：セルエディタなしの例。直接値をトグルできる。</li>
+      </ul>
     </div>
   )
 }
@@ -134,11 +134,11 @@ function getDefaultValues(): TestRow[] {
 }
 
 /** セルの基本的スタイルを施したもの */
-function CellText(props: { break?: boolean, children?: React.ReactNode }) {
+function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
 
-  const className = props.break
-    ? "py-px px-1 border border-transparent text-sm whitespace-pre-wrap"
-    : "py-px px-1 border border-transparent text-sm truncate"
+  const className = props.wrap
+    ? "px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
+    : "px-1 py-px border border-transparent text-sm truncate"
 
   return (
     <span className={className}>
