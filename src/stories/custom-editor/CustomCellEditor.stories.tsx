@@ -4,6 +4,7 @@ import * as EG2 from "../../EditableGrid2"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "./createTextCellEditor"
 import { createSelectCellEditor } from "./createSelectCellEditor"
+import { createDateCellEditor } from "./createDateCellEditor"
 
 /**
  * セルエディタ実装指南
@@ -70,6 +71,27 @@ function CellEditorExample() {
           },
           defaultWidth: 120,
         }, {
+          // 日付 エディタ用設定 ここから
+          editor: createDateCellEditor(),
+          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.date`) ?? "",
+          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.date`, value),
+          onCellKeyDown: ({ event, requestEditStart }) => {
+            const alt = event.altKey || event.metaKey
+            const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
+            if (event.key === 'Enter' || alt && upDown) {
+              requestEditStart()
+              event.preventDefault()
+            }
+          },
+          // 日付 エディタ用設定 ここまで
+
+          renderHeader: () => <CellText>日付</CellText>,
+          renderBody: ({ context }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.date`, control })
+            return <CellText>{watched}</CellText>
+          },
+          defaultWidth: 124,
+        }, {
           // チェックボックス エディタ用設定 ここから
           // クリックだけで値を切り替えられるため、専用のセルエディタは持たない。
           // クリップボードとのコピーペーストのために get, set は定義しておく。
@@ -121,6 +143,7 @@ type TestRow = {
   multiLine?: string
   option?: "円" | "ドル" | "ユーロ"
   checkbox?: boolean
+  date?: string
 }
 
 /** この画面のデフォルトデータ */
@@ -130,6 +153,7 @@ function getDefaultValues(): TestRow[] {
     singleLine: "改行なしのテキスト",
     multiLine: "1行目1行目1行目1行目1行目\n2行目2行目2行目2行目2行目",
     option: "円",
+    date: "2024-01-01",
   }))
 }
 

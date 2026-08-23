@@ -21,8 +21,6 @@ export function createTextCellEditor(wrap: boolean): EditableGridCellEditor {
     const [value, setValue] = React.useState<string>('')
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
-    const { width, height, ...restStyle } = style
-
     const handleChange: React.ChangeEventHandler<HTMLTextAreaElement> = e => {
       setValue(e.target.value)
     }
@@ -55,6 +53,8 @@ export function createTextCellEditor(wrap: boolean): EditableGridCellEditor {
       },
       getDomElement: () => textareaRef.current,
     }), [textareaRef])
+
+    const { width, height, ...restStyle } = style
 
     return (
       <textarea
