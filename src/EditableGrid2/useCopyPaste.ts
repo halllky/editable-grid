@@ -7,7 +7,7 @@ import { toTsvString, fromTsvString } from "./tsv-util";
 import { RowAccessor } from "./useRowAccessor";
 
 interface UseCopyPasteParams<TRow> {
-  table: TanStack.Table<TRow>;
+  table: TanStack.Table<string>;
   activeCell: { rowIndex: number; colIndex: number } | null;
   selectedRange: CellSelectionRange | null;
   /**
@@ -32,7 +32,7 @@ export const useCopyPaste = <TRow,>({
   const handleCopy: React.ClipboardEventHandler = e => {
     if (isEditing || !selectedRange) return;
 
-    if (props.data.length === 0) return;
+    if (props.rowKeys.length === 0) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -45,7 +45,7 @@ export const useCopyPaste = <TRow,>({
     for (let r = selectedRange.startRow; r <= selectedRange.endRow; r++) {
       const rowData: string[] = [];
       // 行データの存在チェック
-      if (r >= props.data.length) break;
+      if (r >= props.rowKeys.length) break;
 
       for (let c = selectedRange.startCol; c <= selectedRange.endCol; c++) {
         // 列定義の存在チェック
@@ -145,7 +145,7 @@ export const useCopyPaste = <TRow,>({
 
     for (let r = 0; r < rowCount; r++) {
       const targetRowIndex = startRow + r;
-      if (targetRowIndex >= props.data.length) break;
+      if (targetRowIndex >= props.rowKeys.length) break;
 
       const pasteRowIdx = r % values.length;
       const rowInputData = values[pasteRowIdx];

@@ -11,9 +11,9 @@ export const ROW_HEADER_COLUMN_ID = "row-header"
  */
 export function createRowCheckBoxColumn<TRow>(
   propsShowCheckBox: EditableGrid2Props<TRow>["showCheckBox"],
-  columnHelper: TanStack.ColumnHelper<TRow>,
+  columnHelper: TanStack.ColumnHelper<string>,
   getRowObject: RowAccessor<TRow>,
-): TanStack.ColumnDef<TRow, unknown> {
+): TanStack.ColumnDef<string, unknown> {
 
   return columnHelper.display({
     id: ROW_HEADER_COLUMN_ID,

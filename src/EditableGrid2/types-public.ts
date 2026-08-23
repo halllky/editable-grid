@@ -1,5 +1,4 @@
 import React from "react"
-import * as TanStack from "@tanstack/react-table"
 
 //#region グリッド
 
@@ -8,29 +7,28 @@ import * as TanStack from "@tanstack/react-table"
  */
 export type EditableGrid2Props<TRow> = {
   /**
-   * 行データ。
-   * 行の追加・削除・並び替えを検知するために使用されます。
-   * この配列の各要素は getRowId によって一意なIDに変換可能である必要があります。
+   * 行を一意に識別する文字列の配列。
    *
-   * React Hook Form を使用している場合、ここには useFieldArray の fields を渡してください。
+   * - 配列の長さがそのままグリッドの行数になります。
+   * - 各要素がその行のIDとして使われます。重複する値を含めてはいけません。
+   * - この配列の内容（各要素の値と並び順）が変化すると、
+   *   行の追加・削除・並び替えが発生したものとしてグリッドが再描画されます。
+   *   逆に内容が同じであれば、毎回新しい配列インスタンスを渡しても再描画は発生しないため、
+   *   呼び出し側で useMemo する必要はありません。
+   * 行に表示される値そのものは、この配列ではなく getLatestRowObject から取得されます。
+   *
    */
-  data: TRow[]
+  rowKeys: string[]
 
   /**
-   * React Hook Form と連携する場合のパフォーマンス最適化用関数。
-   * 指定されたインデックスの行の最新の値を取得します。
+   * 指定されたインデックスの行の最新の値を取得する関数。
    *
-   * これを指定すると、 `data` 配列の中身の値の代わりに、この関数から取得した値が描画や編集に使用されます。
-   * これにより、 `data` 配列を再生成することなく（再レンダリングを発生させることなく）
-   * セルの値を RHF の setValue 等で更新できるようになります。
+   * セルの描画・編集・コピー＆ペーストで使用される行の値は、すべてこの関数から取得されます。
+   * そのため、React Hook Form と連携する場合は getValues を使って実装することで、
+   * rowKeys を再生成することなく（グリッドの再レンダリングを発生させることなく）
+   * セルの値を setValue 等で更新できます。
    */
-  getLatestRowObject?: (index: number) => TRow
-
-  /**
-   * 行を一意に識別するためのIDを取得する関数。
-   * 指定しない場合、配列のインデックスがIDとして使われるため、行削除時などに選択状態がずれる可能性があります。
-   */
-  getRowId?: (originalRow: TRow, index: number, parent?: TanStack.Row<TRow>) => string
+  getLatestRowObject: (index: number) => TRow
   /** 列定義と、列定義更新の依存配列。 */
   columns: [(() => EditableGrid2Column<TRow>[]), React.DependencyList]
   /** 行ヘッダのチェックボックスを表示するかどうか。 */
@@ -85,7 +83,7 @@ export type EditableGrid2Column<TRow> =
  */
 export type EditableGrid2GroupColumn<TRow> = {
   /** グループヘッダ列のレンダリング */
-  renderHeader: EditableGrid2HeaderRenderer<TRow>
+  renderHeader: EditableGrid2HeaderRenderer
   /** グループ化する子列の定義 */
   columns: EditableGrid2LeafColumn<TRow>[]
 }
@@ -95,9 +93,9 @@ export type EditableGrid2GroupColumn<TRow> = {
  */
 export type EditableGrid2LeafColumn<TRow> = {
   /** 列のヘッダーのレンダリング処理をカスタマイズする関数。 */
-  renderHeader: EditableGrid2HeaderRenderer<TRow>
+  renderHeader: EditableGrid2HeaderRenderer
   /** 列のヘッダーのうち、グルーピングが発生している場合のグループ化されない列の下段のレンダリング処理をカスタマイズする関数。 */
-  renderHeaderPlaceholder?: EditableGrid2HeaderRenderer<TRow>
+  renderHeaderPlaceholder?: EditableGrid2HeaderRenderer
   /**
    * セルのボディのレンダリング処理をカスタマイズする関数。
    * セルの中にボタンを配置するなど、セル選択を防ぎたい要素がある場合、
@@ -146,13 +144,19 @@ export type EditableGrid2LeafColumn<TRow> = {
 }
 
 /** 列ヘッダセルのレンダリング処理 */
-export type EditableGrid2HeaderRenderer<TRow> = (args: {
-  context: TanStack.HeaderContext<TRow, unknown>
+export type EditableGrid2HeaderRenderer = (args: {
+  /** この列の現在の幅（px） */
+  columnWidth: number
 }) => React.ReactNode
 
 /** ボディセルのレンダリング処理 */
 export type EditableGrid2BodyRenderer<TRow> = (args: {
-  context: TanStack.CellContext<TRow, unknown>
+  /** この行の最新の値。getLatestRowObject の戻り値。 */
+  row: TRow
+  /** 行インデックス。画面表示範囲外も含めたデータ全体内での配列内の位置。 */
+  rowIndex: number
+  /** この列の現在の幅（px） */
+  columnWidth: number
   /** グリッド全体の読み取り専用、行単位の読み取り専用、セル単位の読み取り専用を判定した結果 */
   isReadOnly: boolean
 }) => React.ReactNode

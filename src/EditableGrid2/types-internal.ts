@@ -1,4 +1,3 @@
-import * as TanStack from "@tanstack/react-table"
 import { EditableGrid2LeafColumn } from "./types-public"
 
 /** このフォルダ内部でのみ使用。外部から使われる想定はない */
@@ -29,7 +28,8 @@ export const DEFAULT_COLUMN_WIDTH = 128
  * グリッド全体の読み込み専用、列の読み取り専用設定、行ごとの読み取り専用設定を考慮する。
  */
 export function checkIfCellReadOnly<TRow>(
-  cell: TanStack.Cell<TRow, unknown>,
+  columnMeta: ColumnMetadataInternal<TRow>,
+  rowIndex: number,
   gridIsReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean) | undefined,
   originalRow: TRow
 ): boolean {
@@ -40,16 +40,15 @@ export function checkIfCellReadOnly<TRow>(
   }
 
   // 行単位の読み取り専用
-  if (typeof gridIsReadOnly === 'function' && gridIsReadOnly(originalRow, cell.row.index)) {
+  if (typeof gridIsReadOnly === 'function' && gridIsReadOnly(originalRow, rowIndex)) {
     return true
   }
 
   // 列単位の読み取り専用
-  const columnMeta = cell.column.columnDef.meta as ColumnMetadataInternal<TRow>
   if (columnMeta.isReadOnly === true) {
     return true
   }
-  if (typeof columnMeta.isReadOnly === 'function' && columnMeta.isReadOnly(originalRow, cell.row.index)) {
+  if (typeof columnMeta.isReadOnly === 'function' && columnMeta.isReadOnly(originalRow, rowIndex)) {
     return true
   }
 

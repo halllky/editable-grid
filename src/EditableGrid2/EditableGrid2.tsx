@@ -11,7 +11,7 @@ import { useScrollToCell } from "./useScrollToCell"
 import { CellEditor, CellEditorRef } from "./CellEditor"
 import { useOnKeyDownToStartEditing } from "./useOnKeyDownToStartEditing"
 import { useCopyPaste } from "./useCopyPaste"
-import { useRowAccessor } from "./useRowAccessor"
+import { useRowAccessor, useStableArray } from "./useRowAccessor"
 
 import "./styles.css"
 
@@ -26,7 +26,8 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
   const [isGridActive, setIsGridActive] = React.useState(false)
   const [_, forceUpdate] = React.useReducer(x => x >= Number.MAX_SAFE_INTEGER ? 0 : x + 1, 0)
-  const getRowObject = useRowAccessor(props.data, props.getLatestRowObject)
+  const rowKeys = useStableArray(props.rowKeys)
+  const getRowObject = useRowAccessor(props.getLatestRowObject)
 
   //#region Tanstack table
 
@@ -38,11 +39,13 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     lastFixedIndex,
   } = useTanstackColumns(props, getRowObject)
 
-  // TanStack Table のテーブルインスタンス
+  // TanStack Table のテーブルインスタンス。
+  // 行データではなく行のキー文字列だけを持つ。
+  // 値の描画・編集は行の最新状態の取得関数経由で行われるため、テーブル自体は行の値を保持しない。
   const [columnSizing, setColumnSizing] = React.useState<TanStack.ColumnSizingState>({})
   const table = TanStack.useReactTable({
-    data: props.data,
-    getRowId: props.getRowId,
+    data: rowKeys,
+    getRowId: key => key,
     columns: tanstackColumns,
     columnResizeMode: 'onChange',
     onColumnSizingChange: setColumnSizing,
@@ -87,7 +90,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   // 座標計算関数
   const getPixel = useGetPixel(
     visibleLeafColumns,
-    props.data.length,
+    rowKeys.length,
     virtualItems,
     rowVirtualizer,
     totalHeaderHeight,
@@ -135,7 +138,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     getCheckedRows: () => {
       return table.getSelectedRowModel().flatRows.map(r => ({
         rowIndex: r.index,
-        row: r.original,
+        row: getRowObject(r.index),
       }))
     },
     getSelectedRows: () => {
@@ -326,7 +329,11 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                     cell={cell}
                     cellMeta={cell.column.columnDef.meta as ColumnMetadataInternal<TRow>}
                     rowOriginal={rowOriginal}
-                    isReadOnly={checkIfCellReadOnly(cell, props.isReadOnly, rowOriginal)}
+                    isReadOnly={checkIfCellReadOnly(
+                      cell.column.columnDef.meta as ColumnMetadataInternal<TRow>,
+                      cell.row.index,
+                      props.isReadOnly,
+                      rowOriginal)}
                     isChecked={cell.row.getIsSelected()}
                     isLastFixedColumn={cell.column.getIndex() === lastFixedIndex}
                     size={cell.column.getSize()}
@@ -369,23 +376,21 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 })
 
 export default React.memo(EditableGrid2, (prev, next) => {
-  // getRowId / getLatestRowObject / columns[0] は毎回参照が変わる前提なので比較しない
+  // getLatestRowObject / columns[0] は毎回参照が変わる前提なので比較しない
   const [, prevColumnDeps] = prev.columns ?? []
   const [, nextColumnDeps] = next.columns ?? []
 
   // columns[1] の依存配列は要素ごとに比較
-  const prevDepsLength = prevColumnDeps?.length ?? 0
-  const nextDepsLength = nextColumnDeps?.length ?? 0
-  if (prevDepsLength !== nextDepsLength) return false
-  for (let i = 0; i < prevDepsLength; i++) {
-    if (!Object.is(prevColumnDeps[i], nextColumnDeps?.[i])) return false
-  }
+  if (!arraysEqual(prevColumnDeps, nextColumnDeps)) return false
+
+  // rowKeys も、参照ではなく内容（各要素の値と並び順）が変わっていなければ再描画不要
+  if (!arraysEqual(prev.rowKeys, next.rowKeys)) return false
 
   // 上記以外の props は Object.is で比較
   const keys = new Set([...Object.keys(prev), ...Object.keys(next)])
-  keys.delete("getRowId" satisfies keyof EditableGrid2Props<unknown>)
   keys.delete("getLatestRowObject" satisfies keyof EditableGrid2Props<unknown>)
   keys.delete("columns" satisfies keyof EditableGrid2Props<unknown>)
+  keys.delete("rowKeys" satisfies keyof EditableGrid2Props<unknown>)
 
   for (const key of keys) {
     const p = (prev as Record<string, unknown>)[key]
@@ -395,6 +400,17 @@ export default React.memo(EditableGrid2, (prev, next) => {
 
   return true
 }) as (<TRow>(props: EditableGrid2Props<TRow> & { ref?: React.ForwardedRef<EditableGrid2Ref<TRow>> }) => React.ReactNode);
+
+/** 2つの配列の内容（長さ・各要素の値と並び順）が等しいかどうかを Object.is で判定する */
+function arraysEqual(a: readonly unknown[] | undefined, b: readonly unknown[] | undefined): boolean {
+  const aLength = a?.length ?? 0
+  const bLength = b?.length ?? 0
+  if (aLength !== bLength) return false
+  for (let i = 0; i < aLength; i++) {
+    if (!Object.is(a?.[i], b?.[i])) return false
+  }
+  return true
+}
 
 //#region メモ化ヘッダ
 
@@ -435,7 +451,7 @@ const MemorizedTH = React.memo<{
       {isNonGroupedLowerHeader ? (
         // グルーピングが発生するグリッドで、かつこのヘッダがグループ化されない列である場合、
         // プレースホルダ用のレンダリング関数を呼び出す
-        (header.column.columnDef.meta as ColumnMetadataInternal<any>).original?.renderHeaderPlaceholder?.({ context: header.getContext() })
+        (header.column.columnDef.meta as ColumnMetadataInternal<any>).original?.renderHeaderPlaceholder?.({ columnWidth: header.getSize() })
       ) : (
         // 上記以外は Tanstack Table の通常のヘッダレンダリング
         TanStack.flexRender(header.column.columnDef.header, header.getContext())

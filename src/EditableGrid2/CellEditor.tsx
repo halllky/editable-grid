@@ -13,8 +13,8 @@ export type CellEditorProps<TRow> = {
   focusedCell: CellPosition | null
   /** スクロールコンテナのDOM要素のscrollLeft */
   scrollContainerScrollLeft: number
-  rowModel: TanStack.RowModel<TRow>
-  visibleLeafColumns: TanStack.Column<TRow, unknown>[]
+  rowModel: TanStack.RowModel<string>
+  visibleLeafColumns: TanStack.Column<string, unknown>[]
   /** 編集状態が変わったときに呼ばれるコールバック */
   onEditingStateChanged: (isEditing: boolean) => void
   /** グリッド全体のpropsで指定される標準コンポーネント */
@@ -60,7 +60,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   const editorTextareaRef = React.useRef<EditableGridCellEditorRef>(null)
 
   const [editorComponent, setEditorComponent] = React.useState<EditableGridCellEditor>(gridEditorComponent ?? NoopEditor)
-  const [edittingCell, setEdittingCell] = React.useState<TanStack.Cell<TRow, unknown> | null>(null)
+  const [edittingCell, setEdittingCell] = React.useState<TanStack.Cell<string, unknown> | null>(null)
 
   const isGridActiveRef = React.useRef(isGridActive)
   isGridActiveRef.current = isGridActive
@@ -214,7 +214,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       if (!columnMeta.original?.getValueForEditor) return;
 
       const rowOriginal = getRowObject(cell.row.index)
-      if (checkIfCellReadOnly(cell, gridIsReadOnly, rowOriginal)) return;
+      if (checkIfCellReadOnly(columnMeta, cell.row.index, gridIsReadOnly, rowOriginal)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、
       // その文字を初期値としてエディタにセットする

@@ -37,32 +37,41 @@ export function useTanstackColumns<TRow>(
     }, -1)
 
     // グループ化されない列を TanStack Table の列定義に変換
-    const columnHelper = TanStack.createColumnHelper<TRow>()
-    const withTanstackLeafColumn = flatten.map(({ group, leaf }, index) => ({
-      group,
-      leaf,
-      tanstackLeafColumn: columnHelper.display({
-        id: `col-${leaf.columnId ?? index}`,
-        header: context => leaf.renderHeader({ context }),
-        cell: context => leaf.renderBody({
-          context,
-          isReadOnly: checkIfCellReadOnly(context.cell, props.isReadOnly, getRowObject(context.row.index)),
+    // (行データではなく行キー文字列をテーブルの行として扱うため、TRow ではなく string を型引数に使う)
+    const columnHelper = TanStack.createColumnHelper<string>()
+    const withTanstackLeafColumn = flatten.map(({ group, leaf }, index) => {
+      const meta = {
+        leafIndex: index,
+        original: leaf,
+        isFixed: index <= maxIndexOfIsFixed,
+        isReadOnly: leaf.isReadOnly ?? false,
+        isGroupedColumn: group !== undefined,
+        isRowCheckBox: false,
+      } satisfies ColumnMetadataInternal<TRow>
+
+      return {
+        group,
+        leaf,
+        tanstackLeafColumn: columnHelper.display({
+          id: `col-${leaf.columnId ?? index}`,
+          header: context => leaf.renderHeader({
+            columnWidth: context.header.getSize(),
+          }),
+          cell: context => leaf.renderBody({
+            row: getRowObject(context.row.index),
+            rowIndex: context.row.index,
+            columnWidth: context.column.getSize(),
+            isReadOnly: checkIfCellReadOnly(meta, context.row.index, props.isReadOnly, getRowObject(context.row.index)),
+          }),
+          size: leaf.defaultWidth ?? DEFAULT_COLUMN_WIDTH,
+          enableResizing: leaf.disableResizing !== true,
+          meta,
         }),
-        size: leaf.defaultWidth ?? DEFAULT_COLUMN_WIDTH,
-        enableResizing: leaf.disableResizing !== true,
-        meta: {
-          leafIndex: index,
-          original: leaf,
-          isFixed: index <= maxIndexOfIsFixed,
-          isReadOnly: leaf.isReadOnly ?? false,
-          isGroupedColumn: group !== undefined,
-          isRowCheckBox: false,
-        } satisfies ColumnMetadataInternal<TRow>,
-      }),
-    }))
+      }
+    })
 
     // 最終的な TanStack Table の列定義を構築
-    const tanstackColumns: TanStack.ColumnDef<TRow>[] = []
+    const tanstackColumns: TanStack.ColumnDef<string>[] = []
     if (props.showCheckBox) {
       tanstackColumns.push(createRowCheckBoxColumn(props.showCheckBox, columnHelper, getRowObject))
     }
@@ -74,14 +83,16 @@ export function useTanstackColumns<TRow>(
 
       } else if (item.group === currentGroup) {
         // グループ化された列（1つ前のグループと同じ）
-        const gp = tanstackColumns[tanstackColumns.length - 1] as TanStack.GroupColumnDef<TRow>
+        const gp = tanstackColumns[tanstackColumns.length - 1] as TanStack.GroupColumnDef<string>
         gp.columns!.push(item.tanstackLeafColumn)
 
       } else {
         // グループ化された列（新しいグループ）
         tanstackColumns.push(columnHelper.group({
           id: `group-${tanstackColumns.length}`,
-          header: context => item.group?.renderHeader({ context }),
+          header: context => item.group?.renderHeader({
+            columnWidth: context.header.getSize(),
+          }),
           columns: [item.tanstackLeafColumn],
           meta: {
             leafIndex: null,

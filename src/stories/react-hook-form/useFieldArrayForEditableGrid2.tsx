@@ -51,11 +51,15 @@ export function useFieldArrayForEditableGrid2<
   }, [helper, ...getColumnDefDependencies])
 
   // EditableGrid2 の props
+  const rowKeyName = fieldArrayProps.keyName ?? "id"
+  const rowKeys = React.useMemo(
+    () => fieldArrayReturn.fields.map(f => (f as Record<string, string>)[rowKeyName]),
+    [fieldArrayReturn.fields, rowKeyName]
+  )
   const editableGrid2Props: EditableGrid2Props<TRow> & { ref: React.RefObject<EditableGrid2Ref<TRow> | null> } = {
     ref: gridRef,
-    data: fieldArrayReturn.fields,
+    rowKeys,
     columns: [getColumns, [getColumns]],
-    getRowId: row => (row as Record<string, string>)[fieldArrayProps.keyName ?? "id"],
     getLatestRowObject: index => getValues(`${fieldArrayProps.name}.${index}` as ReactHookForm.Path<TField>),
   }
 
@@ -148,10 +152,10 @@ function useColumnDefHelper<
             {header}
           </div>
         ),
-        renderBody: ({ context }) => (
+        renderBody: ({ rowIndex }) => (
           <RHFTextCell
             control={control}
-            name={`${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField>}
+            name={`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>}
             wrap={wrap}
             format={options?.format}
           />
@@ -176,11 +180,10 @@ function useColumnDefHelper<
     //#region ヘルパー: ボタン
     buttonCell: (text, onClick, options) => ({
       renderHeader: () => null,
-      renderBody: ({ context, isReadOnly }) => (
+      renderBody: ({ row, rowIndex, isReadOnly }) => (
         <button type="button"
           onClick={() => {
-            const current = getValues(`${arrayName}.${context.row.index}` as ReactHookForm.Path<TField>) as ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>
-            onClick(current, context.row.index)
+            onClick(row, rowIndex)
             gridRef.current?.forceUpdate()
           }}
           disabled={options?.disableIfReadOnly === true && isReadOnly}
@@ -188,8 +191,8 @@ function useColumnDefHelper<
         >
           <RowWatcher
             control={control}
-            name={`${arrayName}.${context.row.index}` as ReactHookForm.Path<TField>}
-            render={(r) => text(r, context.row.index)}
+            name={`${arrayName}.${rowIndex}` as ReactHookForm.Path<TField>}
+            render={(r) => text(r, rowIndex)}
           />
         </button>
       ),
@@ -256,8 +259,8 @@ function useColumnDefHelper<
             {header}
           </div>
         ),
-        renderBody: ({ context }) => {
-          const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField> })
+        renderBody: ({ rowIndex }) => {
+          const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField> })
           const text = candidateValues.find(o => o.value === value)?.text ?? (value as string)
           return (
             <div className="px-1 py-px truncate text-sm">
@@ -297,15 +300,15 @@ function useColumnDefHelper<
           {header}
         </div>
       ),
-      renderBody: ({ context, isReadOnly }) => {
-        const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField> })
+      renderBody: ({ rowIndex, isReadOnly }) => {
+        const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField> })
         return (
           <label className={`self-start block h-full w-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
               checked={!!value}
               onChange={e => setValue(
-                `${arrayName}.${context.row.index}.${String(key)}` as ReactHookForm.Path<TField>,
+                `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
                 e.target.checked as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
                 { shouldDirty: true }
               )}

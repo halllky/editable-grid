@@ -15,11 +15,13 @@ function CellEditorExample() {
     defaultValues: { rows: getDefaultValues() },
   })
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
+  const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
 
   return (
     <div className="flex flex-col gap-2 p-2">
       <EG2.EditableGrid2
-        data={fields}
+        rowKeys={rowKeys}
+        getLatestRowObject={index => getValues(`rows.${index}`)}
         columns={[() => [{
           // 改行なしテキスト エディタ用設定 ここから
           editor: createTextCellEditor(false),
@@ -31,8 +33,8 @@ function CellEditorExample() {
           // 改行なしテキスト エディタ用設定 ここまで
 
           renderHeader: () => <CellText>改行なし</CellText>,
-          renderBody: ({ context }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.singleLine`, control })
+          renderBody: ({ rowIndex }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.singleLine`, control })
             return <CellText>{watched}</CellText>
           },
           defaultWidth: 152,
@@ -44,8 +46,8 @@ function CellEditorExample() {
           // 改行ありテキスト エディタ用設定 ここまで
 
           renderHeader: () => <CellText>改行あり（※1）</CellText>,
-          renderBody: ({ context }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.multiLine`, control })
+          renderBody: ({ rowIndex }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.multiLine`, control })
             return <CellText wrap>{watched}</CellText>
           },
           defaultWidth: 224,
@@ -65,8 +67,8 @@ function CellEditorExample() {
           // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
           renderHeader: () => <CellText>選択肢</CellText>,
-          renderBody: ({ context }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.option`, control })
+          renderBody: ({ rowIndex }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.option`, control })
             return <CellText>{watched}</CellText>
           },
           defaultWidth: 120,
@@ -86,8 +88,8 @@ function CellEditorExample() {
           // 日付 エディタ用設定 ここまで
 
           renderHeader: () => <CellText>日付</CellText>,
-          renderBody: ({ context }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.date`, control })
+          renderBody: ({ rowIndex }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.date`, control })
             return <CellText>{watched}</CellText>
           },
           defaultWidth: 124,
@@ -107,15 +109,15 @@ function CellEditorExample() {
           // チェックボックス エディタ用設定 ここまで
 
           renderHeader: () => <CellText>チェックボックス（※2）</CellText>,
-          renderBody: ({ context, isReadOnly }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${context.row.index}.checkbox`, control })
+          renderBody: ({ rowIndex, isReadOnly }) => {
+            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.checkbox`, control })
             return (
               <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
                 <span>
                   <input
                     type="checkbox"
                     checked={!!watched}
-                    onChange={e => setValue(`rows.${context.row.index}.checkbox`, e.target.checked)}
+                    onChange={e => setValue(`rows.${rowIndex}.checkbox`, e.target.checked)}
                     disabled={isReadOnly}
                     className={isReadOnly ? '' : 'cursor-pointer'}
                   />
