@@ -1,6 +1,10 @@
 import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import ToggleSource from "../ToggleSource"
 import * as CustomCellEditorStories from "./index.stories"
 import CustomCellEditorStoriesTsx from "./index.stories.tsx?raw"
+import createTextCellEditorTsx from "./createTextCellEditor.tsx?raw"
+import createSelectCellEditorTsx from "./createSelectCellEditor.tsx?raw"
+import createDateCellEditorTsx from "./createDateCellEditor.tsx?raw"
 
 <Meta of={CustomCellEditorStories} />
 
@@ -22,6 +26,11 @@ import CustomCellEditorStoriesTsx from "./index.stories.tsx?raw"
   layout="fullscreen"
   source={{ language: "tsx", code: CustomCellEditorStoriesTsx }}
 />
+
+<ToggleSource summary="上記例の「改行なし」「改行あり」のエディタ" language="tsx" code={createTextCellEditorTsx} />
+<ToggleSource summary="上記例の「選択肢」のエディタ" language="tsx" code={createSelectCellEditorTsx} />
+<ToggleSource summary="上記例の「日付」のエディタ" language="tsx" code={createDateCellEditorTsx} />
+<div style={{ height: "24px" }}></div>
 
 ## 組み込み方
 

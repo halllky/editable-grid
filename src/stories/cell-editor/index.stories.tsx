@@ -172,7 +172,7 @@ function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
 }
 
 const storybookSetting: Meta<typeof CellEditorExample> = {
-  title: "EditableGrid2/セルエディタ",
+  title: "セルエディタ",
   component: CellEditorExample,
   tags: ["!dev"], // サイドメニューに表示させない
 }

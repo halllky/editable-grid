@@ -141,7 +141,7 @@ type TestRow = {
  * Storybook におけるこの画面のメタ情報
  */
 const meta = {
-  title: 'EditableGrid2/react-hook-form との統合',
+  title: 'react-hook-form との統合',
   component: EditableGrid2WithReactHookForm,
   tags: ['autodocs'],
   argTypes: {
