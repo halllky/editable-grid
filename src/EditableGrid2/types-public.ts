@@ -158,7 +158,17 @@ export type EditableGrid2BodyRenderer<TRow> = (args: {
 
 //#region セルエディタ
 
-/** セル編集エディタのコンポーネント */
+/**
+ * セル編集エディタのコンポーネント。
+ * EditableGrid2Props.editor または列定義の editor として渡す。
+ *
+ * このコンポーネントは編集対象セルが存在する限り、編集中かどうかに関わらず常にDOM上にマウントされ続け、
+ * かつグリッドがアクティブな間は常にフォーカスを保持する（キーボード入力・IME変換を横取りするため）。
+ * 非編集時は props.style によって不可視状態（opacity: 0 等）に制御される。
+ * 列によって異なるエディタコンポーネントが指定されている場合、フォーカス移動時にコンポーネント自体が
+ * 差し替わる（アンマウント→マウント）ため、コンポーネント内部のstateは編集対象セルが変わるたびにリセットされる
+ * 前提で実装すること（値の復元は props.style 適用後に ref.setValueAndSelectAll 経由で行われる）。
+ */
 export type EditableGridCellEditor = React.ForwardRefExoticComponent<
   EditableGridCellEditorProps &
   React.RefAttributes<EditableGridCellEditorRef>
@@ -166,22 +176,67 @@ export type EditableGridCellEditor = React.ForwardRefExoticComponent<
 
 /** セル編集エディタのプロパティ */
 export type EditableGridCellEditorProps = {
-  /** スタイル。エディタの位置情報などが渡される */
+  /**
+   * スタイル。エディタの位置・サイズ・可視状態（非編集時は opacity: 0, pointer-events: none 等）が渡される。
+   * ルート要素（ref.getDomElement が返す要素と同一の要素、もしくはその祖先）にそのまま適用すること。
+   * 適用しない場合、エディタの表示位置がずれたり、非編集時にも操作可能な状態で表示されてしまう。
+   */
   style: React.CSSProperties
-  /** セルが編集中かどうか */
+  /**
+   * セルが実際に編集中かどうか。
+   * フォーカスは編集中でなくても常に当たっているため、この値で「今キー入力を編集操作として扱ってよいか」を
+   * 判定すること（例: Enter/Escape で確定・キャンセルする処理は isEditing === true の間だけ行う）。
+   */
   isEditing: boolean
-  /** 明示的に編集完了を引き起こす */
+  /**
+   * 編集内容を確定してほしいときにエディタ側から呼び出す（例: Enter/Tabキー押下時）。
+   * 呼び出すと isEditing が false になり、渡した value が列定義の setValueFromEditor に渡される。
+   * なお、グリッド外クリックなど、エディタが自ら呼び出さずに編集が確定するケースもあり、
+   * その場合はグリッド側が ref.getCurrentValue() を呼んで値を取得するため、
+   * getCurrentValue が返す値は常にこの value と一致する（=最新の入力内容を保持する）ようにすること。
+   */
   requestCommit: (value: string) => void
-  /** 明示的に編集キャンセルを引き起こす */
+  /**
+   * 編集を破棄してキャンセルしてほしいときにエディタ側から呼び出す（例: Escapeキー押下時）。
+   * 呼び出すと isEditing が false になり、直後に ref.setValueAndSelectAll が
+   * timing: 'edit-end' で呼ばれ、編集前の値に戻される。
+   */
   requestCancel: () => void
 }
 
-/** セル編集エディタのref */
+/**
+ * セル編集エディタのref。
+ * EditableGridCellEditor は forwardRef でこれらのメソッドを exposeする必要がある。
+ * いずれのメソッドも、グリッド側から任意のタイミング（フォーカス移動時・編集開始時・編集終了時）で
+ * 呼び出されることを前提に、常に呼び出し可能な状態を維持すること。
+ */
 export type EditableGridCellEditorRef = {
+  /**
+   * エディタが現在保持している値を返す。
+   * requestCommit を経由せずに編集が確定される場合（グリッド外クリックによる自動確定など）に
+   * グリッド側から呼び出され、この戻り値がそのままセルの値として採用される。
+   * そのため、ユーザーの入力に追従して常に最新の値を返す実装にすること。
+   */
   getCurrentValue: () => string
+  /**
+   * グリッド側からエディタの表示値を強制的に書き換え、かつ内容を全選択状態にする。
+   * 呼び出されるタイミングは timing 引数で区別される。
+   * - `move-focus`: 編集を伴わないフォーカスセルの移動直後。エディタは不可視のままだが、
+   *   次にクイック入力（セル選択中にキーを打鍵してそのまま編集開始する操作）が起きた際に
+   *   正しい初期値・IME状態から編集を始められるよう、フォーカス移動先セルの値を先読みしてセットする。
+   * - `edit-start`: 編集開始直後。ダブルクリック/Enterキー等での通常の編集開始時はセルの現在値が、
+   *   キー入力によるクイック編集開始時は最初に入力された1文字が value として渡される。
+   * - `edit-end`: requestCommit / requestCancel による編集終了直後。
+   *   キャンセル時は編集前の値、確定時は確定後の値が渡される。
+   * 多くの実装では timing によらず value をそのままセットして全選択すればよいが、
+   * タイミングに応じて挙動を変えたい場合（例: 'edit-start' のときだけ全選択する等）に利用できる。
+   */
   setValueAndSelectAll: (value: string, timing: 'move-focus' | 'edit-start' | 'edit-end') => void
   /**
-   * エディタのルート要素を取得する（クリックがエディタ内か判定するために使用）
+   * エディタのルート要素を取得する。
+   * グリッド側が「画面外クリックによる編集確定」を行うかどうかを、
+   * クリックされた要素がこの要素の子孫であるかどうかで判定するために使用する。
+   * null を返すと、あらゆる外部クリックがエディタ外へのクリックとして扱われ、即座に確定処理が走る。
    */
   getDomElement: () => HTMLElement | null
 }
