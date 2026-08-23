@@ -1,8 +1,10 @@
-import { Meta, Source } from "@storybook/addon-docs/blocks"
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as CustomCellEditorStories from "./CustomCellEditor.stories"
+import CustomCellEditorStoriesTsx from "./CustomCellEditor.stories.tsx?raw"
 
-<Meta title="EditableGrid2/編集" />
+<Meta of={CustomCellEditorStories} />
 
-# 編集
+# セルエディタ
 
 セルをダブルクリックしたりキー入力したりしたときに表示される、
 実際に値を入力するコンポーネントは利用側で実装します。
@@ -14,6 +16,12 @@ import { Meta, Source } from "@storybook/addon-docs/blocks"
 
 セルエディタが満たすべき契約は型として公開されており、
 それさえ満たせばどのような外観・仕様のエディタでも組み込めます。
+
+<Canvas
+  of={CustomCellEditorStories.セルエディタ}
+  layout="fullscreen"
+  source={{ language: "tsx", code: CustomCellEditorStoriesTsx }}
+/>
 
 ## 組み込み方
 
