@@ -9,12 +9,27 @@ const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(file
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      // Vite の lib モードは CSS を dist/index.css に切り出すが、
+      // エントリの JS チャンクに import './index.css' を書き込んでくれない。
+      // このままだと利用側が dist/index.js を import するだけでは
+      // スタイルが一切当たらないため、ビルド後の JS 先頭に import を注入する。
+      name: 'eg2-inject-css-import',
+      apply: 'build',
+      renderChunk(code, chunk) {
+        if (!chunk.isEntry) return null
+        return { code: `import './index.css';\n${code}`, map: null }
+      },
+    },
+  ],
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/EditableGrid2/index.ts'),
       formats: ['es'],
-      fileName: 'index'
+      fileName: 'index',
+      cssFileName: 'index'
     },
     rollupOptions: {
       external: ['react', 'react/jsx-runtime', 'react-dom', '@tanstack/react-table', '@tanstack/react-virtual']

@@ -50,7 +50,7 @@ export const TextCellEditor: EditableGridCellEditor = React.forwardRef(function 
       value={value ?? ''}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
-      className="px-[3px] resize-none field-sizing-content outline-none border border-black bg-white"
+      className="halllky-eg2-text-editor"
       style={style}
     />
   )

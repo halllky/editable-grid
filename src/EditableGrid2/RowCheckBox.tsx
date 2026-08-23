@@ -31,7 +31,7 @@ export function createRowCheckBoxColumn<TRow>(
     // テーブル左上の角の全選択チェックボックス
     header: ctx => (
       <label
-        className="w-full flex justify-center items-center sticky cursor-pointer"
+        className="halllky-eg2-checkbox-header-label"
         onClick={e => e.stopPropagation()}
       >
         <input
@@ -39,7 +39,7 @@ export function createRowCheckBoxColumn<TRow>(
           checked={ctx.table.getIsAllRowsSelected()}
           onChange={ctx.table.getToggleAllRowsSelectedHandler()}
           aria-label="全行選択"
-          className="cursor-pointer"
+          className="halllky-eg2-checkbox"
         />
       </label>
     ),
@@ -52,7 +52,7 @@ export function createRowCheckBoxColumn<TRow>(
 
       return (
         <label
-          className="h-full flex justify-center items-center bg-gray-100 cursor-pointer"
+          className="halllky-eg2-checkbox-cell-label"
           style={{ width: ctx.column.getSize() }}
         >
           {showCheckBox && (
@@ -61,7 +61,7 @@ export function createRowCheckBoxColumn<TRow>(
               checked={ctx.row.getIsSelected()}
               onChange={ctx.row.getToggleSelectedHandler()}
               aria-label={`行${ctx.row.index + 1}を選択`}
-              className="cursor-pointer"
+              className="halllky-eg2-checkbox"
             />
           )}
         </label>

@@ -2,6 +2,9 @@
   "name": "@halllky/react-editable-grid",
   "version": "0.1.0",
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "dist"
   ],
@@ -11,7 +14,8 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./style.css": "./dist/index.css"
   },
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",

@@ -13,6 +13,8 @@ import { useOnKeyDownToStartEditing } from "./useOnKeyDownToStartEditing"
 import { useCopyPaste } from "./useCopyPaste"
 import { useRowAccessor } from "./useRowAccessor"
 
+import "./styles.css"
+
 /**
  * EditableGrid2 コンポーネント
  */
@@ -224,7 +226,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   return (
     <div
       ref={tableContainerRef}
-      className={`z-0 overflow-auto bg-gray-200 relative outline-none ${props.className ?? ""}`}
+      className={`halllky-eg2-root ${props.className ?? ""}`}
       tabIndex={0} // 1行も無い場合であってもキーボード操作を受け付けるようにするため
 
       onKeyDown={handleKeyDown}
@@ -269,14 +271,14 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
       />
 
       <table
-        className="grid border-collapse border-spacing-0"
+        className="halllky-eg2-table"
         style={{ minWidth: table.getTotalSize() }}
       >
         {/* 列ヘッダ */}
-        <thead className="grid sticky top-0 z-20 grid-header-group">
+        <thead className="halllky-eg2-thead">
 
           {headerGroups.map((headerGroup, headerGroupIndex) => (
-            <tr key={headerGroup.id} className="flex w-full">
+            <tr key={headerGroup.id} className="halllky-eg2-header-row">
 
               {headerGroup.headers.map(header => (
                 <MemorizedTH
@@ -296,7 +298,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
           ))}
         </thead>
 
-        <tbody className="grid relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+        <tbody className="halllky-eg2-tbody" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
 
           {/* 画面のスクロール範囲内に表示されている行のみレンダリングされる */}
           {virtualItems.map(virtualRow => {
@@ -313,7 +315,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 
                 data-index={virtualRow.index} // data-index は TanStack Virtual の予約語
                 ref={tbodyTrRef} // 動的行高さを測定
-                className={`flex absolute w-full ${props.getRowClassName?.(rowOriginal) ?? ''}`}
+                className={`halllky-eg2-row ${props.getRowClassName?.(rowOriginal) ?? ''}`}
                 style={{ top: `${virtualRow.start}px` }}
               >
                 {row.getVisibleCells().map(cell => (
@@ -337,10 +339,10 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 
           {/* データが空の場合のメッセージ */}
           {rowModel.rows.length === 0 && (
-            <tr className="flex absolute w-full">
+            <tr className="halllky-eg2-row">
               <td
                 colSpan={visibleLeafColumns.length}
-                className="flex w-full p-4 text-center text-gray-500 select-none"
+                className="halllky-eg2-empty-cell"
               >
                 データがありません
               </td>
@@ -416,9 +418,9 @@ const MemorizedTH = React.memo<{
     && !headerMeta?.isGroupedColumn
     && headerGroupIndex === 1
 
-  let className = 'flex bg-gray-100 relative text-left select-none border-b border-r border-gray-300'
-  if (headerMeta.isFixed) className += ' sticky z-10'
-  if (isNonGroupedUpperHeader) className += ' border-b-transparent'
+  let className = 'halllky-eg2-th'
+  if (headerMeta.isFixed) className += ' halllky-eg2-th--fixed'
+  if (isNonGroupedUpperHeader) className += ' halllky-eg2-th--no-bottom-border'
 
   return (
     <th className={className} style={{
@@ -440,7 +442,7 @@ const MemorizedTH = React.memo<{
         <div
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
-          className={`absolute top-0 right-0 h-full w-1.5 cursor-col-resize select-none touch-none ${isResizing ? 'bg-sky-500 opacity-50' : 'hover:bg-gray-400'}`}
+          className={`halllky-eg2-resize-handle ${isResizing ? 'halllky-eg2-resize-handle--resizing' : ''}`}
         />
       )}
     </th>
@@ -482,22 +484,22 @@ const MemorizedTD = React.memo<{
   isChecked: unknown
 }>(function MemorizedTD({ cell, cellMeta, size, minHeight, start, propsStriped, isReadOnly, isLastFixedColumn }) {
 
-  let className = 'flex outline-none select-none'
+  let className = 'halllky-eg2-td'
 
   if (!isReadOnly) {
     className += !propsStriped || cell.row.index % 2 === 0
-      ? ' bg-white'
-      : ' bg-gray-50'
+      ? ' halllky-eg2-td--bg-default'
+      : ' halllky-eg2-td--bg-striped'
   } else if (cellMeta.isFixed) {
-    className += ' bg-gray-200'
+    className += ' halllky-eg2-td--bg-readonly'
   }
 
   if (cellMeta.isRowCheckBox || isLastFixedColumn) {
-    className += ` border-r border-gray-300`
+    className += ' halllky-eg2-td--border-right'
   }
 
   // z-indexを明示的に指定して SelectedRange(unfixed) より手前に、ヘッダより奥に来るようにする
-  if (cellMeta.isFixed) className += ` sticky z-10`
+  if (cellMeta.isFixed) className += ' halllky-eg2-td--fixed'
 
   return (
     <td

@@ -1,0 +1,243 @@
+/* ============================================================
+ * @halllky/react-editable-grid — styles
+ *
+ * - 全クラスは halllky-eg2- プレフィックス（利用側との衝突防止）
+ * - 配色は CSS 変数で利用側から上書き可能
+ * - Tailwind preflight に依存しないよう、必要な UA リセットは自前で持つ
+ * - セレクタは単一クラス（詳細度 0,1,0）に統一し、
+ *   利用側が className / getRowClassName で渡すクラスが負けないようにする
+ * ========================================================== */
+
+.halllky-eg2-root {
+  /* --- テーマ変数（利用側から上書き可能） --- */
+  /* gray-200 */
+  --halllky-eg2-color-grid-bg: #e5e7eb;
+  /* white */
+  --halllky-eg2-color-cell-bg: #ffffff;
+  /* gray-50 */
+  --halllky-eg2-color-cell-bg-striped: #f9fafb;
+  /* gray-100 */
+  --halllky-eg2-color-header-bg: #f3f4f6;
+  /* gray-200 */
+  --halllky-eg2-color-readonly-bg: #e5e7eb;
+  /* gray-300 */
+  --halllky-eg2-color-border: #d1d5db;
+  /* gray-400 */
+  --halllky-eg2-color-resize-handle-hover: #9ca3af;
+  /* gray-500 */
+  --halllky-eg2-color-empty-text: #6b7280;
+  /* sky-500 */
+  --halllky-eg2-color-selection-border: #0ea5e9;
+  /* sky-200 */
+  --halllky-eg2-color-selection-fill: #bae6fd;
+  --halllky-eg2-color-editor-border: #000000;
+  --halllky-eg2-color-editor-bg: #ffffff;
+
+  position: relative;
+  z-index: 0;
+  overflow: auto;
+  outline: none;
+  background-color: var(--halllky-eg2-color-grid-bg);
+}
+
+/* 列幅計算が border 込み(border-box)である前提のため必須。
+   preflight が無い環境でも成立させる。自分のクラスのみに限定して適用する。 */
+.halllky-eg2-root,
+.halllky-eg2-table,
+.halllky-eg2-thead,
+.halllky-eg2-tbody,
+.halllky-eg2-header-row,
+.halllky-eg2-row,
+.halllky-eg2-th,
+.halllky-eg2-td,
+.halllky-eg2-empty-cell,
+.halllky-eg2-resize-handle,
+.halllky-eg2-selection-fixed-layer,
+.halllky-eg2-selection-border,
+.halllky-eg2-selection-overlay,
+.halllky-eg2-checkbox-header-label,
+.halllky-eg2-checkbox-cell-label,
+.halllky-eg2-text-editor {
+  box-sizing: border-box;
+}
+
+/* --- テーブル骨格 --- */
+.halllky-eg2-table {
+  display: grid;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.halllky-eg2-thead {
+  display: grid;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.halllky-eg2-header-row {
+  display: flex;
+  width: 100%;
+}
+
+.halllky-eg2-tbody {
+  display: grid;
+  position: relative;
+}
+
+.halllky-eg2-row {
+  display: flex;
+  position: absolute;
+  width: 100%;
+}
+
+/* --- ヘッダセル --- */
+.halllky-eg2-th {
+  display: flex;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  /* UA の th padding を打ち消す */
+  font-weight: inherit;
+  /* UA の bold を打ち消す */
+  text-align: left;
+  /* UA の center を打ち消す */
+  user-select: none;
+  background-color: var(--halllky-eg2-color-header-bg);
+  border-bottom: 1px solid var(--halllky-eg2-color-border);
+  border-right: 1px solid var(--halllky-eg2-color-border);
+}
+
+.halllky-eg2-th--fixed {
+  position: sticky;
+  z-index: 10;
+}
+
+.halllky-eg2-th--no-bottom-border {
+  border-bottom-color: transparent;
+}
+
+/* --- 列幅変更ハンドル --- */
+.halllky-eg2-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 0.375rem;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.halllky-eg2-resize-handle:hover {
+  background-color: var(--halllky-eg2-color-resize-handle-hover);
+}
+
+/* リサイズ中は hover より優先させる */
+.halllky-eg2-resize-handle--resizing,
+.halllky-eg2-resize-handle--resizing:hover {
+  background-color: var(--halllky-eg2-color-selection-border);
+  opacity: 0.5;
+}
+
+/* --- ボディセル --- */
+.halllky-eg2-td {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  /* UA の td padding を打ち消す */
+  outline: none;
+  user-select: none;
+}
+
+.halllky-eg2-td--bg-default {
+  background-color: var(--halllky-eg2-color-cell-bg);
+}
+
+.halllky-eg2-td--bg-striped {
+  background-color: var(--halllky-eg2-color-cell-bg-striped);
+}
+
+.halllky-eg2-td--bg-readonly {
+  background-color: var(--halllky-eg2-color-readonly-bg);
+}
+
+.halllky-eg2-td--border-right {
+  border-right: 1px solid var(--halllky-eg2-color-border);
+}
+
+/* z-index を明示して SelectedRange(非固定) より手前、ヘッダより奥にする */
+.halllky-eg2-td--fixed {
+  position: sticky;
+  z-index: 10;
+}
+
+.halllky-eg2-empty-cell {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  user-select: none;
+  color: var(--halllky-eg2-color-empty-text);
+}
+
+/* --- チェックボックス列 --- */
+.halllky-eg2-checkbox-header-label,
+.halllky-eg2-checkbox-cell-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.halllky-eg2-checkbox-header-label {
+  width: 100%;
+  /* 元コードの `sticky`（inset 指定なし）を挙動維持のためそのまま移植。
+     オフセットが無いため位置は動かないが、スタッキングコンテキストは生成する。 */
+  position: sticky;
+}
+
+.halllky-eg2-checkbox-cell-label {
+  height: 100%;
+  background-color: var(--halllky-eg2-color-header-bg);
+}
+
+.halllky-eg2-checkbox {
+  cursor: pointer;
+}
+
+/* --- 選択範囲 --- */
+/* z-index は固定列ヘッダより後ろ、固定列ボディセルより手前 */
+.halllky-eg2-selection-fixed-layer {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+}
+
+.halllky-eg2-selection-border {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid var(--halllky-eg2-color-selection-border);
+}
+
+.halllky-eg2-selection-overlay {
+  position: absolute;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background-color: color-mix(in srgb, var(--halllky-eg2-color-selection-fill) 25%, transparent);
+}
+
+/* --- 標準テキストエディタ --- */
+.halllky-eg2-text-editor {
+  margin: 0;
+  padding: 0 3px;
+  font: inherit;
+  /* UA の textarea フォントを打ち消す */
+  color: inherit;
+  resize: none;
+  field-sizing: content;
+  outline: none;
+  border: 1px solid var(--halllky-eg2-color-editor-border);
+  background-color: var(--halllky-eg2-color-editor-bg);
+}

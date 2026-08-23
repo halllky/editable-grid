@@ -36,7 +36,7 @@ export const SelectedRangeForFixedColumn = React.memo(function SelectedRangeForF
 
   return (
     // z-index は固定列ヘッダより後ろ、固定列ボディセルより手前
-    <div className="sticky left-0 z-15">
+    <div className="halllky-eg2-selection-fixed-layer">
       <SelectedRangeImpl
         getPixel={getPixel}
         selectedRange={clippedRange}
@@ -101,8 +101,8 @@ function SelectedRangeImpl({
   const anchorLeft = anchorCell === null ? null : getPixel({ position: 'left', colIndex: anchorCell.colIndex })
   const anchorRight = anchorCell === null ? null : getPixel({ position: 'right', colIndex: anchorCell.colIndex })
 
-  const borderClassNames = "absolute pointer-events-none border-1 border-sky-500"
-  const overlayClassName = "absolute pointer-events-none bg-sky-200/25 mix-blend-multiply"
+  const borderClassNames = "halllky-eg2-selection-border"
+  const overlayClassName = "halllky-eg2-selection-overlay"
 
   return (
     <>
