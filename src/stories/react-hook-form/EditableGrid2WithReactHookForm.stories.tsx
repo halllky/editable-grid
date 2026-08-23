@@ -1,27 +1,24 @@
-import * as EG2 from "../EditableGrid2"
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import React from "react"
 import { useForm } from "react-hook-form"
 import { UUID } from "uuidjs"
+import * as EG2 from "../../EditableGrid2"
+import { useFieldArrayForEditableGrid2 } from "./useFieldArrayForEditableGrid2"
 
-export default function () {
-
-  // 商品名まで固定するかどうか
-  const [fixed3Cols, setFixed2Cols] = React.useState(true)
-  const handleChangeFixedCols = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFixed2Cols(e.target.checked)
-  }
-
-  // 大量データにするかどうか
-  const [isLargeData, setIsLargeData] = React.useState(true)
-  const handleChangeIsLargeData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsLargeData(e.target.checked)
-  }
-
-  // フォーカスアウトで選択解除するかどうか
-  const [clearSelectionOnBlur, setClearSelectionOnBlur] = React.useState(true)
-  const handleChangeClearSelectionOnBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setClearSelectionOnBlur(e.target.checked)
-  }
+/**
+ * EditableGrid2 を react-hook-form の useFieldArray と組み合わせて使用する例。
+ * `useFieldArrayForEditableGrid2`（このディレクトリ内で定義）は
+ * EditableGrid2 ライブラリ本体には含まれない実装例です。
+ */
+const EditableGrid2WithReactHookForm = ({
+  fixed3Cols,
+  isLargeData,
+  clearSelectionOnBlur,
+}: {
+  fixed3Cols: boolean
+  isLargeData: boolean
+  clearSelectionOnBlur: boolean
+}) => {
 
   const { control, setValue, getValues } = useForm<{ rows: TestRow[] }>()
 
@@ -30,7 +27,7 @@ export default function () {
     fieldArrayReturn: { fields, append, insert, remove, replace },
     editableGrid2Props,
     gridRef,
-  } = EG2.useFieldArrayForEditableGrid2({
+  } = useFieldArrayForEditableGrid2({
     name: "rows", control, getValues, setValue
   }, (helper) => [
     helper.buttonCell(
@@ -90,21 +87,6 @@ export default function () {
         className="h-96 w-1/2 resize"
       />
 
-      <label>
-        <input type="checkbox" checked={fixed3Cols} onChange={handleChangeFixedCols} />
-        商品名まで固定
-      </label>
-
-      <label>
-        <input type="checkbox" checked={isLargeData} onChange={handleChangeIsLargeData} />
-        大量データ
-      </label>
-
-      <label>
-        <input type="checkbox" checked={clearSelectionOnBlur} onChange={handleChangeClearSelectionOnBlur} />
-        フォーカスアウトで選択解除
-      </label>
-
       <span className="text-sm font-bold mt-4">
         プログラムから特定の値をセットする例
       </span>
@@ -155,4 +137,31 @@ type TestRow = {
   bool?: boolean
   willBeDeleted?: boolean
   status?: string
+}
+
+const meta = {
+  title: 'EditableGrid2/react-hook-form との統合',
+  component: EditableGrid2WithReactHookForm,
+  tags: ['autodocs'],
+  argTypes: {
+    fixed3Cols: { control: 'boolean', description: '商品名までの列を固定するかどうか' },
+    isLargeData: { control: 'boolean', description: '1000行の大量データを表示するかどうか' },
+    clearSelectionOnBlur: { control: 'boolean', description: 'フォーカスアウトで選択を解除するかどうか' },
+  },
+  args: {
+    fixed3Cols: true,
+    isLargeData: false,
+    clearSelectionOnBlur: true,
+  },
+} satisfies Meta<typeof EditableGrid2WithReactHookForm>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Default: Story = {}
+
+export const LargeData: Story = {
+  args: {
+    isLargeData: true,
+  },
 }

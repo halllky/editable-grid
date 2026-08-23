@@ -17,7 +17,7 @@ export default defineConfig({
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['react', 'react/jsx-runtime', 'react-dom', '@tanstack/react-table', '@tanstack/react-virtual', 'react-hook-form']
+      external: ['react', 'react/jsx-runtime', 'react-dom', '@tanstack/react-table', '@tanstack/react-virtual']
     },
   },
   test: {

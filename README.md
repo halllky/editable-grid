@@ -13,7 +13,6 @@ peerDependencies として以下が必要です:
 - react ^19
 - @tanstack/react-table ^8.21
 - @tanstack/react-virtual ^3.14
-- react-hook-form ^7.79
 
 スタイルは素の Tailwind CSS ユーティリティクラスを使用しています。CSS は同梱していないため、
 利用側の Tailwind `content` 設定に `node_modules/@halllky/react-editable-grid/dist/**/*.js` を
