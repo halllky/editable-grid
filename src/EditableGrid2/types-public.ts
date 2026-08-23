@@ -181,7 +181,18 @@ export type EditableGridCellEditorProps = {
    * ルート要素（ref.getDomElement が返す要素と同一の要素、もしくはその祖先）にそのまま適用すること。
    * 適用しない場合、エディタの表示位置がずれたり、非編集時にも操作可能な状態で表示されてしまう。
    */
-  style: React.CSSProperties
+  style: Pick<React.CSSProperties,
+    | "position"
+    | "zIndex"
+    | "opacity"
+    | "pointerEvents"
+    | "left"
+    | "top"
+    | "minHeight"
+    | "height"
+    | "width"
+    | "minWidth"
+  >
   /**
    * セルが実際に編集中かどうか。
    * フォーカスは編集中でなくても常に当たっているため、この値で「今キー入力を編集操作として扱ってよいか」を

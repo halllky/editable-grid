@@ -1,6 +1,6 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
-import { EditableGridCellEditor, EditableGridCellEditorRef } from "./types-public"
+import { EditableGridCellEditor, EditableGridCellEditorProps, EditableGridCellEditorRef } from "./types-public"
 import { checkIfCellReadOnly, ColumnMetadataInternal } from "./types-internal"
 import { CellPosition } from "./useSelection"
 import { GetPixelFunction } from "./useGetPixel"
@@ -134,8 +134,8 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   }
 
   // エディタの外観
-  const editorStyle = React.useMemo((): React.CSSProperties => {
-    const style: React.CSSProperties = {
+  const editorStyle = React.useMemo((): EditableGridCellEditorProps["style"] => {
+    const style: EditableGridCellEditorProps["style"] = {
       position: 'absolute',
       zIndex: 30, // 固定列ヘッダよりも手前
       // クイック編集のためCellEditor自体は常に存在し続けるが、セル編集モードでないときは見えないようにする

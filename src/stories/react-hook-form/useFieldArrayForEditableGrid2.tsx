@@ -7,8 +7,8 @@ import {
   EditableGrid2Ref,
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
-  TextCellEditor,
 } from "../../EditableGrid2"
+import { createTextCellEditor } from "../custom-editor/createTextCellEditor"
 
 /**
  * EditableGrid2 を react-hook-form の useFieldArray と組み合わせて使用する際の
@@ -138,7 +138,7 @@ function useColumnDefHelper<
 
     //#region ヘルパー: 文字列型
     textCell: (header, key, options) => ({
-      editor: TextCellEditor,
+      editor: createTextCellEditor(),
       renderHeader: () => (
         <div className="px-1 py-px text-sm truncate text-gray-700">
           {header}

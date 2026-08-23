@@ -30,8 +30,6 @@
   --halllky-eg2-color-selection-border: #0ea5e9;
   /* sky-200 */
   --halllky-eg2-color-selection-fill: #bae6fd;
-  --halllky-eg2-color-editor-border: #000000;
-  --halllky-eg2-color-editor-bg: #ffffff;
 
   position: relative;
   z-index: 0;
@@ -56,8 +54,7 @@
 .halllky-eg2-selection-border,
 .halllky-eg2-selection-overlay,
 .halllky-eg2-checkbox-header-label,
-.halllky-eg2-checkbox-cell-label,
-.halllky-eg2-text-editor {
+.halllky-eg2-checkbox-cell-label {
   box-sizing: border-box;
 }
 
@@ -226,18 +223,4 @@
   pointer-events: none;
   mix-blend-mode: multiply;
   background-color: color-mix(in srgb, var(--halllky-eg2-color-selection-fill) 25%, transparent);
-}
-
-/* --- 標準テキストエディタ --- */
-.halllky-eg2-text-editor {
-  margin: 0;
-  padding: 0 3px;
-  font: inherit;
-  /* UA の textarea フォントを打ち消す */
-  color: inherit;
-  resize: none;
-  field-sizing: content;
-  outline: none;
-  border: 1px solid var(--halllky-eg2-color-editor-border);
-  background-color: var(--halllky-eg2-color-editor-bg);
 }

@@ -33,8 +33,6 @@ CSS クラス名はすべて `halllky-eg2-` プレフィックスが付いてい
   --halllky-eg2-color-empty-text: #6b7280;
   --halllky-eg2-color-selection-border: #0ea5e9;
   --halllky-eg2-color-selection-fill: #bae6fd;
-  --halllky-eg2-color-editor-border: #000000;
-  --halllky-eg2-color-editor-bg: #ffffff;
 }
 ```
 

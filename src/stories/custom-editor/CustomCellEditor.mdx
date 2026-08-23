@@ -1,0 +1,110 @@
+import { Meta, Source } from "@storybook/addon-docs/blocks"
+
+<Meta title="EditableGrid2/編集" />
+
+# 編集
+
+セルをダブルクリックしたりキー入力したりしたときに表示される、
+実際に値を入力するコンポーネントは利用側で実装します。
+
+エディタを標準で提供していないのは、必要な入力コントロール
+（テキスト、選択肢、日付、数値、ボタン付き入力…）や、
+キー入力時の仕様（例えば Alt + Enter で改行するか Shift + Enter で改行するか等）が
+アプリケーションごとによって大きく異なり、汎用的な実装を1つに決め打ちできないためです。
+
+セルエディタが満たすべき契約は型として公開されており、
+それさえ満たせばどのような外観・仕様のエディタでも組み込めます。
+
+## 組み込み方
+
+EditableGrid2 の利用時、各列の定義に以下3項目を定義します。
+これらを指定しないと編集不可の列として扱われます。
+
+* `editor` : エディタのUIコンポーネント
+* `getValueForEditor` : 編集開始時にセルからエディタへ初期値を渡す処理。クリップボードへのコピー時の処理も兼務している。
+* `setValueFromEditor` : 編集終了時にエディタの値をデータに反映する処理。クリップボードからのペースト時の処理も兼務している。
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    data={rows}
+    columns={[() => [
+      {
+        renderHeader: () => <span>商品名</span>,
+        renderBody: ({ context }) => <span>{context.row.original.name}</span>,
+
+        // エディタに必要な3項目
+        editor: MyTextEditor,
+        getValueForEditor: ({ row }) => row.name ?? '',
+        setValueFromEditor: ({ row, value }) => { row.name = value },
+      },
+    ], []]}
+  />
+`} />
+
+## セルエディタ基本形
+
+前述の editer に渡すコンポーネントの例。
+必ず EditableGridCellEditor 型にすること。
+props は EditableGrid2 側から渡される各種情報、
+ref はこのコンポーネントから EditableGrid2 に情報を返すのに使う。
+
+<Source language="tsx" code={`
+  export const SimpleTextCellEditor: EditableGridCellEditor = React.forwardRef((props, ref) => {
+
+    // 編集中の値はエディタコンポーネント自身が保持する
+    const [value, setValue] = React.useState<string>('')
+
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+    // props に入っている変数の使い方は当該型定義の JsDoc を参照
+    const { style, isEditing, requestCommit, requestCancel } = props
+
+    // ref が実装すべき処理は当該型定義の JsDoc を参照
+    React.useImperativeHandle(ref, () => ({
+      blur: () => textareaRef.current?.blur(),
+      getCurrentValue: () => textareaRef.current?.value ?? '',
+      setValueAndSelectAll: (value: string) => {
+        setValue(value)
+        textareaRef.current?.select()
+      },
+      getDomElement: () => textareaRef.current,
+    }), [textareaRef])
+
+    // エディタ上で発生したイベントの処理。
+    // ここをどう実装するかに決まりはないので自由にカスタマイズしてよい。
+    const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = e => {
+      if (isEditing) {
+        // 編集確定
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          if (e.shiftKey) return;
+          requestCommit(value)
+          e.preventDefault()
+          return
+        }
+        // 編集キャンセル
+        if (e.key === 'Escape') {
+          requestCancel()
+          e.preventDefault()
+          return
+        }
+      }
+    }
+    const handleChange: React.ChangeEventHandler<HTMLTextAreaElement> = e => {
+      setValue(e.target.value)
+    }
+
+    // エディタの外観は自由に決めることができる。
+    // ただし、エディタの位置などは EditableGrid2 側で計算しているため、
+    // その計算結果が入っている props.style をエディタ側のルートDOM要素に設定すること。
+    return (
+      <textarea
+        ref={textareaRef}
+        value={value ?? ''}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className="px-1 py-px text-sm resize-none field-sizing-content outline-none border border-black bg-white"
+        style={style}
+      />
+    )
+  })
+`} />
