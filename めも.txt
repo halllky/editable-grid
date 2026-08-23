@@ -1,0 +1,27 @@
+最終的な目次の予定
+
+はじめに ... インストール、peerDependencies（react 19 / @tanstack/react-table / react-virtual）
+基本の使い方
+├ 最小限（RHFなし）
+└ react-hook-form との統合  ← 既存
+選択
+├ キーボード操作・セル範囲選択 ... 矢印／Shift+矢印／Ctrl+矢印で端まで、ドラッグ選択、Shift+クリック、F2、クイック編集（文字を打つといきなり編集開始＋IME先頭文字保持）、Delete で範囲クリア、onCellKeyDown によるキー操作のカスタマイズ
+└ 行選択 ... boolean | 行ごとの関数、ヘッダの全選択、getCheckedRows() との組み合わせ
+編集
+├ セルエディタ          ← 既存
+├ コピー＆ペースト ... TSV経由でExcelと相互にやり取りできること、getValueForEditor / setValueFromEditor がクリップボードの入出力も兼務すること、1セル選択時は貼り付け内容のサイズに選択範囲が自動拡張され、範囲選択時は範囲内に繰り返し敷き詰められる挙動、読み取り専用セルはスキップされること
+└ 読み取り専用 ... グリッド全体／行単位／列単位の3階層と、背景色・編集開始・ペーストそれぞれへの効き方
+列定義
+├ 列定義 ... renderHeader / renderBody の書き方、セル内にボタンを置く際の mouseDown の stopPropagation 注意
+├ 列固定 ... true, false, true と指定したら最後の true より左が全部固定
+├ グルーピング
+└ 列幅 ※max500はドキュメントに書くのでなく実装側を修正する必要がある
+表示のカスタマイズ
+├ 空状態
+├ striped
+├ 行クラス
+└ スタイルのカスタマイズ
+列幅・列順の保存と復元
+ref API
+パフォーマンスと仮想スクロール
+APIリファレンス
