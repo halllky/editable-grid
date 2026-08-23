@@ -6,6 +6,13 @@ import { createTextCellEditor } from "./createTextCellEditor"
 import { createSelectCellEditor } from "./createSelectCellEditor"
 import { createDateCellEditor } from "./createDateCellEditor"
 
+// 列定義は毎レンダリング評価されるため、editor に渡すコンポーネントは
+// その場で作らずモジュールスコープの定数として参照を安定させる。
+const SingleLineEditor = createTextCellEditor(false)
+const MultiLineEditor = createTextCellEditor(true)
+const OptionEditor = createSelectCellEditor(["円", "ドル", "ユーロ"] satisfies TestRow["option"][])
+const DateEditor = createDateCellEditor()
+
 /**
  * セルエディタ実装指南
  */
@@ -22,9 +29,10 @@ function CellEditorExample() {
       <EG2.EditableGrid2
         rowKeys={rowKeys}
         getLatestRowObject={index => getValues(`rows.${index}`)}
-        columns={[() => [{
+        columns={[{
+          columnId: "singleLine",
           // 改行なしテキスト エディタ用設定 ここから
-          editor: createTextCellEditor(false),
+          editor: SingleLineEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.singleLine`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => {
             // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
@@ -39,8 +47,9 @@ function CellEditorExample() {
           },
           defaultWidth: 152,
         }, {
+          columnId: "multiLine",
           // 改行ありテキスト エディタ用設定 ここから
-          editor: createTextCellEditor(true),
+          editor: MultiLineEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.multiLine`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.multiLine`, value),
           // 改行ありテキスト エディタ用設定 ここまで
@@ -52,8 +61,9 @@ function CellEditorExample() {
           },
           defaultWidth: 224,
         }, {
+          columnId: "option",
           // 選択肢（ドロップダウン） エディタ用設定 ここから
-          editor: createSelectCellEditor(["円", "ドル", "ユーロ"] satisfies TestRow["option"][]),
+          editor: OptionEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.option`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.option`, value as TestRow["option"]),
           onCellKeyDown: ({ event, requestEditStart }) => {
@@ -73,8 +83,9 @@ function CellEditorExample() {
           },
           defaultWidth: 120,
         }, {
+          columnId: "date",
           // 日付 エディタ用設定 ここから
-          editor: createDateCellEditor(),
+          editor: DateEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.date`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.date`, value),
           onCellKeyDown: ({ event, requestEditStart }) => {
@@ -94,6 +105,7 @@ function CellEditorExample() {
           },
           defaultWidth: 124,
         }, {
+          columnId: "checkbox",
           // チェックボックス エディタ用設定 ここから
           // クリックだけで値を切り替えられるため、専用のセルエディタは持たない。
           // クリップボードとのコピーペーストのために get, set は定義しておく。
@@ -127,7 +139,7 @@ function CellEditorExample() {
             )
           },
           defaultWidth: 188,
-        }], [control, getValues, setValue]]}
+        }]}
         className="border border-gray-500 resize-y"
       />
       <ul className="text-sm">

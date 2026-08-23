@@ -4,14 +4,23 @@ import { EditableGrid2LeafColumn } from "./types-public"
 export type ColumnMetadataInternal<TRow> = {
   /**
    * リーフ列のインデックス。
+   */
+  columnId: string
+  /**
+   * 可視リーフ列の中でのインデックス。
    * 行チェックボックスやグルーピング列の上段の場合はnull。
-   * 不可視列はスキップされない。
+   * 不可視列はスキップされる。
    */
   leafIndex: number | null
-  original: EditableGrid2LeafColumn<TRow> | null
+  /**
+   * 元の列定義。呼び出し側の columns が再評価されるたびに最新の内容を返す
+   * （列そのものが消えた場合は null）。行チェックボックス列・グループ列の場合は null。
+   */
+  readonly original: EditableGrid2LeafColumn<TRow> | null
   /** 元々の列定義でtrueが指定されていなかった場合でも、この列より左側に固定列がある場合はtrueになる。 */
   isFixed: boolean
-  isReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean)
+  /** 呼び出し側の columns が再評価されるたびに最新の値を返す。 */
+  readonly isReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean)
   isGroupedColumn: boolean
   isRowCheckBox: boolean
 }

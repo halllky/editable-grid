@@ -5,6 +5,7 @@ import {
   EditableGrid2LeafColumn,
   EditableGrid2Props,
   EditableGrid2Ref,
+  EditableGridCellEditor,
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
 } from "../../EditableGrid2"
@@ -28,8 +29,7 @@ export function useFieldArrayForEditableGrid2<
     getValues: ReactHookForm.UseFormGetValues<TField>
     setValue: ReactHookForm.UseFormSetValue<TField>
   },
-  getColumnDef: GetColumnDefWithHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>>,
-  getColumnDefDependencies: React.DependencyList
+  getColumnDef: GetColumnDefWithHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>>
 ) {
   type TRow = ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>
 
@@ -46,9 +46,6 @@ export function useFieldArrayForEditableGrid2<
     fieldArrayProps.name,
     gridRef
   )
-  const getColumns = React.useCallback(() => {
-    return getColumnDef(helper)
-  }, [helper, ...getColumnDefDependencies])
 
   // EditableGrid2 の props
   const rowKeyName = fieldArrayProps.keyName ?? "id"
@@ -59,7 +56,7 @@ export function useFieldArrayForEditableGrid2<
   const editableGrid2Props: EditableGrid2Props<TRow> & { ref: React.RefObject<EditableGrid2Ref<TRow> | null> } = {
     ref: gridRef,
     rowKeys,
-    columns: [getColumns, [getColumns]],
+    columns: getColumnDef(helper),
     getLatestRowObject: index => getValues(`${fieldArrayProps.name}.${index}` as ReactHookForm.Path<TField>),
   }
 
@@ -102,11 +99,12 @@ export type ColumnDefHelper<TRow> = {
     }
   ) => EditableGrid2LeafColumn<TRow>
 
-  /** ボタン */
+  /** ボタン。key を持たないため columnId は明示必須。 */
   buttonCell: (
     text: (row: TRow, rowIndex: number) => React.ReactNode,
     onClick: (row: TRow, rowIndex: number) => void,
-    options?: Partial<EditableGrid2LeafColumn<TRow>> & {
+    options: Partial<EditableGrid2LeafColumn<TRow>> & {
+      columnId: string
       disableIfReadOnly?: boolean
     }
   ) => EditableGrid2LeafColumn<TRow>
@@ -140,13 +138,25 @@ function useColumnDefHelper<
   gridRef: React.RefObject<EditableGrid2Ref<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> | null>
 ): ColumnDefHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> {
 
+  // columns は毎レンダリング評価されるため、ヘルパー関数（textCell/selectCell）自体も
+  // 毎レンダリング呼び出される。editor に渡すコンポーネントの参照を安定させるため、
+  // 一度作ったエディタコンポーネントをキャッシュして使い回す。
+  const textEditorCache = React.useRef(new Map<boolean, ReturnType<typeof createTextCellEditor>>()).current
+  const selectEditorCache = React.useRef(new Map<string, EditableGridCellEditor>()).current
+
   return React.useMemo(() => ({
 
     //#region ヘルパー: 文字列型
     textCell: (header, key, options) => {
       const { wrap, ...restOptions } = options ?? {}
+      let Editor = textEditorCache.get(wrap ?? false)
+      if (!Editor) {
+        Editor = createTextCellEditor(wrap ?? false)
+        textEditorCache.set(wrap ?? false, Editor)
+      }
       return {
-        editor: createTextCellEditor(wrap ?? false),
+        columnId: String(key),
+        editor: Editor,
         renderHeader: () => (
           <div className="px-1 py-px text-sm truncate text-gray-700">
             {header}
@@ -203,7 +213,12 @@ function useColumnDefHelper<
 
     //#region ヘルパー: ドロップダウン
     selectCell: (header, key, candidateValues, options) => {
-      const Editor = React.forwardRef<EditableGridCellEditorRef, EditableGridCellEditorProps>((props, ref) => {
+      const columnId = options?.columnId ?? String(key)
+
+      // エディタコンポーネントの参照を安定させるため columnId ごとにキャッシュする。
+      // （同じ columnId で candidateValues の内容が変わるケースは想定していない）
+      let Editor = selectEditorCache.get(columnId)
+      if (!Editor) Editor = React.forwardRef<EditableGridCellEditorRef, EditableGridCellEditorProps>((props, ref) => {
         const selectRef = React.useRef<HTMLSelectElement>(null)
         const [value, setVal] = React.useState('')
 
@@ -252,8 +267,10 @@ function useColumnDefHelper<
           </div>
         )
       })
+      selectEditorCache.set(columnId, Editor)
 
       return {
+        columnId,
         renderHeader: () => (
           <div className="px-1 py-px text-sm truncate text-gray-700">
             {header}
@@ -295,6 +312,7 @@ function useColumnDefHelper<
 
     //#region ヘルパー: チェックボックス
     booleanCell: (header, key, options) => ({
+      columnId: String(key),
       renderHeader: () => (
         <div className="px-1 py-px text-sm truncate text-gray-700">
           {header}

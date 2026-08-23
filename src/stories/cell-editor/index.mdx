@@ -45,8 +45,9 @@ EditableGrid2 の利用時、各列の定義に以下3項目を定義します�
   <EditableGrid2
     rowKeys={rows.map(r => r.id)}
     getLatestRowObject={index => rows[index]}
-    columns={[() => [
+    columns={[
       {
+        columnId: "name",
         renderHeader: () => <span>商品名</span>,
         renderBody: ({ row }) => <span>{row.name}</span>,
 
@@ -55,7 +56,7 @@ EditableGrid2 の利用時、各列の定義に以下3項目を定義します�
         getValueForEditor: ({ row }) => row.name ?? '',
         setValueFromEditor: ({ row, value }) => { row.name = value },
       },
-    ], []]}
+    ]}
   />
 `} />
 

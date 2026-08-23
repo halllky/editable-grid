@@ -31,7 +31,7 @@ function EditableGrid2WithReactHookForm({
     helper.buttonCell(
       row => row.willBeDeleted ? "復元" : "無効化",
       (row, rowIndex) => setValue(`rows.${rowIndex}.willBeDeleted`, !row.willBeDeleted),
-      { isFixed: fixed3Cols, disableResizing: true, defaultWidth: 56 }
+      { columnId: "toggleDelete", isFixed: fixed3Cols, disableResizing: true, defaultWidth: 56 }
     ),
 
     helper.textCell("ID", "rowId", { defaultWidth: 80, isReadOnly: true, isFixed: fixed3Cols }),
@@ -43,6 +43,7 @@ function EditableGrid2WithReactHookForm({
       { value: "2", text: "完了" },
     ], { defaultWidth: 100 }),
     {
+      columnId: "groupedColumns",
       renderHeader: () => <span className="px-1 text-gray-700">グルーピングされた列</span>,
       columns: [
         helper.textCell("日付", "date", { defaultWidth: 140 }),
@@ -50,8 +51,8 @@ function EditableGrid2WithReactHookForm({
       ],
     },
     helper.textCell("コメント", "comment", { defaultWidth: 320, wrap: true }),
-    helper.textCell("価格(同じ項目を複数回指定する例)", "price", { defaultWidth: 252 }),
-  ], [fixed3Cols])
+    helper.textCell("価格(同じ項目を複数回指定する例)", "price", { columnId: "price2", defaultWidth: 252 }),
+  ])
 
   React.useEffect(() => {
     let rows: TestRow[]

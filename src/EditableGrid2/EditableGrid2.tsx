@@ -42,6 +42,10 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   // TanStack Table のテーブルインスタンス。
   // 行データではなく行のキー文字列だけを持つ。
   // 値の描画・編集は行の最新状態の取得関数経由で行われるため、テーブル自体は行の値を保持しない。
+  //
+  // columnSizing は列の columnId（TanStack上のIDは
+  // `col-${columnId}` / `group-${columnId}`）をキーに保持される。
+  // 列が削除されたときのエントリはあえて残す（同じ columnId の列が後で復活した場合に幅も復元されるため）。
   const [columnSizing, setColumnSizing] = React.useState<TanStack.ColumnSizingState>({})
   const table = TanStack.useReactTable({
     data: rowKeys,
@@ -375,42 +379,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   //#endregion レンダリング
 })
 
-export default React.memo(EditableGrid2, (prev, next) => {
-  // getLatestRowObject / columns[0] は毎回参照が変わる前提なので比較しない
-  const [, prevColumnDeps] = prev.columns ?? []
-  const [, nextColumnDeps] = next.columns ?? []
-
-  // columns[1] の依存配列は要素ごとに比較
-  if (!arraysEqual(prevColumnDeps, nextColumnDeps)) return false
-
-  // rowKeys も、参照ではなく内容（各要素の値と並び順）が変わっていなければ再描画不要
-  if (!arraysEqual(prev.rowKeys, next.rowKeys)) return false
-
-  // 上記以外の props は Object.is で比較
-  const keys = new Set([...Object.keys(prev), ...Object.keys(next)])
-  keys.delete("getLatestRowObject" satisfies keyof EditableGrid2Props<unknown>)
-  keys.delete("columns" satisfies keyof EditableGrid2Props<unknown>)
-  keys.delete("rowKeys" satisfies keyof EditableGrid2Props<unknown>)
-
-  for (const key of keys) {
-    const p = (prev as Record<string, unknown>)[key]
-    const n = (next as Record<string, unknown>)[key]
-    if (!Object.is(p, n)) return false
-  }
-
-  return true
-}) as (<TRow>(props: EditableGrid2Props<TRow> & { ref?: React.ForwardedRef<EditableGrid2Ref<TRow>> }) => React.ReactNode);
-
-/** 2つの配列の内容（長さ・各要素の値と並び順）が等しいかどうかを Object.is で判定する */
-function arraysEqual(a: readonly unknown[] | undefined, b: readonly unknown[] | undefined): boolean {
-  const aLength = a?.length ?? 0
-  const bLength = b?.length ?? 0
-  if (aLength !== bLength) return false
-  for (let i = 0; i < aLength; i++) {
-    if (!Object.is(a?.[i], b?.[i])) return false
-  }
-  return true
-}
+export default EditableGrid2 as (<TRow>(props: EditableGrid2Props<TRow> & { ref?: React.ForwardedRef<EditableGrid2Ref<TRow>> }) => React.ReactNode);
 
 //#region メモ化ヘッダ
 

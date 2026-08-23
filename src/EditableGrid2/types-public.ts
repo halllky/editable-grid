@@ -29,8 +29,15 @@ export type EditableGrid2Props<TRow> = {
    * セルの値を setValue 等で更新できます。
    */
   getLatestRowObject: (index: number) => TRow
-  /** 列定義と、列定義更新の依存配列。 */
-  columns: [(() => EditableGrid2Column<TRow>[]), React.DependencyList]
+  /**
+   * 列定義。
+   *
+   * レンダリングのたびに評価されるため、呼び出し側で useMemo する必要はなく、
+   * インラインで新しい配列を渡してよい。列の増減・並べ替えは各列定義の columnId
+   * （必須）によって検知されるため、内容が変わらない限り列定義オブジェクト自体の
+   * 参照が変わっても内部的な再構築は発生しない。
+   */
+  columns: EditableGrid2Column<TRow>[]
   /** 行ヘッダのチェックボックスを表示するかどうか。 */
   showCheckBox?: boolean | ((row: TRow, rowIndex: number) => boolean)
   /** trueの場合はグリッド全体が読み取り専用。関数を設定した場合は行単位で判定される。 */
@@ -86,6 +93,11 @@ export type EditableGrid2GroupColumn<TRow> = {
   renderHeader: EditableGrid2HeaderRenderer
   /** グループ化する子列の定義 */
   columns: EditableGrid2LeafColumn<TRow>[]
+  /**
+   * グループ列のID。グリッド内で（他のグループ・リーフ列を含めて）重複してはいけない。
+   * 列の増減・並べ替えの検知に使われるため必須。
+   */
+  columnId: string
 }
 
 /**
@@ -102,11 +114,22 @@ export type EditableGrid2LeafColumn<TRow> = {
    * mouseDown イベントの stopPropagation を呼び出し、イベントの伝播を防ぐこと。
    */
   renderBody: EditableGrid2BodyRenderer<TRow>
-  /** 列のID。列幅等の保存や復元をする場合は明示的な指定を推奨。未指定の場合は内部的に自動生成される。 */
-  columnId?: string
+  /**
+   * 列のID。グリッド内で（他のリーフ・グループ列を含めて）重複してはいけない。
+   * 列幅の保持・復元や、列の増減・並べ替えの検知に使われるため必須。
+   */
+  columnId: string
   /** 画面初期表示時の列の幅（pxで指定） */
   defaultWidth?: number
-  /** セルエディタ。未指定の場合はグリッドのプロパティで指定されたものが使われる。 */
+  /** 
+   * セルエディタ。未指定の場合はグリッドのプロパティで指定されたものが使われる。
+   * 
+   * エディタコンポーネントの参照は安定させること。
+   * 列定義の中でその場でコンポーネントを生成する（例: `editor: createTextCellEditor()`）と、
+   * レンダリングのたびに別のコンポーネント型になり、
+   * セルエディタが不必要に unmount / mount を繰り返す。
+   * モジュールスコープの定数にするか、呼び出し側で useMemo すること。
+   */
   editor?: EditableGridCellEditor
   /** セルエディタに表示する値を取得する関数。指定しない場合、この列は編集不可。 */
   getValueForEditor?: (args: { row: TRow, rowIndex: number }) => string
