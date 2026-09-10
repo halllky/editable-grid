@@ -35,12 +35,12 @@ function CopyPasteExample() {
         columns={[{
           columnId: "name",
           // 商品名 エディタ用設定 ここから
-          // もっとも基本的なコピペ対象列。getValueForEditor / setValueFromEditor が
-          // それぞれクリップボードへのコピー・クリップボードからのペーストを兼務する。
+          // もっとも基本的なコピペ対象列。
           editor: NameEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.name`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => {
-            // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
+            // コピペのロジックは自由に定義できる。
+            // ここでは改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定している。
             setValue(`rows.${rowIndex}.name`, value.replace(/[\r\n\u2028\u2029]/g, ''))
           },
           // 商品名 エディタ用設定 ここまで
@@ -54,20 +54,22 @@ function CopyPasteExample() {
         }, {
           columnId: "unitPrice",
           // 単価 エディタ用設定 ここから
-          // クリップボードから渡ってくる値は常に文字列なので、数値列でも
-          // setValueFromEditor の中で自前でパースする必要がある。
+          // クリップボードから渡ってくる値は常に文字列なので、数値列でも自前でパースする必要がある。
           // パースできない文字列が貼り付けられた場合は無視して元の値を保つ。
           editor: NameEditor,
           getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.unitPrice`) ?? ""),
           setValueFromEditor: ({ rowIndex, value }) => {
-            const parsed = Number(value)
-            if (value.trim() !== "" && !Number.isNaN(parsed)) {
+            if (value.trim() === "") {
+              setValue(`rows.${rowIndex}.unitPrice`, undefined)
+            } else {
+              const parsed = Number(value)
+              if (!Number.isFinite(parsed)) return
               setValue(`rows.${rowIndex}.unitPrice`, parsed)
             }
           },
           // 単価 エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>単価</CellText>,
+          renderHeader: () => <CellText>単価（※1）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.unitPrice`, control })
             return <CellText>{watched}</CellText>
@@ -79,14 +81,17 @@ function CopyPasteExample() {
           editor: NameEditor,
           getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.quantity`) ?? ""),
           setValueFromEditor: ({ rowIndex, value }) => {
-            const parsed = Number(value)
-            if (value.trim() !== "" && !Number.isNaN(parsed)) {
+            if (value.trim() === "") {
+              setValue(`rows.${rowIndex}.quantity`, undefined)
+            } else {
+              const parsed = Number(value)
+              if (!Number.isFinite(parsed)) return
               setValue(`rows.${rowIndex}.quantity`, parsed)
             }
           },
           // 数量 エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>数量</CellText>,
+          renderHeader: () => <CellText>数量（※1）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.quantity`, control })
             return <CellText>{watched}</CellText>
@@ -105,7 +110,7 @@ function CopyPasteExample() {
           },
           // 金額（読み取り専用・計算列） ここまで
 
-          renderHeader: () => <CellText>金額（※1）</CellText>,
+          renderHeader: () => <CellText>金額（※2）</CellText>,
           renderBody: ({ rowIndex }) => {
             const unitPrice = ReactHookForm.useWatch({ name: `rows.${rowIndex}.unitPrice`, control })
             const quantity = ReactHookForm.useWatch({ name: `rows.${rowIndex}.quantity`, control })
@@ -120,13 +125,16 @@ function CopyPasteExample() {
           editor: CategoryEditor,
           getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.category`) ?? "",
           setValueFromEditor: ({ rowIndex, value }) => {
-            if ((["食品", "日用品", "その他"] as const).includes(value as NonNullable<TestRow["category"]>)) {
+            if (value.trim() === "") {
+              setValue(`rows.${rowIndex}.category`, undefined)
+
+            } else if ((["食品", "日用品", "その他"] as const).includes(value as NonNullable<TestRow["category"]>)) {
               setValue(`rows.${rowIndex}.category`, value as NonNullable<TestRow["category"]>)
             }
           },
           // 区分 エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>区分</CellText>,
+          renderHeader: () => <CellText>区分（※3）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.category`, control })
             return <CellText>{watched}</CellText>
@@ -142,7 +150,7 @@ function CopyPasteExample() {
           setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.note`, value),
           // 備考（改行あり） エディタ用設定 ここまで
 
-          renderHeader: () => <CellText>備考（※2）</CellText>,
+          renderHeader: () => <CellText>備考（※4）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.note`, control })
             return <CellText wrap>{watched}</CellText>
@@ -152,11 +160,10 @@ function CopyPasteExample() {
         className="border border-gray-500 resize-y"
       />
       <ul className="text-sm">
-        <li>グリッドをクリックしてフォーカスした状態で、範囲選択 → Ctrl + C / Ctrl + V が使える</li>
-        <li>Excel やスプレッドシートとの間でもそのままコピペできる（タブ区切りテキストとしてやり取りされる）</li>
-        <li>範囲選択して Delete キーを押すと、読み取り専用セルを除いて空になる</li>
-        <li>※1：読み取り専用の計算列。コピーはできるがペーストは常にスキップされる</li>
-        <li>※2：エディタ内で Shift + Enter により改行可能</li>
+        <li>※1：数字のみ貼り付け可能</li>
+        <li>※2：読み取り専用の計算列。コピーはできるがペーストは常にスキップされる</li>
+        <li>※3：ドロップダウンで選択できる値のみ貼り付け可能</li>
+        <li>※4：改行つき文字列。コピー時にダブルクォーテーションで囲まれます。</li>
       </ul>
     </div>
   )
