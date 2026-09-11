@@ -128,7 +128,6 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   // コピー＆ペースト
   const { handleCopy, handlePaste, handleDelete } = useCopyPaste({
     table,
-    activeCell: focusedCell,
     selectedRange,
     onRangeUpdated: setSelectionRange,
     isEditing,

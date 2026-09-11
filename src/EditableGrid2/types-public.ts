@@ -56,6 +56,17 @@ export type EditableGrid2Props<TRow> = {
   editor?: EditableGridCellEditor
   /** データが無い時に表示される。既定では「データがありません。」と表示される。 */
   whenNoData?: React.ReactNode
+  /**
+   * クリップボードとの文字列変換方法。
+   * 未指定の場合は defaultCopyPasteFormat（TSV。Excel等との相互コピペを想定した仕様）が使われる。
+   */
+  clipboardFormat?: EditableGrid2ClipboardFormat
+  /**
+   * 貼り付け（Ctrl+V）・クリア（Delete）で「どのセルに何を書き込むか」を決める関数。
+   * 未指定の場合は defaultPastePlanner が使われる
+   * （1セル選択時は選択範囲を拡張、複数セル選択時は剰余で敷き詰める）。
+   */
+  planPaste?: EditableGrid2PastePlanner
 }
 
 /**
@@ -185,6 +196,77 @@ export type EditableGrid2BodyRenderer<TRow> = (args: {
 }) => React.ReactNode
 
 //#endregion 列
+
+//#region コピー＆ペースト
+
+/**
+ * セル範囲。両端を含む。
+ * 列インデックスは可視データ列を左から0始まりで数えたもの（行チェックボックス列は含まない）。
+ */
+export type EditableGrid2CellRange = {
+  startRow: number
+  startCol: number
+  endRow: number
+  endCol: number
+}
+
+/**
+ * クリップボードとの文字列変換。
+ * 往復（コピーしてペースト）した際に内容が保たれるよう、stringify と parse は対で指定すること。
+ */
+export type EditableGrid2ClipboardFormat = {
+  /** コピー時、選択範囲のセルの値（2次元配列）をクリップボードへ書き込む文字列に変換する。 */
+  stringify: (values: string[][]) => string
+  /** ペースト時、クリップボードから読み取った文字列をセルの値の2次元配列に変換する。 */
+  parse: (text: string) => string[][]
+}
+
+/** 貼り付け先のセルと値の組。 */
+export type EditableGrid2CellWrite = {
+  rowIndex: number
+  colIndex: number
+  value: string
+}
+
+/** 貼り付け計画。EditableGrid2PastePlanner の戻り値。 */
+export type EditableGrid2PastePlan = {
+  /** 書き込むセルと値。同じセルが複数回現れた場合は後に指定した方が採用される。 */
+  writes: EditableGrid2CellWrite[]
+  /** 貼り付け後の選択範囲。undefined の場合は選択範囲を変更しない。 */
+  nextSelectedRange?: EditableGrid2CellRange
+}
+
+/**
+ * 貼り付け内容と選択状態から、どのセルに何を書き込むかを決める関数。
+ * `EditableGrid2Props.planPaste` として渡す。
+ *
+ * グリッドの状態を直接変更しない純粋関数として実装すること
+ * （実際の書き込み・選択範囲の更新はグリッド側が行う）。
+ * グリッドの状態を参照しないため、レンダリングのたびに新しい関数を渡してよい。
+ *
+ * グリッドは戻り値の writes のうち、グリッド外のセルや isCellWritable が false のセルへの
+ * 書き込みを無視する。そのため、読み取り専用セルへ書き込むかどうかをこの関数の中で
+ * 制御する必要はない（スキップ以外の挙動、例えば「1つでも含まれていたら全体を中止する」
+ * といった方針を取りたい場合にのみ isCellWritable を参照すればよい）。
+ */
+export type EditableGrid2PastePlanner = (args: {
+  /** クリップボードの内容（EditableGrid2ClipboardFormat.parse 済み）。Delete キーによる場合は [['']]。 */
+  values: string[][]
+  /** この計画が貼り付け（Ctrl+V）とクリア（Delete）のどちらによるものか。 */
+  trigger: 'paste' | 'delete'
+  /** 現在の選択範囲。1セルだけ選択している場合は start と end が同じ値になる。 */
+  selectedRange: EditableGrid2CellRange
+  /** 可視データ列の columnId。colIndex の並び順と一致する。 */
+  columnIds: string[]
+  /**
+   * そのセルに書き込めるかどうか。
+   * グリッド全体・行単位・列単位の読み取り専用設定と、列定義の setValueFromEditor の有無を
+   * 考慮した結果が返る。範囲外の rowIndex / colIndex に対しては false を返す。
+   */
+  isCellWritable: (rowIndex: number, colIndex: number) => boolean
+}) => EditableGrid2PastePlan
+
+//#endregion コピー＆ペースト
 
 //#region セルエディタ
 

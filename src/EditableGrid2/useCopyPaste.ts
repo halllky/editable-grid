@@ -1,14 +1,14 @@
 import React from "react";
 import * as TanStack from "@tanstack/react-table";
-import { EditableGrid2Props } from "./types-public";
+import { EditableGrid2CellRange, EditableGrid2Props } from "./types-public";
 import { CellSelectionRange } from "./useSelection";
-import { ColumnMetadataInternal } from "./types-internal";
-import { toTsvString, fromTsvString } from "./tsv-util";
+import { checkIfCellReadOnly, ColumnMetadataInternal } from "./types-internal";
 import { RowAccessor } from "./useRowAccessor";
+import { defaultCopyPasteFormat } from "./default-copy-paste-format";
+import { defaultPastePlanner } from "./default-paste-planner";
 
 interface UseCopyPasteParams<TRow> {
   table: TanStack.Table<string>;
-  activeCell: { rowIndex: number; colIndex: number } | null;
   selectedRange: CellSelectionRange | null;
   /**
    * ペースト時に選択範囲を拡張したらここに新しい選択範囲が渡される
@@ -21,13 +21,21 @@ interface UseCopyPasteParams<TRow> {
 
 export const useCopyPaste = <TRow,>({
   table,
-  activeCell,
   selectedRange,
   onRangeUpdated,
   isEditing,
   getRowObject,
   props,
 }: UseCopyPasteParams<TRow>) => {
+
+  // 可視データ列（チェックボックス列を除いた、行チェックボックス列との colIndex オフセット調整用）を取得する
+  const getDataColumns = () => {
+    const columns = table.getVisibleLeafColumns();
+    const offset = columns.length > 0 && (columns[0].columnDef.meta as ColumnMetadataInternal<TRow> | undefined)?.isRowCheckBox
+      ? 1
+      : 0;
+    return { dataColumns: columns.slice(offset), offset };
+  }
 
   const handleCopy: React.ClipboardEventHandler = e => {
     if (isEditing || !selectedRange) return;
@@ -37,21 +45,20 @@ export const useCopyPaste = <TRow,>({
     e.preventDefault();
     e.stopPropagation();
 
-    // 可視列（固定列含む）
-    const columns = table.getVisibleLeafColumns();
+    const { dataColumns, offset } = getDataColumns();
 
-    // 選択範囲内のセルの値を取得
+    // 選択範囲内のセルの値を取得（列インデックスはデータ列基準に変換）
     const dataArray: string[][] = [];
     for (let r = selectedRange.startRow; r <= selectedRange.endRow; r++) {
       const rowData: string[] = [];
       // 行データの存在チェック
       if (r >= props.rowKeys.length) break;
 
-      for (let c = selectedRange.startCol; c <= selectedRange.endCol; c++) {
+      for (let c = selectedRange.startCol - offset; c <= selectedRange.endCol - offset; c++) {
         // 列定義の存在チェック
-        if (c >= columns.length) break;
+        if (c < 0 || c >= dataColumns.length) break;
 
-        const col = columns[c];
+        const col = dataColumns[c];
         const meta = col.columnDef.meta as ColumnMetadataInternal<TRow> | undefined;
         const colDef = meta?.original;
 
@@ -67,14 +74,14 @@ export const useCopyPaste = <TRow,>({
       dataArray.push(rowData);
     }
 
-    const tsvData = toTsvString(dataArray);
+    const clipboardText = (props.clipboardFormat ?? defaultCopyPasteFormat).stringify(dataArray);
     if (e.clipboardData) {
-      e.clipboardData.setData('text/plain', tsvData);
+      e.clipboardData.setData('text/plain', clipboardText);
     }
   }
 
   const handlePaste: React.ClipboardEventHandler = e => {
-    if (isEditing || !activeCell) return;
+    if (isEditing || !selectedRange) return;
 
     // ペースト開始セルの読み取り専用チェック
     // （ループ内でもチェックするが、開始地点がダメなら全体をキャンセルするかどうか。
@@ -86,126 +93,82 @@ export const useCopyPaste = <TRow,>({
 
     try {
       const clipboardText = e.clipboardData?.getData('text/plain') || '';
-      const pastedData = fromTsvString(clipboardText);
+      const values = (props.clipboardFormat ?? defaultCopyPasteFormat).parse(clipboardText);
 
-      setStringValuesToSelectedRange(pastedData);
+      runPastePlan(values, 'paste');
     } catch (err) {
       console.error('クリップボードからのペーストに失敗しました:', err);
     }
   }
 
-  const setStringValuesToSelectedRange = (values: string[][]) => {
-    if (!activeCell) return;
+  const handleDelete = () => {
+    if (isEditing || !selectedRange) return;
+    runPastePlan([['']], 'delete');
+  }
 
-    // ペーストデータのうち長さ0の配列部分は長さ1の配列と読み替える
-    if (values.length === 0) {
-      values = [['']];
-    } else {
-      for (let i = 0; i < values.length; i++) {
-        if (values[i].length === 0) {
-          values[i] = [''];
-        }
-      }
+  /**
+   * planPaste（未指定時は defaultPastePlanner）を呼び出して貼り付け計画を立て、
+   * その結果を実行する。
+   * 列インデックスの基準の変換（内部座標 ⇔ データ列基準）と、
+   * グリッド外・書き込み不可セルの除外はここで行う。
+   */
+  const runPastePlan = (values: string[][], trigger: 'paste' | 'delete') => {
+    if (!selectedRange) return;
+
+    const { dataColumns, offset } = getDataColumns();
+
+    const planSelectedRange: EditableGrid2CellRange = {
+      startRow: selectedRange.startRow,
+      startCol: selectedRange.startCol - offset,
+      endRow: selectedRange.endRow,
+      endCol: selectedRange.endCol - offset,
+    };
+
+    const columnIds = dataColumns.map(col => (col.columnDef.meta as ColumnMetadataInternal<TRow>).columnId);
+
+    const isCellWritable = (rowIndex: number, colIndex: number): boolean => {
+      if (rowIndex < 0 || rowIndex >= props.rowKeys.length) return false;
+      if (colIndex < 0 || colIndex >= dataColumns.length) return false;
+
+      const meta = dataColumns[colIndex].columnDef.meta as ColumnMetadataInternal<TRow>;
+      const colDef = meta.original;
+      if (!colDef || !colDef.setValueFromEditor) return false;
+
+      const row = getRowObject(rowIndex);
+      return !checkIfCellReadOnly(meta, rowIndex, props.isReadOnly, row);
     }
 
-    const startRow = selectedRange ? selectedRange.startRow : activeCell.rowIndex;
-    const startCol = selectedRange ? selectedRange.startCol : activeCell.colIndex;
+    const plan = (props.planPaste ?? defaultPastePlanner)({
+      values,
+      trigger,
+      selectedRange: planSelectedRange,
+      columnIds,
+      isCellWritable,
+    });
 
-    // ペースト範囲の拡張が発生した場合はペースト後にセルの範囲選択を実行する
-    let extendedRange = false;
+    for (const write of plan.writes) {
+      if (!isCellWritable(write.rowIndex, write.colIndex)) continue;
 
-    // ペースト先の下辺の行インデックス
-    let endRow: number;
-    const isOneCellSelected = !selectedRange || (selectedRange.startRow === selectedRange.endRow && selectedRange.startCol === selectedRange.endCol);
+      const meta = dataColumns[write.colIndex].columnDef.meta as ColumnMetadataInternal<TRow>;
+      const colDef = meta.original!;
+      const row = getRowObject(write.rowIndex);
 
-    if (isOneCellSelected) {
-      endRow = startRow + values.length - 1;
-      extendedRange = true;
-    } else if (selectedRange) {
-      endRow = selectedRange.endRow;
-    } else {
-      // Fallback (should be covered by isOneCellSelected if logic is correct)
-      endRow = activeCell.rowIndex;
+      colDef.setValueFromEditor!({
+        row,
+        rowIndex: write.rowIndex,
+        value: write.value,
+      });
     }
 
-    // ペースト先の右辺の列インデックス
-    let endCol: number;
-    if (isOneCellSelected) {
-      endCol = startCol + values[0].length - 1;
-      extendedRange = true;
-    } else if (selectedRange) {
-      endCol = selectedRange.endCol;
-    } else {
-      endCol = activeCell.colIndex;
-    }
-
-    const rowCount = endRow - startRow + 1;
-    const colCount = endCol - startCol + 1;
-    const columns = table.getVisibleLeafColumns();
-
-    for (let r = 0; r < rowCount; r++) {
-      const targetRowIndex = startRow + r;
-      if (targetRowIndex >= props.rowKeys.length) break;
-
-      const pasteRowIdx = r % values.length;
-      const rowInputData = values[pasteRowIdx];
-      if (!rowInputData.length) continue;
-
-
-      for (let c = 0; c < colCount; c++) {
-        const targetColIndex = startCol + c;
-        if (targetColIndex >= columns.length) break;
-
-        const pasteColIdx = c % rowInputData.length;
-        const col = columns[targetColIndex];
-        const meta = col.columnDef.meta as ColumnMetadataInternal<TRow> | undefined;
-        const colDef = meta?.original;
-
-        // 必要な関数が定義されていないならスキップ
-        if (!colDef || !colDef.setValueFromEditor) continue;
-
-        const row = getRowObject(targetRowIndex);
-
-        // 読み取り専用ならスキップ
-        if (checkIfCellReadOnlyForPaste(props.isReadOnly, row, targetRowIndex, meta)) continue;
-
-        const pasteValue = rowInputData[pasteColIdx];
-
-        colDef.setValueFromEditor({
-          row,
-          rowIndex: targetRowIndex,
-          value: pasteValue
-        });
-      }
-    }
-
-    if (extendedRange && onRangeUpdated) {
+    if (plan.nextSelectedRange && onRangeUpdated) {
       onRangeUpdated({
-        startRow,
-        startCol,
-        endRow,
-        endCol
+        startRow: plan.nextSelectedRange.startRow,
+        startCol: plan.nextSelectedRange.startCol + offset,
+        endRow: plan.nextSelectedRange.endRow,
+        endCol: plan.nextSelectedRange.endCol + offset,
       });
     }
   }
 
-  const handleDelete = () => {
-    if (isEditing || !activeCell) return;
-    setStringValuesToSelectedRange([['']]);
-  }
-
   return { handleCopy, handlePaste, handleDelete };
 };
-
-function checkIfCellReadOnlyForPaste<TRow>(
-  gridIsReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean) | undefined,
-  row: TRow,
-  rowIndex: number,
-  meta: ColumnMetadataInternal<TRow> | undefined
-): boolean {
-  if (gridIsReadOnly === true) return true;
-  if (typeof gridIsReadOnly === 'function' && gridIsReadOnly(row, rowIndex)) return true;
-  if (meta?.isReadOnly === true) return true;
-  if (typeof meta?.isReadOnly === 'function' && meta.isReadOnly(row, rowIndex)) return true;
-  return false;
-}
