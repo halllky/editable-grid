@@ -18,8 +18,6 @@
   --halllky-eg2-color-cell-bg-striped: #f9fafb;
   /* gray-100 */
   --halllky-eg2-color-header-bg: #f3f4f6;
-  /* gray-200 */
-  --halllky-eg2-color-readonly-bg: #e5e7eb;
   /* gray-300 */
   --halllky-eg2-color-border: #d1d5db;
   /* gray-400 */
@@ -155,8 +153,10 @@
   background-color: var(--halllky-eg2-color-cell-bg-striped);
 }
 
+/* 読み取り専用セルは地の色を透かして見せるが、固定列は横スクロール時に
+   後ろのセルを隠す必要があるため、同じ地の色で塗りつぶす */
 .halllky-eg2-td--bg-readonly {
-  background-color: var(--halllky-eg2-color-readonly-bg);
+  background-color: var(--halllky-eg2-color-grid-bg);
 }
 
 .halllky-eg2-td--border-right {

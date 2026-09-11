@@ -1,0 +1,148 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as ReadOnlyStories from "./index.stories"
+import ReadOnlyStoriesTsx from "./index.stories.tsx?raw"
+
+<Meta of={ReadOnlyStories} />
+
+# 読み取り専用
+
+セルを読み取り専用にすると、そのセルは背景色が変わり、編集・ペースト・Delete キーによるクリアができなくなります。
+読み取り専用は以下の3つの階層で指定でき、**いずれか1つでも該当すればそのセルは読み取り専用**になります。
+
+| 階層 | 指定箇所 | 指定する値 |
+| --- | --- | --- |
+| グリッド全体 | `EditableGrid2` の `isReadOnly` | `true` |
+| 行単位 | `EditableGrid2` の `isReadOnly` | `(row, rowIndex) => boolean` |
+| 列単位（セル単位） | 列定義の `isReadOnly` | `true`、または `(row, rowIndex) => boolean` |
+
+以下の例では、上部のチェックボックスでグリッド全体を、「行ロック」列のボタンで行単位の読み取り専用を切り替えられます。
+「単価」「金額」列は列単位で、「割引率」列は数量に応じてセル単位で読み取り専用になっています。
+
+<Canvas
+  of={ReadOnlyStories.読み取り専用}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ReadOnlyStoriesTsx }}
+/>
+
+## 指定方法
+
+### グリッド全体・行単位
+
+`EditableGrid2` の `isReadOnly` に `true` を渡すとグリッド全体が、関数を渡すと行単位で読み取り専用になります。
+関数は行ごとに呼ばれ、`true` を返した行のすべてのセルが読み取り専用になります。
+
+<Source language="tsx" code={`
+  // グリッド全体
+  <EditableGrid2 isReadOnly {...} />
+
+  // 行単位（例：確定済みの行は編集させない）
+  <EditableGrid2 isReadOnly={row => row.status === "確定"} {...} />
+`} />
+
+### 列単位・セル単位
+
+列定義の `isReadOnly` に `true` を渡すと列全体が読み取り専用になります。
+関数を渡すと行ごとに判定されるため、「この列の、この行のセルだけ」というセル単位の制御になります。
+
+<Source language="tsx" code={`
+  columns={[{
+    columnId: "unitPrice",
+    isReadOnly: true, // 列全体
+    ...
+  }, {
+    columnId: "discountRate",
+    isReadOnly: row => (row.quantity ?? 0) < 10, // 数量10以上の行でのみ入力可
+    ...
+  }]}
+`} />
+
+### 判定の優先順位
+
+各階層の判定結果は **OR** で合成されます。上位の階層で読み取り専用になったセルを、
+下位の階層で書き込み可能に戻すことはできません（例：行単位で読み取り専用にした行の、特定の列だけ編集可能にする、といった指定はできない）。
+そのようなケースでは、行単位の条件を各列の `isReadOnly` 関数の中に移して判定してください。
+
+## 読み取り専用によって変わること・変わらないこと
+
+| 操作 | 読み取り専用セルでの挙動 |
+| --- | --- |
+| 背景色 | セル自身の背景色が塗られず、グリッドの地の色（既定ではグレー）になる。`striped` の縞模様も適用されない（後述） |
+| 編集開始 | ダブルクリック・F2・文字キー入力によるクイック編集のいずれでも編集が始まらない。`onCellKeyDown` の `requestEditStart()` を呼んでも同様 |
+| ペースト（`Ctrl + V`） | そのセルだけがスキップされる。範囲内の書き込み可能なセルには貼り付けられる |
+| Delete キーによるクリア | そのセルだけがスキップされる |
+| コピー（`Ctrl + C`） | **可能**（`getValueForEditor` が定義されていれば） |
+| セル選択・キーボードでの移動 | 通常どおり可能 |
+| `onCellKeyDown` の呼び出し | 通常どおり呼ばれる |
+| `renderBody` 内に置いたボタンやチェックボックス | **止まらない**（後述） |
+
+ペースト・Delete 時のスキップの詳細や、「1つでも読み取り専用セルが含まれていたら貼り付け全体を中止する」
+といった方針への変更方法は、コピー＆ペーストのページを参照してください。
+
+### セル内に置いたコントロールの扱い
+
+グリッドが制御するのは、セルエディタによる編集とペースト・Delete だけです。
+`renderBody` で描画したボタンやチェックボックスは利用側のコンポーネントなので、
+読み取り専用のセルであってもそのままでは操作できてしまいます。
+
+`renderBody` の引数 `isReadOnly` には、グリッド全体・行単位・列単位をすべて考慮した判定結果が渡されるので、
+これを使って利用側で無効化してください。上記デモの「至急」列がこの例です。
+
+<Source language="tsx" code={`
+  renderBody: ({ row, isReadOnly }) => (
+    <input
+      type="checkbox"
+      checked={row.urgent}
+      disabled={isReadOnly}
+      onMouseDown={e => e.stopPropagation()} // クリックでセル選択が動かないようにする
+      ...
+    />
+  ),
+`} />
+
+## 「読み取り専用」と「編集できない列」の違い
+
+`isReadOnly` を指定しなくても、`getValueForEditor` / `setValueFromEditor` を定義しなければその列は編集できません。
+両者の違いは以下のとおりです。
+
+| | `isReadOnly: true` | エディタ関連の定義なし |
+| --- | --- | --- |
+| 背景色 | グリッドの地の色になる | 通常のセルの色のまま |
+| 編集・ペースト・Delete | できない | できない |
+| コピー | `getValueForEditor` があれば可能 | できない（空文字になる） |
+| `renderBody` の引数 `isReadOnly` | `true` | `false` |
+
+「ユーザーが入力する項目だが、今は入力させない」ことを見た目で伝えたい場合は `isReadOnly` を、
+ボタン列のようにそもそも値を持たない列ではエディタ関連の定義を省略する、という使い分けを想定しています。
+上記デモの「金額」列は、`getValueForEditor` だけを定義した `isReadOnly: true` の計算列です。
+
+## 判定のタイミングに関する注意
+
+`isReadOnly` の関数は、グリッドの再レンダリング時に評価されます。
+そのため、判定に使っている値を `setValue` などグリッドの外から変更した場合、
+グリッドが再レンダリングされるまで背景色などに反映されないことがあります。
+
+上記デモの「割引率」列は「数量」に依存しているため、数量の `setValueFromEditor` の中で
+`forceUpdate()` を呼んで明示的に再描画しています。
+
+<Source language="tsx" code={`
+  const gridRef = React.useRef<EditableGrid2Ref<TestRow>>(null)
+
+  // 数量の列定義
+  setValueFromEditor: ({ rowIndex, value }) => {
+    setValue(\`rows.\${rowIndex}.quantity\`, Number(value))
+    gridRef.current?.forceUpdate() // 割引率列の読み取り専用判定を再評価させる
+  },
+`} />
+
+判定条件を React の state で持っている場合（上記デモのグリッド全体・行ロックの切り替え）は、
+state の更新でグリッドが再レンダリングされるため、`forceUpdate()` は不要です。
+
+## 見た目について
+
+グリッドが読み取り専用セルに対して行う見た目の変更は、**セル自身の背景色を塗らなくなる**ことだけです。
+通常のセルは白（`striped` 指定時は縞模様）で塗られますが、読み取り専用セルは塗られず、
+グリッドの地の色（既定ではグレー）がそのまま見える状態になります。
+
+文字色を薄くする、鍵アイコンを出すといったそれ以外の見た目には、グリッドは一切関与しません。
+セルの中身のレイアウトはすべて `renderBody` で決めるものなので、読み取り専用かどうかで表示を変えたい場合は、
+`renderBody` の引数 `isReadOnly` を見て利用側で切り替えてください。

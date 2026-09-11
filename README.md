@@ -27,7 +27,6 @@ CSS クラス名はすべて `halllky-eg2-` プレフィックスが付いてい
   --halllky-eg2-color-cell-bg: #ffffff;
   --halllky-eg2-color-cell-bg-striped: #f9fafb;
   --halllky-eg2-color-header-bg: #f3f4f6;
-  --halllky-eg2-color-readonly-bg: #e5e7eb;
   --halllky-eg2-color-border: #d1d5db;
   --halllky-eg2-color-resize-handle-hover: #9ca3af;
   --halllky-eg2-color-empty-text: #6b7280;
