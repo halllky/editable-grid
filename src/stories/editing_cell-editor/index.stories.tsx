@@ -71,7 +71,7 @@ function CellEditorExample() {
     },
     // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>選択肢</CellText>,
+    renderHeader: () => <CellText>選択肢（※2）</CellText>,
     renderBody: ({ rowIndex }) => {
       const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.option`, control })
       return <CellText>{watched}</CellText>
@@ -93,7 +93,7 @@ function CellEditorExample() {
     },
     // 日付 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>日付</CellText>,
+    renderHeader: () => <CellText>日付（※2）</CellText>,
     renderBody: ({ rowIndex }) => {
       const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.date`, control })
       return <CellText>{watched}</CellText>
@@ -115,7 +115,7 @@ function CellEditorExample() {
     },
     // チェックボックス エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>チェックボックス（※2）</CellText>,
+    renderHeader: () => <CellText>チェックボックス（※3）</CellText>,
     renderBody: ({ rowIndex, isReadOnly }) => {
       const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.checkbox`, control })
       return (
@@ -146,7 +146,8 @@ function CellEditorExample() {
       />
       <ul className="text-sm">
         <li>※1：エディタ内で Shift + Enter で改行可能</li>
-        <li>※2：セルエディタなしの例。直接値をトグルできる。</li>
+        <li>※2：ここではHTML標準のドロップダウンや日付ピッカーを使用している。使用感が気になる場合はこの例を参考にせず利用側で独自に作りこむこと。</li>
+        <li>※3：セルエディタなしの例。スペースキーやクリックで値をトグルできる。</li>
       </ul>
     </div>
   )
@@ -188,7 +189,7 @@ function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
 }
 
 const storybookSetting: Meta<typeof CellEditorExample> = {
-  title: "セルエディタ",
+  title: "編集/セルエディタ",
   component: CellEditorExample,
   tags: ["!dev"], // サイドメニューに表示させない
 }

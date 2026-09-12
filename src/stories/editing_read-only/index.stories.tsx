@@ -2,7 +2,7 @@ import React from "react"
 import * as ReactHookForm from "react-hook-form"
 import * as EG2 from "../../EditableGrid2"
 import { Meta, StoryObj } from "@storybook/react-vite"
-import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
+import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
 // editor が別のコンポーネント型にならないよう、
 // その場で作らずモジュールスコープの定数として参照を安定させる。
@@ -257,7 +257,7 @@ function CellText(props: { children?: React.ReactNode }) {
 }
 
 const storybookSetting: Meta<typeof ReadOnlyExample> = {
-  title: "読み取り専用",
+  title: "編集/読み取り専用",
   component: ReadOnlyExample,
   tags: ["!dev"], // サイドメニューに表示させない
 }

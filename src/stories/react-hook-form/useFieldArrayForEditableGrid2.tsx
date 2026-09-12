@@ -9,7 +9,7 @@ import {
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
 } from "../../EditableGrid2"
-import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
+import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
 // 文字列型セルのエディタ。参照を安定させるため、その場で作らずモジュールスコープの定数とする。
 const TextEditor = createTextCellEditor(false)

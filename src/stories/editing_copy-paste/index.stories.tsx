@@ -2,8 +2,8 @@ import React from "react"
 import * as ReactHookForm from "react-hook-form"
 import * as EG2 from "../../EditableGrid2"
 import { Meta, StoryObj } from "@storybook/react-vite"
-import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
-import { createSelectCellEditor } from "../cell-editor/createSelectCellEditor"
+import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
+import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellEditor"
 
 // editor が別のコンポーネント型にならないよう、
 // その場で作らずモジュールスコープの定数として参照を安定させる。
@@ -206,7 +206,7 @@ function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
 }
 
 const storybookSetting: Meta<typeof CopyPasteExample> = {
-  title: "コピー＆ペースト",
+  title: "編集/コピー＆ペースト",
   component: CopyPasteExample,
   tags: ["!dev"], // サイドメニューに表示させない
 }
