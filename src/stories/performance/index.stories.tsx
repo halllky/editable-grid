@@ -312,48 +312,49 @@ function PerformanceExample() {
     <div className="flex flex-col gap-2 p-2">
 
       {/* グリッドの外側からグリッド内部の値を変更する操作 */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span className="text-gray-500">グリッド外からの一括更新:</span>
-        <ToolbarButton onClick={copyAllPlanToActual}>
-          全行の実績に計画値をコピー
-        </ToolbarButton>
-        <ToolbarButton onClick={increaseAllPlan}>
-          全行の計画を1.1倍
-        </ToolbarButton>
-        <span className="flex items-center gap-1">
-          <select
-            value={bulkMonth}
-            onChange={e => setBulkMonth(Number(e.target.value))}
-            className="px-1 border border-gray-500 bg-white cursor-pointer"
-          >
-            {Array.from({ length: MONTH_COUNT }, (_, month) => (
-              <option key={month} value={month}>{month + 1}月</option>
-            ))}
-          </select>
-          <span>の計画を全行</span>
-          <input
-            type="number"
-            value={bulkValue}
-            onChange={e => setBulkValue(e.target.value)}
-            className="w-20 px-1 border border-gray-500 bg-white"
-          />
-          <ToolbarButton onClick={setPlanOfMonthForAllRows}>
-            に設定
+      <div className="flex justify-between items-start text-sm">
+        <div className="flex flex-col items-start gap-x-2 gap-y-1">
+          <ToolbarButton onClick={copyAllPlanToActual}>
+            全行の実績に計画値をコピー
           </ToolbarButton>
-        </span>
+          <ToolbarButton onClick={increaseAllPlan}>
+            全行の計画を1.1倍
+          </ToolbarButton>
+          <span className="flex items-center gap-1">
+            <select
+              value={bulkMonth}
+              onChange={e => setBulkMonth(Number(e.target.value))}
+              className="px-1 border border-gray-500 bg-white cursor-pointer"
+            >
+              {Array.from({ length: MONTH_COUNT }, (_, month) => (
+                <option key={month} value={month}>{month + 1}月</option>
+              ))}
+            </select>
+            <span>の計画を全行</span>
+            <input
+              type="number"
+              value={bulkValue}
+              onChange={e => setBulkValue(e.target.value)}
+              className="w-20 px-1 border border-gray-500 bg-white"
+            />
+            <ToolbarButton onClick={setPlanOfMonthForAllRows}>
+              に設定
+            </ToolbarButton>
+          </span>
+          {/* 行の追加・削除 */}
+          <span className="flex items-center gap-1">
+            <span className="text-gray-500">行の増減:</span>
+            <ToolbarButton onClick={addRow}>
+              行を追加
+            </ToolbarButton>
+            <ToolbarButton onClick={removeCheckedRows}>
+              チェックした行を削除
+            </ToolbarButton>
+          </span>
+        </div>
+
         <ToolbarButton onClick={resetData}>
           データを初期状態に戻す
-        </ToolbarButton>
-      </div>
-
-      {/* 行の追加・削除 */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span className="text-gray-500">行の増減:</span>
-        <ToolbarButton onClick={addRow}>
-          行を追加
-        </ToolbarButton>
-        <ToolbarButton onClick={removeCheckedRows}>
-          チェックした行を削除
         </ToolbarButton>
       </div>
 
