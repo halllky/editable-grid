@@ -1,0 +1,119 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as RowSelectionStories from "./index.stories"
+import RowSelectionStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={RowSelectionStories} />
+
+# 行選択
+
+`showCheckBox` を指定すると、グリッドの左端に行選択用のチェックボックス列が追加されます。
+チェックした行は、`ref` の `getCheckedRows()` で取得できます。
+
+以下の例では、上部のラジオボタンでチェックボックスの表示方法（すべての行／行ごとに判定）を切り替えられます。
+「チェックした行を削除する」ボタンは、`getCheckedRows()` で取得した行を React Hook Form の `remove` で削除しています。
+
+<Canvas
+  of={RowSelectionStories.行選択}
+  layout="fullscreen"
+  source={{ language: "tsx", code: RowSelectionStoriesTsx }}
+/>
+
+## チェックボックスの表示
+
+### すべての行に表示する
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    showCheckBox // すべての行にチェックボックスを表示する
+    {...}
+  />
+`} />
+
+### 行ごとに表示有無を判定する
+
+関数を渡すと、行ごとにチェックボックスを表示するかどうかを判定できます。
+`false` を返した行は、チェックボックス列のセルが空欄になります（列そのものは表示されたままです）。
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    showCheckBox={(row, rowIndex) => row.status !== "出荷済"} // 出荷済の行はチェックさせない
+    {...}
+  />
+`} />
+
+## ヘッダの全選択チェックボックス
+
+チェックボックス列のヘッダには、全選択用のチェックボックスが表示されます。
+
+* チェックすると全行がチェック済みになり、外すと全行のチェックが外れます。
+  `showCheckBox` に関数を渡している場合、チェックボックスを表示していない行はチェック済みになりません。
+* チェックボックスを表示している行がすべてチェック済みのときだけ、ヘッダのチェックボックスもチェック済みの表示になります
+  （一部だけチェックされている「中間状態」の表示はありません）。
+
+## チェックした行の取得（getCheckedRows）
+
+`ref` の `getCheckedRows()` は、チェックされている行を `{ row, rowIndex }` の配列で、行インデックスの昇順で返します。
+何もチェックされていなければ空配列です。
+
+チェックボックスを表示していない行は、戻り値に含まれません。
+チェックした後に `showCheckBox` の判定結果が変わり、チェックボックスが非表示になった行も同様です
+（上記デモで、出荷済の行をチェックしてから「出荷済の行には表示しない」に切り替えた場合など）。
+
+<Source language="tsx" code={`
+  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+
+  // チェックした行を削除する（React Hook Form の useFieldArray の remove を使う例）
+  const removeCheckedRows = () => {
+    const rowIndexes = (gridRef.current?.getCheckedRows() ?? []).map(({ rowIndex }) => rowIndex)
+    remove(rowIndexes)
+  }
+
+  <EditableGrid2 ref={gridRef} showCheckBox {...} />
+`} />
+
+チェック状態が変わったことを通知するイベントはありません。
+「チェックされた行数を常に画面に表示する」のように、チェック状態の変化に追従した表示が必要な場合には対応していません。
+ボタンを押したときなど、必要になった時点で `getCheckedRows()` を呼んで取得してください。
+
+## セル選択との違い
+
+チェックボックスによる行選択と、<Link to="選択/セル選択">セル選択</Link> は独立した別の仕組みです。
+
+| | 行選択（チェックボックス） | セル選択 |
+| --- | --- | --- |
+| 操作 | チェックボックスのクリック | セルのクリック・ドラッグ、キーボード |
+| 取得方法 | `getCheckedRows()` | `getSelectedRows()` |
+| 選択できる範囲 | 飛び飛びの行を複数選べる | 連続した矩形の範囲のみ |
+| フォーカスが外れたとき | 保持される | 既定では保持される（`clearSelectionOnBlur` で解除） |
+
+チェックボックス列は以下の点で、他の列とは異なる扱いを受けます。
+
+* 常に左端に固定表示されます。列幅の変更はできません。
+* セル選択の対象になりません。チェックボックス列をクリックしても選択範囲は変わらず、矢印キーでチェックボックス列へ移動することもできません。
+* <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link> の対象になりません。
+* キーボードでチェックを付け外しすることはできません。
+
+## チェック状態の保持
+
+チェック状態は `rowKeys` の値ごとにグリッド内部で保持されます。
+
+* 行の追加・削除・並べ替えを行っても、残っている行のチェック状態はそのまま引き継がれます。
+* 同じ `rowKeys` のまま行の内容だけを入れ替えた場合は、チェック状態も残ります。
+  データを再読み込みしたときなどにチェックを外したい場合は、新しい `rowKeys` を割り当ててください
+  （React Hook Form の `useFieldArray` の `replace` を使う場合は、`fields` の `id` が振り直されるため自動的に外れます）。
+
+## 読み取り専用との関係
+
+<Link to="編集/読み取り専用">読み取り専用</Link> の設定はチェックボックスに影響しません。読み取り専用の行でもチェックできます。
+読み取り専用の行をチェックさせたくない場合は、`showCheckBox` に関数を渡して、その行のチェックボックスを非表示にしてください。
+
+<Source language="tsx" code={`
+  const isLocked = (row: Row) => row.status === "確定"
+
+  <EditableGrid2
+    isReadOnly={isLocked}
+    showCheckBox={row => !isLocked(row)} // 読み取り専用の行はチェックさせない
+    {...}
+  />
+`} />
