@@ -3,10 +3,12 @@ import * as ReactHookForm from "react-hook-form"
 import * as EG2 from "../../EditableGrid2"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
+import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellEditor"
 
 // editor が別のコンポーネント型にならないよう、
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
+const StatusEditor = createSelectCellEditor(["出荷済", "未出荷"] satisfies TestRow["status"][])
 
 /**
  * 行選択の実演画面。
@@ -77,6 +79,16 @@ function RowSelectionExample() {
     defaultWidth: 128,
   }, {
     columnId: "status",
+    editor: StatusEditor,
+    getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.status`) ?? ""),
+    setValueFromEditor: ({ rowIndex, value }) => {
+      if (value.trim() === "") {
+        setValue(`rows.${rowIndex}.status`, undefined)
+
+      } else if ((["未出荷", "出荷済"] as const).includes(value as NonNullable<TestRow["status"]>)) {
+        setValue(`rows.${rowIndex}.status`, value as NonNullable<TestRow["status"]>)
+      }
+    },
     renderHeader: () => <CellText>状態</CellText>,
     renderBody: ({ rowIndex }) => {
       const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.status`, control })
