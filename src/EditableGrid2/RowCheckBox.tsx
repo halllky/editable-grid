@@ -1,7 +1,5 @@
 import * as TanStack from "@tanstack/react-table"
 import { ColumnMetadataInternal } from "./types-internal"
-import { EditableGrid2Props } from "./types-public"
-import { RowAccessor } from "./useRowAccessor"
 
 /** 行ヘッダー列のID */
 export const ROW_HEADER_COLUMN_ID = "hallky-eg2-row-header"
@@ -10,14 +8,7 @@ export const ROW_HEADER_COLUMN_ID = "hallky-eg2-row-header"
  * 行ヘッダのチェックボックス列を作成する
  */
 export function createRowCheckBoxColumn<TRow>(
-  /**
-   * showCheckBox の最新値を取得する関数。
-   * この列定義自体は showCheckBox の指定有無が変わらない限り作り直されないため、
-   * 値そのもの（特にインライン関数が渡された場合）を都度解決できるようゲッターで受け取る。
-   */
-  getPropsShowCheckBox: () => EditableGrid2Props<TRow>["showCheckBox"],
   columnHelper: TanStack.ColumnHelper<string>,
-  getRowObject: RowAccessor<TRow>,
 ): TanStack.ColumnDef<string, unknown> {
 
   return columnHelper.display({
@@ -52,17 +43,12 @@ export function createRowCheckBoxColumn<TRow>(
 
     // ボディの行の列ヘッダ
     cell: ctx => {
-      const propsShowCheckBox = getPropsShowCheckBox()
-      const showCheckBox = propsShowCheckBox === true
-        || typeof propsShowCheckBox === 'function'
-        && propsShowCheckBox(getRowObject(ctx.row.index), ctx.row.index)
-
       return (
         <label
           className="halllky-eg2-checkbox-cell-label"
           style={{ width: ctx.column.getSize() }}
         >
-          {showCheckBox && (
+          {ctx.row.getCanSelect() && (
             <input
               type="checkbox"
               checked={ctx.row.getIsSelected()}

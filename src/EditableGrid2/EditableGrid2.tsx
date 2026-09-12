@@ -25,7 +25,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
   const [isGridActive, setIsGridActive] = React.useState(false)
-  const [_, forceUpdate] = React.useReducer(x => x >= Number.MAX_SAFE_INTEGER ? 0 : x + 1, 0)
+  const [forceUpdateValue, forceUpdate] = React.useReducer(x => x >= Number.MAX_SAFE_INTEGER ? 0 : x + 1, 0)
   const rowKeys = useStableArray(props.rowKeys)
   const getRowObject = useRowAccessor(props.getLatestRowObject)
 
@@ -58,6 +58,11 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
       columnVisibility,
     },
     getCoreRowModel: TanStack.getCoreRowModel(),
+    // チェックボックスを表示していない行はチェックできないようにする
+    // （ヘッダの全選択でその行がチェック済みにならないようにするため）
+    enableRowSelection: row => props.showCheckBox === true
+      || typeof props.showCheckBox === 'function'
+      && props.showCheckBox(getRowObject(row.index), row.index),
     enableColumnResizing: true,
     defaultColumn: {
       size: DEFAULT_COLUMN_WIDTH,
@@ -139,7 +144,8 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   React.useImperativeHandle(ref, () => ({
     isEditing,
     getCheckedRows: () => {
-      return table.getSelectedRowModel().flatRows.map(r => ({
+      // チェック後に showCheckBox の判定が変わってチェックボックスが非表示になった行は含めない
+      return table.getSelectedRowModel().flatRows.filter(r => r.getCanSelect()).map(r => ({
         rowIndex: r.index,
         row: getRowObject(r.index),
       }))
@@ -301,6 +307,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                   start={header.getStart()}
                   allChecked={table.getIsAllRowsSelected()}
                   columnsTrigger={props.columns}
+                  forceUpdateValue={forceUpdateValue}
                 />
               ))}
             </tr>
@@ -345,6 +352,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                     start={cell.column.getStart()}
                     propsStriped={props.striped}
                     columnsTrigger={props.columns}
+                    forceUpdateValue={forceUpdateValue}
                   />
                 ))}
               </tr>
@@ -400,6 +408,8 @@ const MemorizedTH = React.memo<{
   allChecked: unknown
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
+  /** レンダリングのトリガーにのみ使用 */
+  forceUpdateValue: unknown
 }>(function MemorizedTH({ header, headerMeta, hasHeaderGroup, headerGroupIndex, isResizing, size, height, start }) {
 
   // 列グループの有無が混在しているテーブルにおいて、このheaderがグループでない列か否か
@@ -476,6 +486,8 @@ const MemorizedTD = React.memo<{
   isChecked: unknown
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
+  /** レンダリングのトリガーにのみ使用 */
+  forceUpdateValue: unknown
 }>(function MemorizedTD({ cell, cellMeta, size, minHeight, start, propsStriped, isReadOnly, isLastFixedColumn }) {
 
   let className = 'halllky-eg2-td'

@@ -77,7 +77,7 @@ export type EditableGrid2Ref<TRow> = {
   isEditing: boolean
   /** 選択されている行の取得 */
   getSelectedRows: () => { row: TRow, rowIndex: number }[]
-  /** 行頭のチェックボックスで選択されている行を取得する */
+  /** 行頭のチェックボックスで選択されている行を取得する。チェックボックスが表示されていない行は含まれない。 */
   getCheckedRows: () => { row: TRow, rowIndex: number }[]
   /** 指定した範囲の行を選択する */
   selectRow: (startRowIndex: number, endRowIndex: number) => void

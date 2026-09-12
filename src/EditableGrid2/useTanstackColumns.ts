@@ -152,11 +152,7 @@ export function useTanstackColumns<TRow>(
     // 最終的な TanStack Table の列定義を構築
     const tanstackColumns: TanStack.ColumnDef<string>[] = []
     if (showCheckBoxSpecified) {
-      tanstackColumns.push(createRowCheckBoxColumn(
-        () => latestRef.current.showCheckBox,
-        columnHelper,
-        getRowObject
-      ))
+      tanstackColumns.push(createRowCheckBoxColumn(columnHelper))
     }
     let currentGroupColumnId: string | undefined = undefined
     for (const item of withTanstackLeafColumn) {
