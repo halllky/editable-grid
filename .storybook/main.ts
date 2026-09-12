@@ -21,7 +21,8 @@ const config: StorybookConfig = {
         },
       },
     },
-    "@storybook/addon-mcp"
+    "@storybook/addon-mcp",
+    '@storybook/addon-links',
   ],
   "framework": "@storybook/react-vite",
 

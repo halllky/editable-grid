@@ -57,17 +57,14 @@ function ReadOnlyExample() {
         rowKeys={rowKeys}
         getLatestRowObject={index => getValues(`rows.${index}`)}
 
-        // グリッド全体・行単位の読み取り専用 ここから
         // true を渡すとグリッド全体が、関数を渡すと行単位で読み取り専用になる。
         isReadOnly={isGridReadOnly ? true : row => lockedRowIds.has(row.rowId)}
-        // グリッド全体・行単位の読み取り専用 ここまで
 
         columns={[{
-          columnId: "lock",
           // 行ロック切り替えボタン ここから
           // セル内のボタンは読み取り専用とは無関係にクリックできるため、
           // グリッド全体が読み取り専用のときだけ明示的に disabled にしている。
-          // また、クリックでセル選択が動かないよう mouseDown の伝播を止めている。
+          columnId: "lock",
           renderBody: ({ row }) => (
             <button
               type="button"
@@ -79,12 +76,11 @@ function ReadOnlyExample() {
               {lockedRowIds.has(row.rowId) ? "解除" : "確定"}
             </button>
           ),
-          // 行ロック切り替えボタン ここまで
-
           renderHeader: () => <CellText>行ロック</CellText>,
-          defaultWidth: 64,
+          defaultWidth: 76,
           disableResizing: true,
           isFixed: true,
+          // 行ロック切り替えボタン ここまで
         }, {
           columnId: "name",
           editor: TextEditor,
@@ -98,10 +94,10 @@ function ReadOnlyExample() {
           defaultWidth: 128,
           isFixed: true,
         }, {
-          columnId: "unitPrice",
           // 単価（列単位の読み取り専用） ここから
           // getValueForEditor / setValueFromEditor が定義されていても、
           // isReadOnly: true の列では編集・ペースト・Delete によるクリアはできない。コピーは可能。
+          columnId: "unitPrice",
           isReadOnly: true,
           editor: TextEditor,
           getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.unitPrice`) ?? ""),
@@ -109,17 +105,16 @@ function ReadOnlyExample() {
             const parsed = Number(value)
             if (value.trim() !== "" && Number.isFinite(parsed)) setValue(`rows.${rowIndex}.unitPrice`, parsed)
           },
-          // 単価（列単位の読み取り専用） ここまで
-
           renderHeader: () => <CellText>単価（※1）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.unitPrice`, control })
             return <CellText>{watched}</CellText>
           },
-          defaultWidth: 88,
+          defaultWidth: 96,
+          // 単価（列単位の読み取り専用） ここまで
         }, {
-          columnId: "quantity",
           // 数量 エディタ用設定 ここから
+          columnId: "quantity",
           editor: TextEditor,
           getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.quantity`) ?? ""),
           setValueFromEditor: ({ rowIndex, value }) => {
@@ -130,22 +125,18 @@ function ReadOnlyExample() {
               if (!Number.isFinite(parsed)) return
               setValue(`rows.${rowIndex}.quantity`, parsed)
             }
-            // 「割引率」列の読み取り専用判定は数量に依存しているが、setValue だけでは
-            // グリッドが再レンダリングされず判定結果が画面に反映されないことがあるため、明示的に再描画する。
-            gridRef.current?.forceUpdate()
           },
-          // 数量 エディタ用設定 ここまで
-
           renderHeader: () => <CellText>数量</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.quantity`, control })
             return <CellText>{watched}</CellText>
           },
           defaultWidth: 72,
+          // 数量 エディタ用設定 ここまで
         }, {
-          columnId: "discountRate",
           // 割引率（セル単位の読み取り専用） ここから
           // 列の isReadOnly に関数を渡すと、行ごとに判定される（＝セル単位の読み取り専用）。
+          columnId: "discountRate",
           isReadOnly: row => (row.quantity ?? 0) < 10,
           editor: TextEditor,
           getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.discountRate`) ?? ""),
@@ -158,32 +149,30 @@ function ReadOnlyExample() {
               setValue(`rows.${rowIndex}.discountRate`, parsed)
             }
           },
-          // 割引率（セル単位の読み取り専用） ここまで
-
           renderHeader: () => <CellText>割引率%（※2）</CellText>,
           renderBody: ({ rowIndex }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.discountRate`, control })
             return <CellText>{watched}</CellText>
           },
-          defaultWidth: 112,
+          defaultWidth: 120,
+          // 割引率（セル単位の読み取り専用） ここまで
         }, {
-          columnId: "amount",
           // 金額（読み取り専用・計算列） ここから
+          columnId: "amount",
           isReadOnly: true,
           getValueForEditor: ({ rowIndex }) => String(calcAmount(getValues(`rows.${rowIndex}`))),
-          // 金額（読み取り専用・計算列） ここまで
-
-          renderHeader: () => <CellText>金額（※3）</CellText>,
+          renderHeader: () => <CellText>金額（※1）</CellText>,
           renderBody: ({ rowIndex }) => {
             const row = ReactHookForm.useWatch({ name: `rows.${rowIndex}`, control })
             return <CellText>{calcAmount(row)}</CellText>
           },
-          defaultWidth: 88,
+          defaultWidth: 96,
+          // 金額（読み取り専用・計算列） ここまで
         }, {
-          columnId: "urgent",
           // 至急（セル内コントロール） ここから
           // renderBody 内に置いたチェックボックス等は、グリッドの読み取り専用設定では止まらない。
           // 引数の isReadOnly（グリッド全体・行・列の判定結果）を見て、利用側で disabled にする。
+          columnId: "urgent",
           renderBody: ({ rowIndex, isReadOnly }) => {
             const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.urgent`, control })
             return (
@@ -191,7 +180,7 @@ function ReadOnlyExample() {
                 <input
                   type="checkbox"
                   checked={watched ?? false}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly} // チェックボックスを操作できなくする
                   onChange={e => setValue(`rows.${rowIndex}.urgent`, e.target.checked)}
                   onMouseDown={e => e.stopPropagation()}
                   className={isReadOnly ? "" : "cursor-pointer"}
@@ -199,10 +188,9 @@ function ReadOnlyExample() {
               </label>
             )
           },
+          renderHeader: () => <CellText>至急（※3）</CellText>,
+          defaultWidth: 92,
           // 至急（セル内コントロール） ここまで
-
-          renderHeader: () => <CellText>至急（※4）</CellText>,
-          defaultWidth: 72,
         }, {
           columnId: "note",
           editor: TextEditor,
@@ -218,10 +206,9 @@ function ReadOnlyExample() {
         className="border border-gray-500 resize-y"
       />
       <ul className="text-sm">
-        <li>※1：列単位の読み取り専用（isReadOnly: true）。単価マスタ由来の値を想定</li>
+        <li>※1：常に読み取り専用</li>
         <li>※2：セル単位の読み取り専用。数量が10以上の行でのみ入力可能</li>
-        <li>※3：読み取り専用の計算列（単価 × 数量 × 割引後の率）</li>
-        <li>※4：セル内のチェックボックス。renderBody の引数 isReadOnly を見て利用側で無効化している</li>
+        <li>※3：セル内のチェックボックス。renderBody の引数 isReadOnly を見て動的に読み取り専用になる</li>
       </ul>
     </div>
   )
