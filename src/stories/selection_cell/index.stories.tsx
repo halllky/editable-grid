@@ -29,12 +29,12 @@ function CellSelectionExample() {
   const [clearSelectionOnBlur, setClearSelectionOnBlur] = React.useState(false)
 
   // ref API で取得した選択行の表示用
-  const [selectedRowsText, setSelectedRowsText] = React.useState("")
   const showSelectedRows = () => {
     const rows = gridRef.current?.getSelectedRows() ?? []
-    setSelectedRowsText(rows.length === 0
-      ? "（選択なし）"
-      : rows.map(({ row, rowIndex }) => `${rowIndex + 1}行目: ${row.name}`).join("、"))
+    window.alert(rows.length === 0
+      ? "選択されている行はありません。"
+      : `選択されている行の商品名は、${rows.map(({ row, rowIndex }) => `${row.name}(${rowIndex + 1}行目)`).join("、")}です。`
+    )
   }
 
   const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [{
@@ -152,7 +152,7 @@ function CellSelectionExample() {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-1 text-sm">
         <label className="flex items-center gap-1 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -160,21 +160,21 @@ function CellSelectionExample() {
             onChange={e => setClearSelectionOnBlur(e.target.checked)}
             className="cursor-pointer"
           />
-          フォーカスが外れたら選択を解除する（clearSelectionOnBlur）
+          フォーカスが外れたら選択を解除する
         </label>
         <button
           type="button"
           onClick={() => gridRef.current?.selectRow(2, 4)}
           className="px-2 border border-gray-500 bg-white cursor-pointer"
         >
-          3～5行目を選択（selectRow）
+          3～5行目を選択する
         </button>
         <button
           type="button"
           onClick={showSelectedRows}
-          className="px-2 border border-gray-500 bg-white cursor-pointer"
+          className="inline-block px-2 border border-gray-500 bg-white cursor-pointer"
         >
-          選択中の行を取得（getSelectedRows）
+          選択中の行を取得する
         </button>
       </div>
 
@@ -187,9 +187,6 @@ function CellSelectionExample() {
         className="h-80 border border-gray-500 resize-y"
       />
 
-      {selectedRowsText && (
-        <p className="text-sm">取得結果: {selectedRowsText}</p>
-      )}
       <ul className="text-sm">
         <li>※1：+ キー / - キーで値を増減できる（onCellKeyDown によるキー操作のカスタマイズ）</li>
       </ul>
