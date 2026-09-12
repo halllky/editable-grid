@@ -6,7 +6,7 @@ import { createTextCellEditor } from "./createTextCellEditor"
 import { createSelectCellEditor } from "./createSelectCellEditor"
 import { createDateCellEditor } from "./createDateCellEditor"
 
-// 列定義は毎レンダリング評価されるため、editor に渡すコンポーネントは
+// editor が別のコンポーネント型にならないよう、
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const SingleLineEditor = createTextCellEditor(false)
 const MultiLineEditor = createTextCellEditor(true)
@@ -24,122 +24,124 @@ function CellEditorExample() {
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
 
+  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [{
+    columnId: "singleLine",
+    // 改行なしテキスト エディタ用設定 ここから
+    editor: SingleLineEditor,
+    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.singleLine`) ?? "",
+    setValueFromEditor: ({ rowIndex, value }) => {
+      // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
+      setValue(`rows.${rowIndex}.singleLine`, value.replace(/[\r\n\u2028\u2029]/g, ''))
+    },
+    // 改行なしテキスト エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>改行なし</CellText>,
+    renderBody: ({ rowIndex }) => {
+      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.singleLine`, control })
+      return <CellText>{watched}</CellText>
+    },
+    defaultWidth: 152,
+  }, {
+    columnId: "multiLine",
+    // 改行ありテキスト エディタ用設定 ここから
+    editor: MultiLineEditor,
+    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.multiLine`) ?? "",
+    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.multiLine`, value),
+    // 改行ありテキスト エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>改行あり（※1）</CellText>,
+    renderBody: ({ rowIndex }) => {
+      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.multiLine`, control })
+      return <CellText wrap>{watched}</CellText>
+    },
+    defaultWidth: 224,
+  }, {
+    columnId: "option",
+    // 選択肢（ドロップダウン） エディタ用設定 ここから
+    editor: OptionEditor,
+    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.option`) ?? "",
+    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.option`, value as TestRow["option"]),
+    onCellKeyDown: ({ event, requestEditStart }) => {
+      const alt = event.altKey || event.metaKey
+      const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
+      if (event.key === 'Enter' || alt && upDown) {
+        requestEditStart()
+        event.preventDefault()
+      }
+    },
+    // 選択肢（ドロップダウン） エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>選択肢</CellText>,
+    renderBody: ({ rowIndex }) => {
+      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.option`, control })
+      return <CellText>{watched}</CellText>
+    },
+    defaultWidth: 120,
+  }, {
+    columnId: "date",
+    // 日付 エディタ用設定 ここから
+    editor: DateEditor,
+    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.date`) ?? "",
+    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.date`, value),
+    onCellKeyDown: ({ event, requestEditStart }) => {
+      const alt = event.altKey || event.metaKey
+      const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
+      if (event.key === 'Enter' || alt && upDown) {
+        requestEditStart()
+        event.preventDefault()
+      }
+    },
+    // 日付 エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>日付</CellText>,
+    renderBody: ({ rowIndex }) => {
+      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.date`, control })
+      return <CellText>{watched}</CellText>
+    },
+    defaultWidth: 124,
+  }, {
+    columnId: "checkbox",
+    // チェックボックス エディタ用設定 ここから
+    // クリックだけで値を切り替えられるため、専用のセルエディタは持たない。
+    // クリップボードとのコピーペーストのために get, set は定義しておく。
+    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.checkbox`) ? 'true' : 'false',
+    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.checkbox`, value.toLowerCase() === 'true'),
+    onCellKeyDown: ({ rowIndex, event }) => {
+      if (event.key === ' ' || event.code === 'Space') {
+        event.preventDefault()
+        const current = getValues(`rows.${rowIndex}.checkbox`)
+        setValue(`rows.${rowIndex}.checkbox`, !current)
+      }
+    },
+    // チェックボックス エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>チェックボックス（※2）</CellText>,
+    renderBody: ({ rowIndex, isReadOnly }) => {
+      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.checkbox`, control })
+      return (
+        <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
+          <span>
+            <input
+              type="checkbox"
+              checked={!!watched}
+              onChange={e => setValue(`rows.${rowIndex}.checkbox`, e.target.checked)}
+              disabled={isReadOnly}
+              className={isReadOnly ? '' : 'cursor-pointer'}
+            />
+            &nbsp;
+          </span>
+        </label>
+      )
+    },
+    defaultWidth: 188,
+  }], [control, getValues, setValue])
+
   return (
     <div className="flex flex-col gap-2 p-2">
       <EG2.EditableGrid2
         rowKeys={rowKeys}
         getLatestRowObject={index => getValues(`rows.${index}`)}
-        columns={[{
-          columnId: "singleLine",
-          // 改行なしテキスト エディタ用設定 ここから
-          editor: SingleLineEditor,
-          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.singleLine`) ?? "",
-          setValueFromEditor: ({ rowIndex, value }) => {
-            // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
-            setValue(`rows.${rowIndex}.singleLine`, value.replace(/[\r\n\u2028\u2029]/g, ''))
-          },
-          // 改行なしテキスト エディタ用設定 ここまで
-
-          renderHeader: () => <CellText>改行なし</CellText>,
-          renderBody: ({ rowIndex }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.singleLine`, control })
-            return <CellText>{watched}</CellText>
-          },
-          defaultWidth: 152,
-        }, {
-          columnId: "multiLine",
-          // 改行ありテキスト エディタ用設定 ここから
-          editor: MultiLineEditor,
-          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.multiLine`) ?? "",
-          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.multiLine`, value),
-          // 改行ありテキスト エディタ用設定 ここまで
-
-          renderHeader: () => <CellText>改行あり（※1）</CellText>,
-          renderBody: ({ rowIndex }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.multiLine`, control })
-            return <CellText wrap>{watched}</CellText>
-          },
-          defaultWidth: 224,
-        }, {
-          columnId: "option",
-          // 選択肢（ドロップダウン） エディタ用設定 ここから
-          editor: OptionEditor,
-          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.option`) ?? "",
-          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.option`, value as TestRow["option"]),
-          onCellKeyDown: ({ event, requestEditStart }) => {
-            const alt = event.altKey || event.metaKey
-            const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
-            if (event.key === 'Enter' || alt && upDown) {
-              requestEditStart()
-              event.preventDefault()
-            }
-          },
-          // 選択肢（ドロップダウン） エディタ用設定 ここまで
-
-          renderHeader: () => <CellText>選択肢</CellText>,
-          renderBody: ({ rowIndex }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.option`, control })
-            return <CellText>{watched}</CellText>
-          },
-          defaultWidth: 120,
-        }, {
-          columnId: "date",
-          // 日付 エディタ用設定 ここから
-          editor: DateEditor,
-          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.date`) ?? "",
-          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.date`, value),
-          onCellKeyDown: ({ event, requestEditStart }) => {
-            const alt = event.altKey || event.metaKey
-            const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
-            if (event.key === 'Enter' || alt && upDown) {
-              requestEditStart()
-              event.preventDefault()
-            }
-          },
-          // 日付 エディタ用設定 ここまで
-
-          renderHeader: () => <CellText>日付</CellText>,
-          renderBody: ({ rowIndex }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.date`, control })
-            return <CellText>{watched}</CellText>
-          },
-          defaultWidth: 124,
-        }, {
-          columnId: "checkbox",
-          // チェックボックス エディタ用設定 ここから
-          // クリックだけで値を切り替えられるため、専用のセルエディタは持たない。
-          // クリップボードとのコピーペーストのために get, set は定義しておく。
-          getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.checkbox`) ? 'true' : 'false',
-          setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.checkbox`, value.toLowerCase() === 'true'),
-          onCellKeyDown: ({ rowIndex, event }) => {
-            if (event.key === ' ' || event.code === 'Space') {
-              event.preventDefault()
-              const current = getValues(`rows.${rowIndex}.checkbox`)
-              setValue(`rows.${rowIndex}.checkbox`, !current)
-            }
-          },
-          // チェックボックス エディタ用設定 ここまで
-
-          renderHeader: () => <CellText>チェックボックス（※2）</CellText>,
-          renderBody: ({ rowIndex, isReadOnly }) => {
-            const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.checkbox`, control })
-            return (
-              <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
-                <span>
-                  <input
-                    type="checkbox"
-                    checked={!!watched}
-                    onChange={e => setValue(`rows.${rowIndex}.checkbox`, e.target.checked)}
-                    disabled={isReadOnly}
-                    className={isReadOnly ? '' : 'cursor-pointer'}
-                  />
-                  &nbsp;
-                </span>
-              </label>
-            )
-          },
-          defaultWidth: 188,
-        }]}
+        columns={columns}
         className="border border-gray-500 resize-y"
       />
       <ul className="text-sm">

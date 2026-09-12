@@ -12,7 +12,9 @@
 ├ コピー＆ペースト ... TSV経由でExcelと相互にやり取りできること、getValueForEditor / setValueFromEditor がクリップボードの入出力も兼務すること、1セル選択時は貼り付け内容のサイズに選択範囲が自動拡張され、範囲選択時は範囲内に繰り返し敷き詰められる挙動、読み取り専用セルはスキップされること
 └ 読み取り専用 ... グリッド全体／行単位／列単位の3階層と、背景色・編集開始・ペーストそれぞれへの効き方
 列定義
-├ 列定義 ... renderHeader / renderBody の書き方、セル内にボタンを置く際の mouseDown の stopPropagation 注意
+├ 列定義 ... renderHeader / renderBody の書き方、セル内にボタンを置く際の mouseDown の stopPropagation 注意、
+│           columns の参照が変わると表示中のセルが再レンダリングされる（外側の state への依存が追従する）こと、
+│           セル編集のたびに親が再レンダリングされる実装では useMemo で包むこと
 ├ 列固定 ... true, false, true と指定したら最後の true より左が全部固定
 ├ グルーピング
 └ 列幅 ※max500はドキュメントに書くのでなく実装側を修正する必要がある

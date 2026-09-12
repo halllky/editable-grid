@@ -11,6 +11,10 @@ import {
 } from "../../EditableGrid2"
 import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
 
+// 文字列型セルのエディタ。参照を安定させるため、その場で作らずモジュールスコープの定数とする。
+const TextEditor = createTextCellEditor(false)
+const WrapTextEditor = createTextCellEditor(true)
+
 /**
  * EditableGrid2 を react-hook-form の useFieldArray と組み合わせて使用する際の
  * 定型的な処理をまとめたカスタムフック。
@@ -19,6 +23,10 @@ import { createTextCellEditor } from "../cell-editor/createTextCellEditor"
  * react-hook-form と連携する際の実装例（Storybook 用）です。
  * 利用側のプロジェクトにこのファイルをコピーして使うか、
  * これを参考に同様のフックを自前で定義してください。
+ *
+ * @param getColumnDef 列定義を返す関数。
+ * @param columnDeps getColumnDef の中で参照している外側の値（useMemo の依存配列と同じ扱い）。
+ * 列定義はこれらの値が変わったときだけ再評価される。含め忘れると、その値が変わっても列定義内の関数は古い値を参照したままになる。
  */
 export function useFieldArrayForEditableGrid2<
   TField extends ReactHookForm.FieldValues,
@@ -29,7 +37,8 @@ export function useFieldArrayForEditableGrid2<
     getValues: ReactHookForm.UseFormGetValues<TField>
     setValue: ReactHookForm.UseFormSetValue<TField>
   },
-  getColumnDef: GetColumnDefWithHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>>
+  getColumnDef: GetColumnDefWithHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>>,
+  columnDeps: React.DependencyList
 ) {
   type TRow = ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>
 
@@ -46,6 +55,9 @@ export function useFieldArrayForEditableGrid2<
     fieldArrayProps.name,
     gridRef
   )
+  // 列定義の参照を安定させるため、helper と columnDeps が変わったときだけ再評価する
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const columns = React.useMemo(() => getColumnDef(helper), [helper, ...columnDeps])
 
   // EditableGrid2 の props
   const rowKeyName = fieldArrayProps.keyName ?? "id"
@@ -56,7 +68,7 @@ export function useFieldArrayForEditableGrid2<
   const editableGrid2Props: EditableGrid2Props<TRow> & { ref: React.RefObject<EditableGrid2Ref<TRow> | null> } = {
     ref: gridRef,
     rowKeys,
-    columns: getColumnDef(helper),
+    columns,
     getLatestRowObject: index => getValues(`${fieldArrayProps.name}.${index}` as ReactHookForm.Path<TField>),
   }
 
@@ -138,10 +150,9 @@ function useColumnDefHelper<
   gridRef: React.RefObject<EditableGrid2Ref<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> | null>
 ): ColumnDefHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> {
 
-  // columns は毎レンダリング評価されるため、ヘルパー関数（textCell/selectCell）自体も
-  // 毎レンダリング呼び出される。editor に渡すコンポーネントの参照を安定させるため、
+  // 列定義は依存配列（columnDeps）の値が変わるたびに再評価され、そのたびに selectCell も呼び直される。
+  // 選択肢ごとにエディタコンポーネントを作る必要があるため、editor に渡す参照を安定させるよう
   // 一度作ったエディタコンポーネントをキャッシュして使い回す。
-  const textEditorCache = React.useRef(new Map<boolean, ReturnType<typeof createTextCellEditor>>()).current
   const selectEditorCache = React.useRef(new Map<string, EditableGridCellEditor>()).current
 
   return React.useMemo(() => ({
@@ -149,14 +160,9 @@ function useColumnDefHelper<
     //#region ヘルパー: 文字列型
     textCell: (header, key, options) => {
       const { wrap, ...restOptions } = options ?? {}
-      let Editor = textEditorCache.get(wrap ?? false)
-      if (!Editor) {
-        Editor = createTextCellEditor(wrap ?? false)
-        textEditorCache.set(wrap ?? false, Editor)
-      }
       return {
         columnId: String(key),
-        editor: Editor,
+        editor: wrap ? WrapTextEditor : TextEditor,
         renderHeader: () => (
           <div className="px-1 py-px text-sm truncate text-gray-700">
             {header}

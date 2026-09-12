@@ -52,7 +52,7 @@ function EditableGrid2WithReactHookForm({
     },
     helper.textCell("コメント", "comment", { defaultWidth: 320, wrap: true }),
     helper.textCell("価格(同じ項目を複数回指定する例)", "price", { columnId: "price2", defaultWidth: 252 }),
-  ])
+  ], [fixed3Cols, setValue]) // 列定義の中で参照している外側の値
 
   React.useEffect(() => {
     let rows: TestRow[]

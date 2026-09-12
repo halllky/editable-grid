@@ -300,6 +300,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                   height={ESTIMATED_ROW_HEIGHT}
                   start={header.getStart()}
                   allChecked={table.getIsAllRowsSelected()}
+                  columnsTrigger={props.columns}
                 />
               ))}
             </tr>
@@ -343,6 +344,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                     minHeight={ESTIMATED_ROW_HEIGHT}
                     start={cell.column.getStart()}
                     propsStriped={props.striped}
+                    columnsTrigger={props.columns}
                   />
                 ))}
               </tr>
@@ -396,6 +398,8 @@ const MemorizedTH = React.memo<{
   start: number
   /** レンダリングのトリガーにのみ使用 */
   allChecked: unknown
+  /** レンダリングのトリガーにのみ使用 */
+  columnsTrigger: unknown
 }>(function MemorizedTH({ header, headerMeta, hasHeaderGroup, headerGroupIndex, isResizing, size, height, start }) {
 
   // 列グループの有無が混在しているテーブルにおいて、このheaderがグループでない列か否か
@@ -470,6 +474,8 @@ const MemorizedTD = React.memo<{
   propsStriped: boolean | undefined
   /** レンダリングのトリガーにのみ使用 */
   isChecked: unknown
+  /** レンダリングのトリガーにのみ使用 */
+  columnsTrigger: unknown
 }>(function MemorizedTD({ cell, cellMeta, size, minHeight, start, propsStriped, isReadOnly, isLastFixedColumn }) {
 
   let className = 'halllky-eg2-td'
