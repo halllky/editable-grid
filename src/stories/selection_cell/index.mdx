@@ -1,0 +1,171 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as CellSelectionStories from "./index.stories"
+import CellSelectionStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={CellSelectionStories} />
+
+# セル選択
+
+EditableGrid2 は、Excel のようなマウス・キーボードによるセル選択と範囲選択の機能を標準で備えています。
+有効にするための専用のプロパティは無く、グリッドを配置するだけで使えます。
+
+以下の例では、グリッドをクリックしてフォーカスした状態で、矢印キーやドラッグで選択範囲を動かせます。
+「No.」「商品名」列は固定列、「数量」列はキー操作をカスタマイズした列です。
+
+<Canvas
+  of={CellSelectionStories.セル選択}
+  layout="fullscreen"
+  source={{ language: "tsx", code: CellSelectionStoriesTsx }}
+/>
+
+## マウス操作
+
+| 操作 | 動作 |
+| --- | --- |
+| クリック | そのセルを選択する |
+| ドラッグ | クリックしたセルを起点に、マウスボタンを離すまで範囲選択する |
+| `Shift` + クリック | 起点のセルはそのままに、クリックしたセルまで選択範囲を広げる |
+| 選択中のセルをダブルクリック | セル編集を開始する |
+
+範囲選択の起点になるセル（アンカーセル）は、選択範囲の中で唯一背景色が付かないセルとして表示されます。
+
+セルの中にボタンやチェックボックスを置く場合、そのままではクリックがセル選択として扱われます。
+セル選択させたくない要素では、`onMouseDown` で `stopPropagation` を呼んでください。
+
+<Source language="tsx" code={`
+  renderBody: ({ row }) => (
+    <button
+      onMouseDown={e => e.stopPropagation()} // クリックでセル選択が起きないようにする
+      onClick={() => doSomething(row)}
+    >
+      実行
+    </button>
+  ),
+`} />
+
+## キーボード操作
+
+グリッドにフォーカスがあり、セル編集をしていない状態で、以下のキー操作ができます。
+
+| 操作 | 動作 |
+| --- | --- |
+| 矢印キー | 1セル移動する |
+| `Ctrl` + 矢印キー | その方向のグリッドの端（先頭行・最終行・左端列・右端列）まで移動する |
+| `Shift` + 矢印キー | 起点のセルはそのままに、選択範囲を1セル広げる・狭める |
+| `Ctrl` + `Shift` + 矢印キー | その方向のグリッドの端まで選択範囲を広げる |
+| `F2` | セル編集を開始する（セルの現在の値が入った状態で始まる） |
+| 文字キー | クイック編集を開始する（後述） |
+| `Delete` | 選択範囲のセルの値を空にする |
+| `Ctrl` + `C` / `Ctrl` + `V` | コピー・ペースト |
+
+`Ctrl` + 矢印キーは、Excel のように「値が入っているセルの切れ目」で止まることはなく、常にグリッドの端まで移動します。
+
+キー操作で移動した先のセルが画面外にある場合は、そのセルが見える位置まで自動でスクロールします。
+固定列の裏に隠れる位置へ移動した場合も、固定列の分を考慮してスクロールします。
+
+`Delete` と `Ctrl` + `C` / `Ctrl` + `V` の詳細は <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link> のページを参照してください。
+
+### 未対応のキー操作
+
+以下は現時点で対応していません。
+
+* `Ctrl` + `A` による全選択
+* `Home` / `End` / `PageUp` / `PageDown` による移動
+* `Enter` / `Tab` によるセル移動（`Tab` はブラウザ標準の動作どおり、グリッドの外へフォーカスが移ります）
+
+`Enter` で編集を開始したい場合は、後述の `onCellKeyDown` で列ごとに設定できます。
+
+## クイック編集
+
+セルを選択した状態で文字キーを押すと、`F2` やダブルクリックを経由せずにいきなり編集が始まります。
+このとき、セルの元の値は破棄され、押した文字が入力された状態から編集が始まります。
+
+日本語入力（IME）がオンの状態でも、**最初に打った1文字目が取りこぼされることなく**、そのまま変換候補として入力されます。
+これはグリッドにフォーカスがある間、非編集時も含めて、見えない状態のセルエディタに常にフォーカスが当たっているためです。
+キー入力が最初からセルエディタに届くため、1文字目から IME の変換が効きます。
+
+編集の確定（`Enter`）・キャンセル（`Escape`）といった編集中のキー操作は、グリッドではなくセルエディタ側で実装します。
+詳細は <Link to="編集/セルエディタ">セルエディタ</Link> のページを参照してください。
+
+なお、読み取り専用のセルや、エディタ関連の定義（`editor` / `getValueForEditor`）が無い列では、
+文字キーや `F2` を押しても編集は始まりません。選択は通常どおりできます。
+
+## キー操作のカスタマイズ（onCellKeyDown）
+
+列定義の `onCellKeyDown` を使うと、その列のセルが選択されているときのキー操作を追加・変更できます。
+`onCellKeyDown` はグリッドの既定の処理より先に呼ばれ、中で `event.preventDefault()` を呼ぶと、
+矢印キーによる移動・クイック編集・`Delete` によるクリアといったグリッドの既定の動作がキャンセルされます。
+セル編集中は呼ばれません。
+
+上記デモの「数量」列では、`+` / `-` キーをクイック編集ではなく値の増減に割り当てています。
+
+<Source language="tsx" code={`
+  onCellKeyDown: ({ rowIndex, event }) => {
+    if (event.key !== "+" && event.key !== "-") return
+    event.preventDefault() // クイック編集が始まらないようにする
+    const current = getValues(\`rows.\${rowIndex}.quantity\`) ?? 0
+    setValue(\`rows.\${rowIndex}.quantity\`, current + (event.key === "+" ? 1 : -1))
+  },
+`} />
+
+引数の `requestEditStart` を呼ぶと、そのセルの編集を開始できます。
+例えば、ドロップダウンのセルで `Enter` や `Alt` + `↓` を押したときに編集を始めるには次のようにします。
+
+<Source language="tsx" code={`
+  onCellKeyDown: ({ event, requestEditStart }) => {
+    const alt = event.altKey || event.metaKey
+    const upDown = event.key === "ArrowUp" || event.key === "ArrowDown"
+    if (event.key === "Enter" || alt && upDown) {
+      requestEditStart()
+      event.preventDefault()
+    }
+  },
+`} />
+
+`Alt` / `Meta` キーを押しながらの矢印キーは、ドロップダウンの展開などに使われることが多いため、
+グリッドはセル移動として扱いません。
+
+## フォーカスと選択状態
+
+グリッドの外からフォーカスが当たったときの選択セルは、以下のように決まります。
+
+* セルをクリックしてフォーカスした場合は、クリックしたセル
+* `Tab` キーなどでフォーカスした場合は、前回選択していた範囲。一度も選択していなければ先頭のセル
+
+フォーカスが外れた後も、選択範囲は既定では表示されたまま残ります。
+`clearSelectionOnBlur` を指定すると、フォーカスが外れたときに選択が解除されます
+（キーボードで再びフォーカスしたときは、解除前の選択範囲が復元されます）。
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    clearSelectionOnBlur // フォーカスが外れたら選択を解除する
+    {...}
+  />
+`} />
+
+また、行の削除などで選択中のセルがグリッドの外に出た場合、選択範囲はグリッド内に収まるよう自動的に調整されます。
+
+## ref API
+
+`ref` を経由して、選択状態の取得・変更ができます。
+
+* `getSelectedRows()`
+  * 選択範囲に含まれる行を `{ row, rowIndex }` の配列で返します。何も選択されていなければ空配列です。
+  * 行頭のチェックボックスで選択された行ではない点に注意してください（そちらは `getCheckedRows()` で取得します）。
+* `selectRow(startRowIndex, endRowIndex)`
+  * 指定した範囲の行を、全列にわたって選択します。
+* `isEditing`
+  * セル編集中かどうか。
+
+<Source language="tsx" code={`
+  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+
+  // 選択範囲に含まれる行を取得
+  const rows = gridRef.current?.getSelectedRows() ?? []
+
+  // 3～5行目を選択（行インデックスは0始まり）
+  gridRef.current?.selectRow(2, 4)
+
+  <EditableGrid2 ref={gridRef} {...} />
+`} />
