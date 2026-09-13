@@ -1,4 +1,4 @@
-import { EditableGrid2LeafColumn } from "./types-public"
+import { EditableGrid2FooterCellRenderer, EditableGrid2FooterRenderer, EditableGrid2LeafColumn } from "./types-public"
 
 /** このフォルダ内部でのみ使用。外部から使われる想定はない */
 export type ColumnMetadataInternal<TRow> = {
@@ -31,6 +31,14 @@ export const ESTIMATED_ROW_HEIGHT = 24
 export const ROW_HEADER_WIDTH = 32
 /** デフォルトの列幅。8rem をピクセル換算。環境依存可能性あり */
 export const DEFAULT_COLUMN_WIDTH = 128
+
+/** 列定義の renderFooter を段ごとのレンダリング関数の配列に揃える */
+export function normalizeFooterRenderers(
+  renderFooter: EditableGrid2FooterRenderer | undefined
+): EditableGrid2FooterCellRenderer[] {
+  if (renderFooter === undefined) return []
+  return Array.isArray(renderFooter) ? renderFooter : [renderFooter]
+}
 
 /**
  * セルが読み取り専用かどうかを判定する。

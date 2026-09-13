@@ -2,7 +2,7 @@ import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import { EditableGrid2GroupColumn, EditableGrid2LeafColumn, EditableGrid2Props } from "./types-public"
 import { createRowCheckBoxColumn } from "./RowCheckBox"
-import { checkIfCellReadOnly, ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH } from "./types-internal"
+import { checkIfCellReadOnly, ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, normalizeFooterRenderers } from "./types-internal"
 import { RowAccessor } from "./useRowAccessor"
 
 /**
@@ -21,6 +21,7 @@ export function useTanstackColumns<TRow>(
     leafByColumnId,
     groupByColumnId,
     columnsSignature,
+    footerRowCount,
   } = React.useMemo(() => {
 
     // 処理しやすいようにグループ列を展開
@@ -66,7 +67,13 @@ export function useTanstackColumns<TRow>(
       leaf.isFixed === true ? '1' : '0',
     ].join('\u0000')).join('\u0000')
 
-    return { flatten, leafByColumnId, groupByColumnId, columnsSignature }
+    // フッターの段数。可視列の中で最も段数の多い列に合わせる。
+    // TanStack の列定義には影響しないため、構造シグネチャには含めない。
+    const footerRowCount = flatten.reduce((max, { leaf }) => leaf.invisible === true
+      ? max
+      : Math.max(max, normalizeFooterRenderers(leaf.renderFooter).length), 0)
+
+    return { flatten, leafByColumnId, groupByColumnId, columnsSignature, footerRowCount }
   }, [props.columns])
 
   // cell / header レンダリング関数が毎回最新の列定義を引けるように ref を更新する
@@ -89,7 +96,7 @@ export function useTanstackColumns<TRow>(
   const showCheckBoxSpecified = props.showCheckBox === true || typeof props.showCheckBox === 'function'
   const signature = (showCheckBoxSpecified ? '1' : '0') + '\u0000' + columnsSignature
 
-  return React.useMemo(() => {
+  const tanstackColumnsState = React.useMemo(() => {
 
     // 左列から順に true, false, true のように指定された場合、
     // 最後の true より左側はすべて固定列とする。
@@ -221,6 +228,12 @@ export function useTanstackColumns<TRow>(
     // 変わっていないとみなせるため、このクロージャが捕まえている flatten 等をそのまま使ってよい。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature])
+
+  return {
+    ...tanstackColumnsState,
+    /** フッターの段数。フッターが無い場合は0 */
+    footerRowCount,
+  }
 }
 
 /** 列定義平坦化後の1要素 */

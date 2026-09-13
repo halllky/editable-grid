@@ -1,9 +1,9 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import * as TanStackVirtual from "@tanstack/react-virtual"
-import { EditableGrid2Props, EditableGrid2Ref } from "./types-public"
+import { EditableGrid2FooterCellRenderer, EditableGrid2Props, EditableGrid2Ref } from "./types-public"
 import { useTanstackColumns } from "./useTanstackColumns"
-import { ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, ESTIMATED_ROW_HEIGHT, checkIfCellReadOnly } from "./types-internal"
+import { ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, ESTIMATED_ROW_HEIGHT, checkIfCellReadOnly, normalizeFooterRenderers } from "./types-internal"
 import { useGetPixel } from "./useGetPixel"
 import { SelectedRangeForFixedColumn, SelectedRangeForScrollableColumn } from "./SelectedRange"
 import { useSelection } from "./useSelection"
@@ -37,6 +37,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     columnVisibility,
     hasHeaderGroup,
     lastFixedIndex,
+    footerRowCount,
   } = useTanstackColumns(props, getRowObject)
 
   // TanStack Table のテーブルインスタンス。
@@ -73,6 +74,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   const visibleLeafColumns = table.getVisibleLeafColumns()
   const headerGroups = table.getHeaderGroups()
   const totalHeaderHeight = headerGroups.length * ESTIMATED_ROW_HEIGHT
+  const totalFooterHeight = footerRowCount * ESTIMATED_ROW_HEIGHT
 
   // 行の仮想化
   const rowModel = table.getRowModel()
@@ -113,6 +115,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     lastFixedIndex,
     tableContainerRef,
     totalHeaderHeight,
+    totalFooterHeight,
   )
 
   // 範囲選択
@@ -219,7 +222,8 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     if (isEditing) return
 
     const target = e.target as HTMLElement
-    const td = target.closest('td')
+    // フッター等、ボディセル以外の td は対象外（属性が無いと Number(null) === 0 となり先頭セル扱いになるため）
+    const td = target.closest('td[data-eg2-row-index]')
     if (!td) return
 
     const rowIndex = Number(td.getAttribute('data-eg2-row-index'))
@@ -371,6 +375,28 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
             </tr>
           )}
         </tbody>
+
+        {/* 列フッタ。段が足りない列は空セルになる */}
+        {footerRowCount > 0 && (
+          <tfoot className="halllky-eg2-tfoot">
+            {Array.from({ length: footerRowCount }, (_, footerRowIndex) => (
+              <tr key={footerRowIndex} className="halllky-eg2-footer-row">
+                {visibleLeafColumns.map(column => (
+                  <MemorizedTF
+                    key={column.id}
+                    columnMeta={column.columnDef.meta as ColumnMetadataInternal<TRow>}
+                    footerRowIndex={footerRowIndex}
+                    size={column.getSize()}
+                    height={ESTIMATED_ROW_HEIGHT}
+                    start={column.getStart()}
+                    columnsTrigger={props.columns}
+                    forceUpdateValue={forceUpdateValue}
+                  />
+                ))}
+              </tr>
+            ))}
+          </tfoot>
+        )}
       </table>
 
       {/* スクロール列用の選択範囲レイヤー */}
@@ -541,3 +567,51 @@ const MemorizedTD = React.memo<{
 })
 
 //#endregion メモ化ボディ
+
+//#region メモ化フッタ
+
+/**
+ * 列フッタセル。
+ * 行の値はここから渡さず、 render 内部で直接取得する想定。
+ */
+const MemorizedTF = React.memo<{
+  columnMeta: ColumnMetadataInternal<any>
+  footerRowIndex: number
+  size: number
+  height: number
+  start: number
+  /** レンダリングのトリガーにのみ使用 */
+  columnsTrigger: unknown
+  /** レンダリングのトリガーにのみ使用 */
+  forceUpdateValue: unknown
+}>(function MemorizedTF({ columnMeta, footerRowIndex, size, height, start }) {
+
+  // original は最新の列定義を返す。行チェックボックス列は null のため常に空セル
+  const render = normalizeFooterRenderers(columnMeta.original?.renderFooter)[footerRowIndex]
+
+  let className = 'halllky-eg2-tf'
+  if (columnMeta.isFixed) className += ' halllky-eg2-tf--fixed'
+
+  return (
+    <td className={className} style={{
+      width: size,
+      height,
+      left: columnMeta.isFixed ? `${start}px` : undefined,
+    }}>
+      {render && <FooterCellContent render={render} columnWidth={size} />}
+    </td>
+  )
+})
+
+/**
+ * 利用側のフッタレンダリング関数をコンポーネントとして描画する。
+ * レンダリング関数内で呼ばれたフックが MemorizedTF 自身のフックと混ざらないよう分離している。
+ */
+function FooterCellContent({ render, columnWidth }: {
+  render: EditableGrid2FooterCellRenderer
+  columnWidth: number
+}) {
+  return <>{render({ columnWidth })}</>
+}
+
+//#endregion メモ化フッタ

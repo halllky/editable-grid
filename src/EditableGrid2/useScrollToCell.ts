@@ -18,6 +18,7 @@ export function useScrollToCell<TRow>(
   lastFixedIndex: number | null,
   tableContainerRef: React.RefObject<HTMLDivElement | null>,
   totalHeaderHeight: number,
+  totalFooterHeight: number,
 ): ScrollToCellFunction {
 
   return React.useCallback((cell: CellPosition | null) => {
@@ -43,14 +44,14 @@ export function useScrollToCell<TRow>(
       // 上に見切れている -> 上端合わせ (ヘッダー分考慮)
       container.scrollTop = rowTop - totalHeaderHeight - SCROLL_PADDING
 
-    } else if (rowBottom > containerTop + containerHeight - scrollBarHeight - SCROLL_PADDING) {
-      // 下に見切れている
-      if (rowBottom - rowTop > containerHeight - totalHeaderHeight - scrollBarHeight) {
+    } else if (rowBottom > containerTop + containerHeight - scrollBarHeight - totalFooterHeight - SCROLL_PADDING) {
+      // 下に見切れている (フッター分考慮)
+      if (rowBottom - rowTop > containerHeight - totalHeaderHeight - totalFooterHeight - scrollBarHeight) {
         // セル高さが可視領域より高い -> 上端合わせ
         container.scrollTop = rowTop - totalHeaderHeight - SCROLL_PADDING
       } else {
         // 下端合わせ
-        container.scrollTop = rowBottom - containerHeight + scrollBarHeight + SCROLL_PADDING
+        container.scrollTop = rowBottom - containerHeight + scrollBarHeight + totalFooterHeight + SCROLL_PADDING
       }
     }
 
@@ -93,5 +94,5 @@ export function useScrollToCell<TRow>(
         }
       }
     }
-  }, [getPixel, visibleLeafColumns, lastFixedIndex, tableContainerRef, totalHeaderHeight])
+  }, [getPixel, visibleLeafColumns, lastFixedIndex, tableContainerRef, totalHeaderHeight, totalFooterHeight])
 }

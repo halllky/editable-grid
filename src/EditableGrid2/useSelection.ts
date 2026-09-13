@@ -317,7 +317,8 @@ function getHelper<TRow>(
     /** マウスイベントの座標と対応するセル位置を取得する */
     getCellPositionFromMouseEvent: (e: React.MouseEvent): CellPosition | null => {
       const target = e.target as HTMLElement
-      const td = target.closest('td')
+      // フッター等、ボディセル以外の td は対象外（属性が無いと Number(null) === 0 となり先頭セル扱いになるため）
+      const td = target.closest('td[data-eg2-row-index]')
       if (!td) return null
 
       // 属性名は EditableGrid2.tsx で設定しているものと一致させる必要がある

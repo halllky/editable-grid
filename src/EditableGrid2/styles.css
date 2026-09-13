@@ -46,6 +46,9 @@
 .halllky-eg2-row,
 .halllky-eg2-th,
 .halllky-eg2-td,
+.halllky-eg2-tfoot,
+.halllky-eg2-footer-row,
+.halllky-eg2-tf,
 .halllky-eg2-empty-cell,
 .halllky-eg2-resize-handle,
 .halllky-eg2-selection-fixed-layer,
@@ -165,6 +168,36 @@
 
 /* z-index を明示して SelectedRange(非固定) より手前、ヘッダより奥にする */
 .halllky-eg2-td--fixed {
+  position: sticky;
+  z-index: 10;
+}
+
+/* --- フッター --- */
+/* z-index は thead と同じ。選択範囲レイヤーより手前、セルエディタより奥 */
+.halllky-eg2-tfoot {
+  display: grid;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+
+.halllky-eg2-footer-row {
+  display: flex;
+  width: 100%;
+}
+
+.halllky-eg2-tf {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  /* UA の td padding を打ち消す */
+  user-select: none;
+  background-color: var(--halllky-eg2-color-header-bg);
+  border-top: 1px solid var(--halllky-eg2-color-border);
+  border-right: 1px solid var(--halllky-eg2-color-border);
+}
+
+.halllky-eg2-tf--fixed {
   position: sticky;
   z-index: 10;
 }

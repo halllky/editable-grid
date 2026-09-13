@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import React from "react"
-import { useForm } from "react-hook-form"
+import { Control, useForm, useWatch } from "react-hook-form"
 import { UUID } from "uuidjs"
 import * as EG2 from "../../EditableGrid2"
 import { useFieldArrayForEditableGrid2 } from "./useFieldArrayForEditableGrid2"
@@ -12,10 +12,12 @@ function EditableGrid2WithReactHookForm({
   fixed3Cols,
   isLargeData,
   clearSelectionOnBlur,
+  showFooter,
 }: {
   fixed3Cols: boolean
   isLargeData: boolean
   clearSelectionOnBlur: boolean
+  showFooter: boolean
 }) {
 
   const { control, setValue, getValues } = useForm<{ rows: TestRow[] }>()
@@ -35,13 +37,30 @@ function EditableGrid2WithReactHookForm({
     ),
 
     helper.textCell("ID", "rowId", { defaultWidth: 80, isReadOnly: true, isFixed: fixed3Cols }),
-    helper.textCell("商品名", "name", { isFixed: fixed3Cols }),
-    helper.textCell("価格", "price", { defaultWidth: 120 }),
+    helper.textCell("商品名", "name", {
+      isFixed: fixed3Cols,
+      // フッターは複数段指定できる
+      renderFooter: showFooter ? [
+        () => <FooterLabel text="合計" />,
+        () => <FooterLabel text="平均" />,
+      ] : undefined,
+    }),
+    helper.textCell("価格", "price", {
+      defaultWidth: 120,
+      renderFooter: showFooter ? [
+        () => <PriceSummary control={control} kind="sum" />,
+        () => <PriceSummary control={control} kind="avg" />,
+      ] : undefined,
+    }),
     helper.selectCell("ステータス", "status", [
       { value: "0", text: "未着手" },
       { value: "1", text: "進行中" },
       { value: "2", text: "完了" },
-    ], { defaultWidth: 100 }),
+    ], {
+      defaultWidth: 100,
+      // 段数は列ごとに揃っていなくてよい（足りない段は空セルになる）
+      renderFooter: showFooter ? () => <CompletedCount control={control} /> : undefined,
+    }),
     {
       columnId: "groupedColumns",
       renderHeader: () => <span className="px-1 text-gray-700">グルーピングされた列</span>,
@@ -52,7 +71,7 @@ function EditableGrid2WithReactHookForm({
     },
     helper.textCell("コメント", "comment", { defaultWidth: 320, wrap: true }),
     helper.textCell("価格(同じ項目を複数回指定する例)", "price", { columnId: "price2", defaultWidth: 252 }),
-  ], [fixed3Cols, setValue]) // 列定義の中で参照している外側の値
+  ], [fixed3Cols, showFooter, control, setValue]) // 列定義の中で参照している外側の値
 
   React.useEffect(() => {
     let rows: TestRow[]
@@ -127,6 +146,51 @@ function EditableGrid2WithReactHookForm({
   )
 }
 
+//#region フッター
+
+/** フッター: 見出し */
+function FooterLabel({ text }: { text: string }) {
+  return (
+    <div className="px-1 py-px text-sm font-bold text-gray-700">
+      {text}
+    </div>
+  )
+}
+
+/**
+ * フッター: 価格の集計。
+ * 行の値はグリッドを経由せず useWatch で直接取得する。
+ */
+function PriceSummary({ control, kind }: {
+  control: Control<{ rows: TestRow[] }>
+  kind: 'sum' | 'avg'
+}) {
+  const rows = useWatch({ control, name: "rows" }) ?? []
+  const prices = rows
+    .map(r => r.price ? Number(r.price) : NaN)
+    .filter(n => Number.isFinite(n))
+  const sum = prices.reduce((acc, cur) => acc + cur, 0)
+  const value = kind === 'sum' ? sum : prices.length === 0 ? 0 : sum / prices.length
+  return (
+    <div className="w-full px-1 py-px text-sm font-bold text-right text-gray-700">
+      {Math.round(value).toLocaleString()}
+    </div>
+  )
+}
+
+/** フッター: 完了件数 */
+function CompletedCount({ control }: { control: Control<{ rows: TestRow[] }> }) {
+  const rows = useWatch({ control, name: "rows" }) ?? []
+  const count = rows.filter(r => r.status === "2").length
+  return (
+    <div className="px-1 py-px text-sm font-bold text-gray-700">
+      完了 {count} 件
+    </div>
+  )
+}
+
+//#endregion フッター
+
 type TestRow = {
   rowId: string
   name?: string | null
@@ -149,11 +213,13 @@ const meta = {
     fixed3Cols: { control: 'boolean', description: '商品名までの列を固定するかどうか' },
     isLargeData: { control: 'boolean', description: '1000行の大量データを表示するかどうか' },
     clearSelectionOnBlur: { control: 'boolean', description: 'フォーカスアウトで選択を解除するかどうか' },
+    showFooter: { control: 'boolean', description: 'フッター（価格の合計・平均、完了件数）を表示するかどうか' },
   },
   args: {
     fixed3Cols: true,
     isLargeData: false,
     clearSelectionOnBlur: true,
+    showFooter: true,
   },
 } satisfies Meta<typeof EditableGrid2WithReactHookForm>
 

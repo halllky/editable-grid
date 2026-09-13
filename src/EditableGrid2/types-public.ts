@@ -120,6 +120,17 @@ export type EditableGrid2LeafColumn<TRow> = {
   /** 列のヘッダーのうち、グルーピングが発生している場合のグループ化されない列の下段のレンダリング処理をカスタマイズする関数。 */
   renderHeaderPlaceholder?: EditableGrid2HeaderRenderer
   /**
+   * 列のフッターのレンダリング処理。配列を指定した場合は上から順に1段ずつ描画される。
+   *
+   * - 行の値は引数として渡されない。パフォーマンスのためボディ行の変化による自動再レンダリングは発生しない。
+   *   合計値などの表示に必要な値はレンダリング処理内部でウォッチやサブスクライブして直接取得すること。
+   * - 各レンダリング関数はコンポーネントとして描画されるため、内部でフックを呼び出せる。
+   * - 段数は列ごとに揃っていなくてよい。段が足りない列のフッターセルは空で表示される。
+   * - 表示専用を想定している。グリッドがアクティブな間はセルエディタが常にフォーカスを保持するため、
+   *   入力要素を配置することは想定していない。
+   */
+  renderFooter?: EditableGrid2FooterRenderer
+  /**
    * セルのボディのレンダリング処理をカスタマイズする関数。
    * セルの中にボタンを配置するなど、セル選択を防ぎたい要素がある場合、
    * mouseDown イベントの stopPropagation を呼び出し、イベントの伝播を防ぐこと。
@@ -182,6 +193,17 @@ export type EditableGrid2HeaderRenderer = (args: {
   /** この列の現在の幅（px） */
   columnWidth: number
 }) => React.ReactNode
+
+/** フッターセル1段分のレンダリング処理 */
+export type EditableGrid2FooterCellRenderer = (args: {
+  /** この列の現在の幅（px） */
+  columnWidth: number
+}) => React.ReactNode
+
+/** 列フッターのレンダリング処理。配列の場合は上から順に1段ずつ描画される */
+export type EditableGrid2FooterRenderer =
+  | EditableGrid2FooterCellRenderer
+  | EditableGrid2FooterCellRenderer[]
 
 /** ボディセルのレンダリング処理 */
 export type EditableGrid2BodyRenderer<TRow> = (args: {
