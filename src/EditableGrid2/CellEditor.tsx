@@ -65,10 +65,10 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
 
   // -----------------------------------
 
-  /** セルの値をエディタに表示する文字列にする。getText が無い列は空文字。 */
-  const getTextForEditor = (cell: CellPosition): string => {
+  /** セルの値をエディタに表示する文字列にする。toText が無い列は空文字。 */
+  const toEditorText = (cell: CellPosition): string => {
     const columnMeta = visibleLeafColumns[cell.colIndex]?.columnDef.meta
-    return columnMeta?.original?.getText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
+    return columnMeta?.original?.toText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
   }
 
   // 編集確定
@@ -116,7 +116,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   const cancelEditing = () => {
     // エディタの値を編集前の値に戻す
     if (edittingCell) {
-      const value = getTextForEditor(edittingCell)
+      const value = toEditorText(edittingCell)
       // エディタが select 要素のとき編集確定後にキー操作ができなくなるので setTimeiout を挟む。
       // グリッドの中にフォーカスがある状態でグリッド外のボタンをクリックするなどした場合、
       // setTimeout後の時間ではグリッドからフォーカスが外れてしまっている可能性があるので考慮する。
@@ -172,8 +172,8 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     // 移動先の列のエディタコンポーネントに切り替え
     const columnMeta = visibleLeafColumns[activeCell.colIndex]?.columnDef.meta
     let value = ''
-    if (columnMeta?.original?.setText) {
-      value = getTextForEditor(activeCell)
+    if (columnMeta?.original?.fromText) {
+      value = toEditorText(activeCell)
       setEditorComponent(columnMeta.original.editor ?? gridEditorComponent ?? NoopEditor)
     } else {
       // 編集できない列の場合
@@ -197,12 +197,12 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       // エディタコンポーネントが指定されていない場合は編集開始しない
       if (editorComponent === NoopEditor) return;
 
-      // 範囲外のセル、setText が無い列、読み取り専用のセルは編集開始しない
+      // 範囲外のセル、fromText が無い列、読み取り専用のセルは編集開始しない
       if (!batchDispatcher.isCellWritable(activeCell.rowIndex, activeCell.colIndex)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、
       // その文字を初期値としてエディタにセットする
-      const value = inputChar ?? getTextForEditor(activeCell)
+      const value = inputChar ?? toEditorText(activeCell)
       editorTextareaRef.current?.setValueAndSelectAll(value, 'edit-start')
 
       setEdittingCell(activeCell)

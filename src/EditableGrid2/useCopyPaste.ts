@@ -63,10 +63,10 @@ export const useCopyPaste = <TRow,>({
         const colDef = dataColumns[c].columnDef.meta?.original;
 
         let cellValue = '';
-        if (colDef && colDef.getText) {
+        if (colDef && colDef.toText) {
           const row = getRowObject(r);
           if (row) {
-            cellValue = colDef.getText(row, r);
+            cellValue = colDef.toText(row, r);
           }
         }
         rowData.push(cellValue);

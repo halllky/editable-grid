@@ -66,7 +66,7 @@ export type EditableGrid2Props<TRow> = {
    * - 対象はセル編集の確定・貼り付け（Ctrl+V）・Deleteキーによるクリアの3つです。
    *   セル内に配置したボタンやチェックボックスなど、グリッドの操作以外による値の変更では呼ばれません。
    * - 1回の操作につき1回だけ、値が変わった行をまとめて渡します。
-   *   各行の値は列定義の setText を適用済みの新しい行オブジェクトです。
+   *   各行の値は列定義の fromText を適用済みの新しい行オブジェクトです。
    * - 未指定の場合、グリッドの操作による値の変更はどこにも反映されません。
    */
   onRowsChange?: (updates: EditableGrid2RowUpdate<TRow>[]) => void
@@ -261,7 +261,7 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
    * 数値の書式化や、外部参照オブジェクトからコード値を取り出すといった変換はここで行う。
    * 指定しない場合、この列のセルは空文字としてコピーされ、セルエディタの初期値も空文字になる。
    */
-  getText?: (row: TRow, rowIndex: number) => string
+  toText?: (row: TRow, rowIndex: number) => string
   /**
    * 文字列を行に反映した新しい行オブジェクトを返す関数。
    * セル編集の確定・貼り付け・Deleteキーによるクリアで使われる。
@@ -270,10 +270,10 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
    *
    * - 文字列から数値・真偽値・外部参照オブジェクト等への変換や、ネストしたプロパティへの配置はここで行う。
    * - 文字列を解釈できない場合など、そのセルへの書き込みをやめる場合は undefined を返す。
-   * - 同じ行の複数のセルへ貼り付ける場合は、前の列の setText の戻り値が次の列の引数に渡される。
+   * - 同じ行の複数のセルへ貼り付ける場合は、前の列の fromText の戻り値が次の列の引数に渡される。
    * - 指定しない場合、この列は編集不可。
    */
-  setText?: (row: TRow, text: string, rowIndex: number) => TRow | undefined
+  fromText?: (row: TRow, text: string, rowIndex: number) => TRow | undefined
   /**
    * 列が読み取り専用かどうか。
    * trueの場合はセルの背景色が変わるのと、
@@ -408,7 +408,7 @@ export type EditableGrid2PastePlanner = (args: {
   columnIds: string[]
   /**
    * そのセルに書き込めるかどうか。
-   * グリッド全体・行単位・列単位の読み取り専用設定と、列定義の setText の有無を
+   * グリッド全体・行単位・列単位の読み取り専用設定と、列定義の fromText の有無を
    * 考慮した結果が返る。範囲外の rowIndex / colIndex に対しては false を返す。
    */
   isCellWritable: (rowIndex: number, colIndex: number) => boolean
@@ -464,7 +464,7 @@ export type EditableGridCellEditorProps = {
   isEditing: boolean
   /**
    * 編集内容を確定してほしいときにエディタ側から呼び出す（例: Enter/Tabキー押下時）。
-   * 呼び出すと isEditing が false になり、渡した value が列定義の setText に渡される。
+   * 呼び出すと isEditing が false になり、渡した value が列定義の fromText に渡される。
    * なお、グリッド外クリックなど、エディタが自ら呼び出さずに編集が確定するケースもあり、
    * その場合はグリッド側が ref.getCurrentValue() を呼んで値を取得するため、
    * getCurrentValue が返す値は常にこの value と一致する（=最新の入力内容を保持する）ようにすること。

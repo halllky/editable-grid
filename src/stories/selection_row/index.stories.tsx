@@ -78,8 +78,8 @@ function RowSelectionExample() {
   }), col.leaf({
     columnId: "name",
     editor: TextEditor,
-    getText: row => row.name ?? "",
-    setText: (row, text) => ({ ...row, name: text }),
+    toText: row => row.name ?? "",
+    fromText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
     getValueForRerender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
@@ -87,8 +87,8 @@ function RowSelectionExample() {
   }), col.leaf({
     columnId: "status",
     editor: StatusEditor,
-    getText: row => String(row.status ?? ""),
-    setText: (row, text) => {
+    toText: row => String(row.status ?? ""),
+    fromText: (row, text) => {
       if (text.trim() === "") return { ...row, status: undefined }
       return (["未出荷", "出荷済"] as const).includes(text as NonNullable<TestRow["status"]>)
         ? { ...row, status: text as NonNullable<TestRow["status"]> }
@@ -101,8 +101,8 @@ function RowSelectionExample() {
   }), col.leaf({
     columnId: "quantity",
     editor: TextEditor,
-    getText: row => String(row.quantity ?? ""),
-    setText: (row, text) => {
+    toText: row => String(row.quantity ?? ""),
+    fromText: (row, text) => {
       if (text.trim() === "") return { ...row, quantity: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
@@ -114,8 +114,8 @@ function RowSelectionExample() {
   }), col.leaf({
     columnId: "note",
     editor: TextEditor,
-    getText: row => row.note ?? "",
-    setText: (row, text) => ({ ...row, note: text }),
+    toText: row => row.note ?? "",
+    fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
     getValueForRerender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,

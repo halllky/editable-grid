@@ -62,8 +62,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "name",
     editor: TextEditor,
-    getText: row => row.name ?? "",
-    setText: (row, text) => ({ ...row, name: text }),
+    toText: row => row.name ?? "",
+    fromText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
     getValueForRerender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
@@ -72,8 +72,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "category",
     editor: TextEditor,
-    getText: row => row.category ?? "",
-    setText: (row, text) => ({ ...row, category: text }),
+    toText: row => row.category ?? "",
+    fromText: (row, text) => ({ ...row, category: text }),
     renderHeader: () => <CellText>区分</CellText>,
     getValueForRerender: row => [row.category],
     renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
@@ -81,8 +81,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "unitPrice",
     editor: TextEditor,
-    getText: row => String(row.unitPrice ?? ""),
-    setText: (row, text) => {
+    toText: row => String(row.unitPrice ?? ""),
+    fromText: (row, text) => {
       if (text.trim() === "") return { ...row, unitPrice: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
@@ -94,8 +94,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "quantity",
     editor: TextEditor,
-    getText: row => String(row.quantity ?? ""),
-    setText: (row, text) => {
+    toText: row => String(row.quantity ?? ""),
+    fromText: (row, text) => {
       if (text.trim() === "") return { ...row, quantity: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
@@ -117,8 +117,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "supplier",
     editor: TextEditor,
-    getText: row => row.supplier ?? "",
-    setText: (row, text) => ({ ...row, supplier: text }),
+    toText: row => row.supplier ?? "",
+    fromText: (row, text) => ({ ...row, supplier: text }),
     renderHeader: () => <CellText>仕入先</CellText>,
     getValueForRerender: row => [row.supplier],
     renderBody: ({ deps: [supplier] }) => <CellText>{supplier}</CellText>,
@@ -126,8 +126,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "location",
     editor: TextEditor,
-    getText: row => row.location ?? "",
-    setText: (row, text) => ({ ...row, location: text }),
+    toText: row => row.location ?? "",
+    fromText: (row, text) => ({ ...row, location: text }),
     renderHeader: () => <CellText>保管場所</CellText>,
     getValueForRerender: row => [row.location],
     renderBody: ({ deps: [location] }) => <CellText>{location}</CellText>,
@@ -135,8 +135,8 @@ function CellSelectionExample() {
   }), col.leaf({
     columnId: "note",
     editor: TextEditor,
-    getText: row => row.note ?? "",
-    setText: (row, text) => ({ ...row, note: text }),
+    toText: row => row.note ?? "",
+    fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
     getValueForRerender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,

@@ -197,7 +197,7 @@ function useColumnDefHelper<
       //#region ヘルパー: 文字列型
       textCell: (header, key, options) => {
         const { wrap, format, parse, ...restOptions } = options ?? {}
-        const toText = (value: unknown) => format?.(value) ?? (value as { toString?: () => string } | null | undefined)?.toString?.() ?? ''
+        const formatValue = (value: unknown) => format?.(value) ?? (value as { toString?: () => string } | null | undefined)?.toString?.() ?? ''
         return col.leaf({
           columnId: String(key),
           editor: wrap ? WrapTextEditor : TextEditor,
@@ -209,11 +209,11 @@ function useColumnDefHelper<
           getValueForRerender: row => [getIn(row, key)],
           renderBody: ({ deps: [value] }) => (
             <div className={`px-1 py-px text-sm ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
-              {toText(value)}
+              {formatValue(value)}
             </div>
           ),
-          getText: row => toText(getIn(row, key)),
-          setText: (row, text) => setIn(row, key, parse ? parse(text) : text),
+          toText: row => formatValue(getIn(row, key)),
+          fromText: (row, text) => setIn(row, key, parse ? parse(text) : text),
           ...restOptions,
         })
       },
@@ -314,8 +314,8 @@ function useColumnDefHelper<
             </div>
           ),
           editor: Editor,
-          getText: row => (getIn(row, key) as string | undefined) ?? '',
-          setText: (row, text) => setIn(row, key, text),
+          toText: row => (getIn(row, key) as string | undefined) ?? '',
+          fromText: (row, text) => setIn(row, key, text),
           onCellKeyDown: ({ event, requestEditStart }) => {
             const alt = event.altKey || event.metaKey
             const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
@@ -364,8 +364,8 @@ function useColumnDefHelper<
             )
           }
         },
-        getText: row => getIn(row, key) ? 'true' : 'false',
-        setText: (row, text) => setIn(row, key, ['true', '1', 'yes'].includes(text.trim().toLowerCase())),
+        toText: row => getIn(row, key) ? 'true' : 'false',
+        fromText: (row, text) => setIn(row, key, ['true', '1', 'yes'].includes(text.trim().toLowerCase())),
         ...options,
       }),
       //#endregion ヘルパー: チェックボックス

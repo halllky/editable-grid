@@ -43,9 +43,9 @@ function CellEditorExample() {
     columnId: "singleLine",
     // 改行なしテキスト エディタ用設定 ここから
     editor: SingleLineEditor,
-    getText: row => row.singleLine ?? "",
+    toText: row => row.singleLine ?? "",
     // 改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定する
-    setText: (row, text) => ({ ...row, singleLine: text.replace(/[\r\n\u2028\u2029]/g, '') }),
+    fromText: (row, text) => ({ ...row, singleLine: text.replace(/[\r\n\u2028\u2029]/g, '') }),
     // 改行なしテキスト エディタ用設定 ここまで
 
     renderHeader: () => <CellText>改行なし</CellText>,
@@ -56,8 +56,8 @@ function CellEditorExample() {
     columnId: "multiLine",
     // 改行ありテキスト エディタ用設定 ここから
     editor: MultiLineEditor,
-    getText: row => row.multiLine ?? "",
-    setText: (row, text) => ({ ...row, multiLine: text }),
+    toText: row => row.multiLine ?? "",
+    fromText: (row, text) => ({ ...row, multiLine: text }),
     // 改行ありテキスト エディタ用設定 ここまで
 
     renderHeader: () => <CellText>改行あり（※1）</CellText>,
@@ -68,8 +68,8 @@ function CellEditorExample() {
     columnId: "option",
     // 選択肢（ドロップダウン） エディタ用設定 ここから
     editor: OptionEditor,
-    getText: row => row.option ?? "",
-    setText: (row, text) => ({ ...row, option: text as TestRow["option"] }),
+    toText: row => row.option ?? "",
+    fromText: (row, text) => ({ ...row, option: text as TestRow["option"] }),
     onCellKeyDown: ({ event, requestEditStart }) => {
       const alt = event.altKey || event.metaKey
       const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
@@ -88,8 +88,8 @@ function CellEditorExample() {
     columnId: "date",
     // 日付 エディタ用設定 ここから
     editor: DateEditor,
-    getText: row => row.date ?? "",
-    setText: (row, text) => ({ ...row, date: text }),
+    toText: row => row.date ?? "",
+    fromText: (row, text) => ({ ...row, date: text }),
     onCellKeyDown: ({ event, requestEditStart }) => {
       const alt = event.altKey || event.metaKey
       const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
@@ -108,9 +108,9 @@ function CellEditorExample() {
     columnId: "checkbox",
     // チェックボックス エディタ用設定 ここから
     // クリックだけで値を切り替えられるため、専用のセルエディタは持たない。
-    // クリップボードとのコピーペーストのために getText, setText は定義しておく。
-    getText: row => row.checkbox ? 'true' : 'false',
-    setText: (row, text) => ({ ...row, checkbox: text.toLowerCase() === 'true' }),
+    // クリップボードとのコピーペーストのために toText, fromText は定義しておく。
+    toText: row => row.checkbox ? 'true' : 'false',
+    fromText: (row, text) => ({ ...row, checkbox: text.toLowerCase() === 'true' }),
     onCellKeyDown: ({ row, rowIndex, event }) => {
       if (event.key === ' ' || event.code === 'Space') {
         event.preventDefault()
