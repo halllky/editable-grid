@@ -7,16 +7,20 @@ export type RowAccessor<TRow> = (rowIndex: number) => TRow
 
 /**
  * 行インデックスからその行の最新の値を取得する関数を返します。
+ * 行のキーは rowKeys から引いて getLatestRowObject に渡します。
  */
 export function useRowAccessor<TRow>(
-  getLatestRowObject: (index: number) => TRow
+  getLatestRowObject: (index: number, rowKey: string) => TRow,
+  rowKeys: string[],
 ) {
 
   const getLatestRowObjectRef = React.useRef(getLatestRowObject)
   getLatestRowObjectRef.current = getLatestRowObject
+  const rowKeysRef = React.useRef(rowKeys)
+  rowKeysRef.current = rowKeys
 
   return React.useCallback<RowAccessor<TRow>>(rowIndex => {
-    return getLatestRowObjectRef.current(rowIndex)
+    return getLatestRowObjectRef.current(rowIndex, rowKeysRef.current[rowIndex])
   }, [])
 }
 

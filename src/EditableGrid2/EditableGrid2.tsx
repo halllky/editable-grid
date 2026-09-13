@@ -13,13 +13,10 @@ import { useOnKeyDownToStartEditing } from "./useOnKeyDownToStartEditing"
 import { useCopyPaste } from "./useCopyPaste"
 import { RowAccessor, useRowAccessor, useStableArray } from "./useRowAccessor"
 import { useColumnWindow } from "./useColumnWindow"
-import { useCellWriter } from "./useCellWriter"
+import { useBatchDispatcher } from "./useBatchDispatcher"
 import { DataChangeNotifier, useDataChangeNotifier, useDataChangeSelector } from "./useDataChange"
 
 import "./styles.css"
-
-/** getValueForRerender が定義されていない列の deps */
-const EMPTY_DEPS: EditableGrid2Deps = []
 
 /**
  * 行の値に依存する判定関数。
@@ -38,7 +35,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
   const [isGridActive, setIsGridActive] = React.useState(false)
   const rowKeys = useStableArray(props.rowKeys)
-  const getRowObject = useRowAccessor(props.getLatestRowObject)
+  const getRowObject = useRowAccessor(props.getLatestRowObject, rowKeys)
 
   const rowDependentPropsRef = React.useRef<RowDependentProps<TRow>>(props)
   rowDependentPropsRef.current = props
@@ -162,8 +159,8 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     setSelectionRange,
   } = useSelection(table, props, visibleLeafColumns, scrollToCell)
 
-  // セルへの書き込み（編集確定・貼り付け・Delete 共通）
-  const writer = useCellWriter(visibleLeafColumns, rowKeys, getRowObject, props)
+  // 値の変更の一括反映（編集確定・貼り付け・Delete 共通）
+  const batchDispatcher = useBatchDispatcher(visibleLeafColumns, rowKeys, getRowObject, props)
 
   // エディタ関連
   const editorRef = React.useRef<CellEditorRef>(null)
@@ -177,7 +174,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     onRangeUpdated: setSelectionRange,
     isEditing,
     getRowObject,
-    writer,
+    batchDispatcher,
     props,
   })
 
@@ -312,7 +309,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
         gridEditorComponent={props.editor}
         getPixel={getPixel}
         getRowObject={getRowObject}
-        writer={writer}
+        batchDispatcher={batchDispatcher}
       />
 
       {/* 固定列用の選択範囲レイヤー (tableより手前に置くことで、sticky位置の基準をコンテナ左端にする) */}
@@ -729,7 +726,7 @@ function BodyCellContent({ cellMeta, dataChange, rowIndex, rowKey, getRowObject,
   // original は最新の列定義を返す
   const deps = useDataChangeSelector(
     dataChange,
-    () => cellMeta.original?.getValueForRerender?.(getRowObject(rowIndex), rowIndex) ?? EMPTY_DEPS,
+    () => cellMeta.original?.getValueForRerender?.(getRowObject(rowIndex), rowIndex) ?? [],
     isSameDeps,
   )
 

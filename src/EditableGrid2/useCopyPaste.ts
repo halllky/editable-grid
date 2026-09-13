@@ -4,7 +4,7 @@ import { EditableGrid2CellRange, EditableGrid2Props } from "./types-public";
 import { CellSelectionRange } from "./useSelection";
 import { ColumnMetadataInternal } from "./types-internal";
 import { RowAccessor } from "./useRowAccessor";
-import { CellWriter } from "./useCellWriter";
+import { BatchDispatcher } from "./useBatchDispatcher";
 import { defaultCopyPasteFormat } from "./default-copy-paste-format";
 import { defaultPastePlanner } from "./default-paste-planner";
 
@@ -17,7 +17,7 @@ interface UseCopyPasteParams<TRow> {
   onRangeUpdated?: (range: CellSelectionRange) => void;
   isEditing: boolean;
   getRowObject: RowAccessor<TRow>;
-  writer: CellWriter;
+  batchDispatcher: BatchDispatcher;
   props: EditableGrid2Props<TRow>;
 }
 
@@ -27,7 +27,7 @@ export const useCopyPaste = <TRow,>({
   onRangeUpdated,
   isEditing,
   getRowObject,
-  writer,
+  batchDispatcher,
   props,
 }: UseCopyPasteParams<TRow>) => {
 
@@ -113,7 +113,7 @@ export const useCopyPaste = <TRow,>({
    * planPaste（未指定時は defaultPastePlanner）を呼び出して貼り付け計画を立て、
    * その結果を実行する。
    * 列インデックスの基準の変換（内部座標 ⇔ データ列基準）はここで行う。
-   * グリッド外・書き込み不可セルの除外と実際の書き込みは CellWriter が行う。
+   * グリッド外・書き込み不可セルの除外と実際の書き込みは BatchDispatcher が行う。
    */
   const runPastePlan = (values: string[][], trigger: 'paste' | 'delete') => {
     if (!selectedRange) return;
@@ -132,7 +132,7 @@ export const useCopyPaste = <TRow,>({
     // データ列基準の列インデックスで判定する（行チェックボックス列を指さないよう範囲を限定する）
     const isCellWritable = (rowIndex: number, colIndex: number): boolean => {
       if (colIndex < 0 || colIndex >= dataColumns.length) return false;
-      return writer.isCellWritable(rowIndex, colIndex + offset);
+      return batchDispatcher.isCellWritable(rowIndex, colIndex + offset);
     }
 
     const plan = (props.planPaste ?? defaultPastePlanner)({
@@ -144,7 +144,7 @@ export const useCopyPaste = <TRow,>({
     });
 
     // 1回の貼り付けにつき1回だけ onRowsChange が呼ばれるよう、まとめて書き込む
-    writer.commitWrites(plan.writes
+    batchDispatcher.dispatch(plan.writes
       .filter(write => write.colIndex >= 0 && write.colIndex < dataColumns.length)
       .map(write => ({
         rowIndex: write.rowIndex,

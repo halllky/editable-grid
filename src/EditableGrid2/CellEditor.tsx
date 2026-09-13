@@ -5,7 +5,7 @@ import { ColumnMetadataInternal } from "./types-internal"
 import { CellPosition } from "./useSelection"
 import { GetPixelFunction } from "./useGetPixel"
 import { RowAccessor } from "./useRowAccessor"
-import { CellWriter } from "./useCellWriter"
+import { BatchDispatcher } from "./useBatchDispatcher"
 
 export type CellEditorProps<TRow> = {
   /** グリッド全体がアクティブ状態かどうか */
@@ -24,8 +24,8 @@ export type CellEditorProps<TRow> = {
   getPixel: GetPixelFunction
   /** 最新の行データを取得する関数 */
   getRowObject: RowAccessor<TRow>
-  /** セルへの書き込み */
-  writer: CellWriter
+  /** 値の変更の一括反映 */
+  batchDispatcher: BatchDispatcher
 }
 
 export type CellEditorRef = {
@@ -55,7 +55,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   gridEditorComponent,
   getPixel,
   getRowObject,
-  writer,
+  batchDispatcher,
 }: CellEditorProps<TRow>, ref: React.ForwardedRef<CellEditorRef>) {
 
   const editorTextareaRef = React.useRef<EditableGridCellEditorRef>(null)
@@ -79,7 +79,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     if (edittingCell === null) return;
 
     const value = v ?? editorTextareaRef.current?.getCurrentValue() ?? ''
-    writer.commitWrites([{
+    batchDispatcher.dispatch([{
       rowIndex: edittingCell.row.index,
       colIndex: edittingCell.column.getIndex(),
       text: value,
@@ -173,7 +173,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     if (edittingCell) return
     if (!focusedCell) return
 
-    // 移動先の列のエディタコンポーネントに切り替え。編集できない列では切り替えない。
+    // 移動先の列のエディタコンポーネントに切り替え
     const columnMeta = visibleLeafColumns[focusedCell.colIndex]?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
     let value = ''
     if (columnMeta?.original?.setText) {
@@ -184,7 +184,10 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       if (cell) {
         value = getTextForEditor(cell)
       }
-      setEditorComponent(columnMeta.original?.editor ?? gridEditorComponent ?? NoopEditor)
+      setEditorComponent(columnMeta.original.editor ?? gridEditorComponent ?? NoopEditor)
+    } else {
+      // 編集できない列の場合
+      setEditorComponent(NoopEditor)
     }
 
     // グリッドにフォーカスが当たった瞬間に確実にフォーカスさせるためsetTimeoutを挟む。
@@ -211,7 +214,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       if (!cell) return;
 
       // setText が無い列や読み取り専用のセルは編集開始しない
-      if (!writer.isCellWritable(focusedCell.rowIndex, focusedCell.colIndex)) return;
+      if (!batchDispatcher.isCellWritable(focusedCell.rowIndex, focusedCell.colIndex)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、
       // その文字を初期値としてエディタにセットする
