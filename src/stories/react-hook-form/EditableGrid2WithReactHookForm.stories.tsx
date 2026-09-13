@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import React from "react"
-import { Control, useForm, useWatch } from "react-hook-form"
+import { useForm, UseFormGetValues } from "react-hook-form"
 import { UUID } from "uuidjs"
 import * as EG2 from "../../EditableGrid2"
 import { useFieldArrayForEditableGrid2 } from "./useFieldArrayForEditableGrid2"
@@ -20,7 +20,7 @@ function EditableGrid2WithReactHookForm({
   showFooter: boolean
 }) {
 
-  const { control, setValue, getValues } = useForm<{ rows: TestRow[] }>()
+  const { control, setValue, getValues, subscribe } = useForm<{ rows: TestRow[] }>()
 
   // useFieldArrayForEditableGrid2 フックの使用
   const {
@@ -28,7 +28,7 @@ function EditableGrid2WithReactHookForm({
     editableGrid2Props,
     gridRef,
   } = useFieldArrayForEditableGrid2({
-    name: "rows", control, getValues, setValue
+    name: "rows", control, getValues, setValue, subscribe
   }, (helper) => [
     helper.buttonCell(
       row => row.willBeDeleted ? "復元" : "無効化",
@@ -48,8 +48,8 @@ function EditableGrid2WithReactHookForm({
     helper.textCell("価格", "price", {
       defaultWidth: 120,
       renderFooter: showFooter ? [
-        () => <PriceSummary control={control} kind="sum" />,
-        () => <PriceSummary control={control} kind="avg" />,
+        () => <PriceSummary getValues={getValues} kind="sum" />,
+        () => <PriceSummary getValues={getValues} kind="avg" />,
       ] : undefined,
     }),
     helper.selectCell("ステータス", "status", [
@@ -59,7 +59,7 @@ function EditableGrid2WithReactHookForm({
     ], {
       defaultWidth: 100,
       // 段数は列ごとに揃っていなくてよい（足りない段は空セルになる）
-      renderFooter: showFooter ? () => <CompletedCount control={control} /> : undefined,
+      renderFooter: showFooter ? () => <CompletedCount getValues={getValues} /> : undefined,
     }),
     {
       columnId: "groupedColumns",
@@ -71,7 +71,7 @@ function EditableGrid2WithReactHookForm({
     },
     helper.textCell("コメント", "comment", { defaultWidth: 320, wrap: true }),
     helper.textCell("価格(同じ項目を複数回指定する例)", "price", { columnId: "price2", defaultWidth: 252 }),
-  ], [fixed3Cols, showFooter, control, setValue]) // 列定義の中で参照している外側の値
+  ], [fixed3Cols, showFooter, getValues, setValue]) // 列定義の中で参照している外側の値
 
   React.useEffect(() => {
     let rows: TestRow[]
@@ -111,9 +111,8 @@ function EditableGrid2WithReactHookForm({
       <div>
         <button type="button" onClick={() => {
           if (fields.length > 0) {
+            // setValue で書き換えた値は subscribe を通じてグリッドに通知されるため、再描画の指示は不要
             setValue(`rows.0.comment`, `コメントをプログラムから更新しました: ${new Date().toLocaleString()}`)
-            // 外部からの更新後は再描画が必要
-            gridRef.current?.forceUpdate()
           }
         }} className="px-2 py-1 text-white bg-blue-600 border border-white cursor-pointer">
           先頭行のコメント列を更新
@@ -159,13 +158,13 @@ function FooterLabel({ text }: { text: string }) {
 
 /**
  * フッター: 価格の集計。
- * 行の値はグリッドを経由せず useWatch で直接取得する。
+ * フッターは行の値が変わるたびにグリッドから再描画されるため、描画のたびに最新の値から計算すればよい。
  */
-function PriceSummary({ control, kind }: {
-  control: Control<{ rows: TestRow[] }>
+function PriceSummary({ getValues, kind }: {
+  getValues: UseFormGetValues<{ rows: TestRow[] }>
   kind: 'sum' | 'avg'
 }) {
-  const rows = useWatch({ control, name: "rows" }) ?? []
+  const rows = getValues("rows") ?? []
   const prices = rows
     .map(r => r.price ? Number(r.price) : NaN)
     .filter(n => Number.isFinite(n))
@@ -179,8 +178,8 @@ function PriceSummary({ control, kind }: {
 }
 
 /** フッター: 完了件数 */
-function CompletedCount({ control }: { control: Control<{ rows: TestRow[] }> }) {
-  const rows = useWatch({ control, name: "rows" }) ?? []
+function CompletedCount({ getValues }: { getValues: UseFormGetValues<{ rows: TestRow[] }> }) {
+  const rows = getValues("rows") ?? []
   const count = rows.filter(r => r.status === "2").length
   return (
     <div className="px-1 py-px text-sm font-bold text-gray-700">

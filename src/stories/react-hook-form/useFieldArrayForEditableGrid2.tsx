@@ -1,10 +1,12 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
 import {
+  createColumnHelper,
   EditableGrid2Column,
   EditableGrid2LeafColumn,
   EditableGrid2Props,
   EditableGrid2Ref,
+  EditableGrid2RowUpdate,
   EditableGridCellEditor,
   EditableGridCellEditorProps,
   EditableGridCellEditorRef,
@@ -36,6 +38,7 @@ export function useFieldArrayForEditableGrid2<
   formProps: ReactHookForm.UseFieldArrayProps<TField, TArrayPath, TKeyName> & {
     getValues: ReactHookForm.UseFormGetValues<TField>
     setValue: ReactHookForm.UseFormSetValue<TField>
+    subscribe: ReactHookForm.UseFormReturn<TField>["subscribe"]
   },
   getColumnDef: GetColumnDefWithHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>>,
   columnDeps: React.DependencyList
@@ -43,33 +46,52 @@ export function useFieldArrayForEditableGrid2<
   type TRow = ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>
 
   // react-hook-form
-  const { getValues, setValue, ...fieldArrayProps } = formProps
+  const { getValues, setValue, subscribe, ...fieldArrayProps } = formProps
   const fieldArrayReturn = ReactHookForm.useFieldArray<TField, TArrayPath, TKeyName>(fieldArrayProps)
+  const arrayName = fieldArrayProps.name
 
   // 列定義
   const gridRef = React.useRef<EditableGrid2Ref<TRow>>(null)
-  const helper = useColumnDefHelper<TField, TArrayPath, TKeyName>(
-    fieldArrayProps.control,
-    getValues,
-    setValue,
-    fieldArrayProps.name,
-    gridRef
-  )
+  const helper = useColumnDefHelper<TField, TArrayPath, TKeyName>(setValue, arrayName)
   // 列定義の参照を安定させるため、helper と columnDeps が変わったときだけ再評価する
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = React.useMemo(() => getColumnDef(helper), [helper, ...columnDeps])
 
-  // EditableGrid2 の props
+  // 行の並び。fields は行の追加・削除・並べ替えのときだけ変わり、値の最新状態は入っていないため、行のキーだけを取り出して使う。
   const rowKeyName = fieldArrayProps.keyName ?? "id"
   const rowKeys = React.useMemo(
     () => fieldArrayReturn.fields.map(f => (f as Record<string, string>)[rowKeyName]),
     [fieldArrayReturn.fields, rowKeyName]
   )
+
+  // 配列の中の値が変わったことをグリッドに通知する。
+  // グリッドの操作による変更も、グリッドの外からの setValue による変更も、どちらも通知される。
+  const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
+    name: arrayName as ReactHookForm.Path<TField>,
+    formState: { values: true },
+    callback: onChange,
+  }), [subscribe, arrayName])
+
+  // グリッドの操作（編集確定・貼り付け・Delete）による変更を反映する。
+  // setValue は1回ごとにフォーム全体を複製するため、セル単位ではなく行単位で呼ぶ。
+  const handleRowsChange = React.useCallback((updates: EditableGrid2RowUpdate<TRow>[]) => {
+    for (const { rowIndex, row } of updates) {
+      setValue(
+        `${arrayName}.${rowIndex}` as ReactHookForm.Path<TField>,
+        row as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
+        { shouldDirty: true }
+      )
+    }
+  }, [setValue, arrayName])
+
+  // EditableGrid2 の props
   const editableGrid2Props: EditableGrid2Props<TRow> & { ref: React.RefObject<EditableGrid2Ref<TRow> | null> } = {
     ref: gridRef,
     rowKeys,
     columns,
-    getLatestRowObject: index => getValues(`${fieldArrayProps.name}.${index}` as ReactHookForm.Path<TField>),
+    getLatestRowObject: index => getValues(`${arrayName}.${index}` as ReactHookForm.Path<TField>),
+    subscribe: subscribeRows,
+    onRowsChange: handleRowsChange,
   }
 
   return {
@@ -96,45 +118,55 @@ export type UseFieldArrayForEditableGrid2Return<
 
 export type GetColumnDefWithHelper<TRow> = (helper: ColumnDefHelper<TRow>) => EditableGrid2Column<TRow>[]
 
+/**
+ * ヘルパーが返す列定義。
+ * 列ごとに getValueForRerender の戻り値の型が異なるため、deps の型は any とする。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HelperLeafColumn<TRow> = EditableGrid2LeafColumn<TRow, any>
+
 /** 列定義ヘルパー */
 export type ColumnDefHelper<TRow> = {
 
-  /** 文字列型 */
+  /** 文字列型。key にはドット区切りでネストしたプロパティも指定できる。 */
   textCell: (
     header: string,
-    key: keyof TRow,
-    options?: Omit<Partial<EditableGrid2LeafColumn<TRow>>, 'wrap'> & {
+    key: ReactHookForm.Path<TRow>,
+    options?: Omit<Partial<HelperLeafColumn<TRow>>, 'wrap'> & {
       format?: (value: unknown) => string
       parse?: (value: string) => unknown
       /** 折り返し表示をするかどうか */
       wrap?: boolean
     }
-  ) => EditableGrid2LeafColumn<TRow>
+  ) => HelperLeafColumn<TRow>
 
-  /** ボタン。key を持たないため columnId は明示必須。 */
+  /**
+   * ボタン。key を持たないため columnId は明示必須。
+   * text の戻り値が変わったときにボタンが描画し直される。
+   */
   buttonCell: (
     text: (row: TRow, rowIndex: number) => React.ReactNode,
     onClick: (row: TRow, rowIndex: number) => void,
-    options: Partial<EditableGrid2LeafColumn<TRow>> & {
+    options: Partial<HelperLeafColumn<TRow>> & {
       columnId: string
       disableIfReadOnly?: boolean
     }
-  ) => EditableGrid2LeafColumn<TRow>
+  ) => HelperLeafColumn<TRow>
 
   /** 選択肢（ドロップダウン） */
   selectCell: (
     header: string,
-    key: keyof TRow,
+    key: ReactHookForm.Path<TRow>,
     candidateValues: { value: string, text: string }[],
-    options?: Partial<EditableGrid2LeafColumn<TRow>>
-  ) => EditableGrid2LeafColumn<TRow>
+    options?: Partial<HelperLeafColumn<TRow>>
+  ) => HelperLeafColumn<TRow>
 
   /** チェックボックス */
   booleanCell: (
     header: string,
-    key: keyof TRow,
-    options?: Partial<EditableGrid2LeafColumn<TRow>>
-  ) => EditableGrid2LeafColumn<TRow>
+    key: ReactHookForm.Path<TRow>,
+    options?: Partial<HelperLeafColumn<TRow>>
+  ) => HelperLeafColumn<TRow>
 }
 
 /** 列定義ヘルパーの実装 */
@@ -143,196 +175,177 @@ function useColumnDefHelper<
   TArrayPath extends ReactHookForm.ArrayPath<TField>,
   TKeyName extends string
 >(
-  control: ReactHookForm.Control<TField> | undefined,
-  getValues: ReactHookForm.UseFormGetValues<TField>,
   setValue: ReactHookForm.UseFormSetValue<TField>,
   arrayName: TArrayPath,
-  gridRef: React.RefObject<EditableGrid2Ref<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> | null>
 ): ColumnDefHelper<ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>> {
+
+  type TRow = ReactHookForm.FieldArrayWithId<TField, TArrayPath, TKeyName>
 
   // 列定義は依存配列（columnDeps）の値が変わるたびに再評価され、そのたびに selectCell も呼び直される。
   // 選択肢ごとにエディタコンポーネントを作る必要があるため、editor に渡す参照を安定させるよう
   // 一度作ったエディタコンポーネントをキャッシュして使い回す。
   const selectEditorCache = React.useRef(new Map<string, EditableGridCellEditor>()).current
 
-  return React.useMemo(() => ({
+  return React.useMemo(() => {
+    const col = createColumnHelper<TRow>()
 
-    //#region ヘルパー: 文字列型
-    textCell: (header, key, options) => {
-      const { wrap, ...restOptions } = options ?? {}
-      return {
-        columnId: String(key),
-        editor: wrap ? WrapTextEditor : TextEditor,
-        renderHeader: () => (
-          <div className="px-1 py-px text-sm truncate text-gray-700">
-            {header}
-          </div>
-        ),
-        renderBody: ({ rowIndex }) => (
-          <RHFTextCell
-            control={control}
-            name={`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>}
-            wrap={wrap}
-            format={options?.format}
-          />
-        ),
-        getValueForEditor: ({ rowIndex }) => {
-          const val = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as unknown
-          return options?.format?.(val) ?? val?.toString() ?? ''
-        },
-        setValueFromEditor: ({ rowIndex, value }) => {
-          const val = options?.parse?.(value) ?? value
-          setValue(
-            `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
-            val as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
-            { shouldDirty: true }
-          )
-        },
-        ...restOptions,
-      }
-    },
-    //#endregion ヘルパー: 文字列型
+    /** セル内のコントロールから直接値を書き換えるときのパス */
+    const cellPath = (rowIndex: number, key: string) => `${arrayName}.${rowIndex}.${key}` as ReactHookForm.Path<TField>
 
-    //#region ヘルパー: ボタン
-    buttonCell: (text, onClick, options) => ({
-      renderHeader: () => null,
-      renderBody: ({ row, rowIndex, isReadOnly }) => (
-        <button type="button"
-          onClick={() => {
-            onClick(row, rowIndex)
-            gridRef.current?.forceUpdate()
-          }}
-          disabled={options?.disableIfReadOnly === true && isReadOnly}
-          className="w-full h-full text-sm text-white bg-teal-700 border border-white"
-        >
-          <RowWatcher
-            control={control}
-            name={`${arrayName}.${rowIndex}` as ReactHookForm.Path<TField>}
-            render={(r) => text(r, rowIndex)}
-          />
-        </button>
-      ),
-      disableResizing: true,
-      ...options,
-    }),
-    //#endregion ヘルパー: ボタン
+    const helper: ColumnDefHelper<TRow> = {
 
-    //#region ヘルパー: ドロップダウン
-    selectCell: (header, key, candidateValues, options) => {
-      const columnId = options?.columnId ?? String(key)
+      //#region ヘルパー: 文字列型
+      textCell: (header, key, options) => {
+        const { wrap, format, parse, ...restOptions } = options ?? {}
+        const toText = (value: unknown) => format?.(value) ?? (value as { toString?: () => string } | null | undefined)?.toString?.() ?? ''
+        return col.leaf({
+          columnId: String(key),
+          editor: wrap ? WrapTextEditor : TextEditor,
+          renderHeader: () => (
+            <div className="px-1 py-px text-sm truncate text-gray-700">
+              {header}
+            </div>
+          ),
+          getValueForRerender: row => [getIn(row, key)],
+          renderBody: ({ deps: [value] }) => (
+            <div className={`px-1 py-px text-sm ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
+              {toText(value)}
+            </div>
+          ),
+          getText: row => toText(getIn(row, key)),
+          setText: (row, text) => setIn(row, key, parse ? parse(text) : text),
+          ...restOptions,
+        })
+      },
+      //#endregion ヘルパー: 文字列型
 
-      // エディタコンポーネントの参照を安定させるため columnId ごとにキャッシュする。
-      // （同じ columnId で candidateValues の内容が変わるケースは想定していない）
-      let Editor = selectEditorCache.get(columnId)
-      if (!Editor) Editor = React.forwardRef<EditableGridCellEditorRef, EditableGridCellEditorProps>((props, ref) => {
-        const selectRef = React.useRef<HTMLSelectElement>(null)
-        const [value, setVal] = React.useState('')
-
-        const handleChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
-          props.requestCommit(e.target.value)
-        }
-        const handleClick: React.MouseEventHandler<HTMLSelectElement> = e => {
-          if (props.isEditing) {
-            props.requestCommit(selectRef.current?.value ?? '')
-          }
-        }
-        const handleKeyDown: React.KeyboardEventHandler<HTMLSelectElement> = e => {
-          // 編集をキャンセルする
-          if (props.isEditing && e.key === 'Escape') {
-            props.requestCancel()
-            e.preventDefault()
-          }
-        }
-
-        React.useImperativeHandle(ref, () => ({
-          getCurrentValue: () => selectRef.current?.value ?? '',
-          setValueAndSelectAll: (v, timing) => {
-            setVal(v)
-            setTimeout(() => {
-              selectRef.current?.focus()
-              if (timing === 'edit-start') selectRef.current?.showPicker?.()
-            }, 0)
-          },
-          getDomElement: () => selectRef.current,
-        }))
-
-        return (
-          <div style={props.style}>
-            <select
-              ref={selectRef}
-              value={value}
-              onChange={handleChange}
-              onClick={handleClick}
-              onKeyDown={handleKeyDown}
-              className="w-full text-sm border border-black outline-none bg-white"
+      //#region ヘルパー: ボタン
+      buttonCell: (text, onClick, options) => {
+        const { disableIfReadOnly, ...restOptions } = options
+        return col.leaf({
+          renderHeader: () => null,
+          // ボタンの文言が変わったときだけ描画し直す
+          getValueForRerender: (row, rowIndex) => [text(row, rowIndex)],
+          renderBody: ({ deps: [label], rowIndex, getRow, isReadOnly }) => (
+            <button type="button"
+              // クリック時点の最新の行を渡す
+              onClick={() => onClick(getRow(), rowIndex)}
+              disabled={disableIfReadOnly === true && isReadOnly}
+              className="w-full h-full text-sm text-white bg-teal-700 border border-white"
             >
-              {candidateValues.map(c => (
-                <option key={c.value} value={c.value}>{c.text}</option>
-              ))}
-            </select>
-          </div>
-        )
-      })
-      selectEditorCache.set(columnId, Editor)
+              {label}
+            </button>
+          ),
+          disableResizing: true,
+          ...restOptions,
+        })
+      },
+      //#endregion ヘルパー: ボタン
 
-      return {
-        columnId,
-        renderHeader: () => (
-          <div className="px-1 py-px text-sm truncate text-gray-700">
-            {header}
-          </div>
-        ),
-        renderBody: ({ rowIndex }) => {
-          const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField> })
-          const text = candidateValues.find(o => o.value === value)?.text ?? (value as string)
+      //#region ヘルパー: ドロップダウン
+      selectCell: (header, key, candidateValues, options) => {
+        const columnId = options?.columnId ?? String(key)
+
+        // エディタコンポーネントの参照を安定させるため columnId ごとにキャッシュする。
+        // （同じ columnId で candidateValues の内容が変わるケースは想定していない）
+        let Editor = selectEditorCache.get(columnId)
+        if (!Editor) Editor = React.forwardRef<EditableGridCellEditorRef, EditableGridCellEditorProps>((props, ref) => {
+          const selectRef = React.useRef<HTMLSelectElement>(null)
+          const [value, setVal] = React.useState('')
+
+          const handleChange: React.ChangeEventHandler<HTMLSelectElement> = e => {
+            props.requestCommit(e.target.value)
+          }
+          const handleClick: React.MouseEventHandler<HTMLSelectElement> = () => {
+            if (props.isEditing) {
+              props.requestCommit(selectRef.current?.value ?? '')
+            }
+          }
+          const handleKeyDown: React.KeyboardEventHandler<HTMLSelectElement> = e => {
+            // 編集をキャンセルする
+            if (props.isEditing && e.key === 'Escape') {
+              props.requestCancel()
+              e.preventDefault()
+            }
+          }
+
+          React.useImperativeHandle(ref, () => ({
+            getCurrentValue: () => selectRef.current?.value ?? '',
+            setValueAndSelectAll: (v, timing) => {
+              setVal(v)
+              setTimeout(() => {
+                selectRef.current?.focus()
+                if (timing === 'edit-start') selectRef.current?.showPicker?.()
+              }, 0)
+            },
+            getDomElement: () => selectRef.current,
+          }))
+
           return (
-            <div className="px-1 py-px truncate text-sm">
-              {text}
+            <div style={props.style}>
+              <select
+                ref={selectRef}
+                value={value}
+                onChange={handleChange}
+                onClick={handleClick}
+                onKeyDown={handleKeyDown}
+                className="w-full text-sm border border-black outline-none bg-white"
+              >
+                {candidateValues.map(c => (
+                  <option key={c.value} value={c.value}>{c.text}</option>
+                ))}
+              </select>
             </div>
           )
-        },
-        editor: Editor,
-        getValueForEditor: ({ rowIndex }) => {
-          const val = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as unknown
-          return (val as string) ?? ''
-        },
-        setValueFromEditor: ({ rowIndex, value }) => {
-          setValue(
-            `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
-            value as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
-            { shouldDirty: true }
-          )
-        },
-        onCellKeyDown: ({ event, requestEditStart }) => {
-          const alt = event.altKey || event.metaKey
-          const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
-          if (event.key === 'Enter' || alt && upDown) {
-            requestEditStart()
-            event.preventDefault()
-          }
-        },
-        ...options,
-      }
-    },
-    //#endregion ヘルパー: ドロップダウン
+        })
+        selectEditorCache.set(columnId, Editor)
 
-    //#region ヘルパー: チェックボックス
-    booleanCell: (header, key, options) => ({
-      columnId: String(key),
-      renderHeader: () => (
-        <div className="px-1 py-px text-sm truncate text-gray-700">
-          {header}
-        </div>
-      ),
-      renderBody: ({ rowIndex, isReadOnly }) => {
-        const value = ReactHookForm.useWatch({ control, name: `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField> })
-        return (
+        return col.leaf({
+          columnId,
+          renderHeader: () => (
+            <div className="px-1 py-px text-sm truncate text-gray-700">
+              {header}
+            </div>
+          ),
+          getValueForRerender: row => [getIn(row, key)],
+          renderBody: ({ deps: [value] }) => (
+            <div className="px-1 py-px truncate text-sm">
+              {candidateValues.find(o => o.value === value)?.text ?? (value as string)}
+            </div>
+          ),
+          editor: Editor,
+          getText: row => (getIn(row, key) as string | undefined) ?? '',
+          setText: (row, text) => setIn(row, key, text),
+          onCellKeyDown: ({ event, requestEditStart }) => {
+            const alt = event.altKey || event.metaKey
+            const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
+            if (event.key === 'Enter' || alt && upDown) {
+              requestEditStart()
+              event.preventDefault()
+            }
+          },
+          ...options,
+        })
+      },
+      //#endregion ヘルパー: ドロップダウン
+
+      //#region ヘルパー: チェックボックス
+      booleanCell: (header, key, options) => col.leaf({
+        columnId: String(key),
+        renderHeader: () => (
+          <div className="px-1 py-px text-sm truncate text-gray-700">
+            {header}
+          </div>
+        ),
+        getValueForRerender: row => [!!getIn(row, key)],
+        renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
           <label className={`self-start block h-full w-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
-              checked={!!value}
+              checked={checked}
+              // セル内のコントロールからの変更はグリッドを経由せず直接反映する（subscribe でグリッドに通知される）
               onChange={e => setValue(
-                `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
+                cellPath(rowIndex, key),
                 e.target.checked as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
                 { shouldDirty: true }
               )}
@@ -340,65 +353,47 @@ function useColumnDefHelper<
               className="block h-6"
             />
           </label>
-        )
-      },
-      onCellKeyDown: ({ rowIndex, event }) => {
-        if (event.key === ' ' || event.code === 'Space') {
-          event.preventDefault()
-          const current = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as boolean | undefined
-          setValue(
-            `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
-            !current as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
-            { shouldDirty: true }
-          )
-        }
-      },
-      getValueForEditor: ({ rowIndex }) => {
-        const val = getValues(`${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>) as boolean | undefined
-        return val ? 'true' : 'false'
-      },
-      setValueFromEditor: ({ rowIndex, value }) => {
-        const blnValue = [true, 1, 'true', '1', 'yes'].includes(typeof value === 'string' ? value.toLowerCase() : value)
-        setValue(
-          `${arrayName}.${rowIndex}.${String(key)}` as ReactHookForm.Path<TField>,
-          blnValue as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
-          { shouldDirty: true }
-        )
-      },
-      ...options,
-    }),
-    //#endregion ヘルパー: チェックボックス
-
-  }), [control, getValues, setValue, arrayName])
+        ),
+        onCellKeyDown: ({ row, rowIndex, event }) => {
+          if (event.key === ' ' || event.code === 'Space') {
+            event.preventDefault()
+            setValue(
+              cellPath(rowIndex, key),
+              !getIn(row, key) as ReactHookForm.PathValue<TField, ReactHookForm.Path<TField>>,
+              { shouldDirty: true }
+            )
+          }
+        },
+        getText: row => getIn(row, key) ? 'true' : 'false',
+        setText: (row, text) => setIn(row, key, ['true', '1', 'yes'].includes(text.trim().toLowerCase())),
+        ...options,
+      }),
+      //#endregion ヘルパー: チェックボックス
+    }
+    return helper
+  }, [setValue, arrayName, selectEditorCache])
 }
 
-const RowWatcher = <
-  TField extends ReactHookForm.FieldValues,
-  TPath extends ReactHookForm.Path<TField>,
->({ control, name, render }: {
-  control: ReactHookForm.Control<TField> | undefined
-  name: TPath
-  render: (row: ReactHookForm.PathValue<TField, TPath>) => React.ReactNode
-}) => {
-  const row = ReactHookForm.useWatch({ control, name })
-  return <>{render(row)}</>
+/** ドット区切りのパスの位置にある値を取得する */
+function getIn(obj: unknown, path: string): unknown {
+  let current = obj
+  for (const key of path.split('.')) {
+    if (current === null || current === undefined) return undefined
+    current = (current as Record<string, unknown>)[key]
+  }
+  return current
 }
 
-const RHFTextCell = <
-  TField extends ReactHookForm.FieldValues,
-  TPath extends ReactHookForm.Path<TField>,
->({ control, name, wrap, format }: {
-  control: ReactHookForm.Control<TField> | undefined
-  name: TPath
-  wrap?: boolean
-  format?: (v: ReactHookForm.PathValue<TField, TPath>) => string
-}) => {
-  const value = ReactHookForm.useWatch({ control, name })
-  return (
-    <div className={`px-1 py-px text-sm ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
-      {format ? format(value) : (value as string)}
-    </div>
-  )
+/**
+ * ドット区切りのパスの位置に値を設定した新しいオブジェクトを返す。
+ * 引数のオブジェクトは書き換えない（パス上のオブジェクトだけを複製し、それ以外は共有する）。
+ */
+function setIn<T>(obj: T, path: string, value: unknown): T {
+  const [head, ...rest] = path.split('.')
+  const current = (obj ?? {}) as Record<string, unknown>
+  const copy: Record<string, unknown> = Array.isArray(current) ? [...current] as unknown as Record<string, unknown> : { ...current }
+  copy[head] = rest.length === 0 ? value : setIn(current[head], rest.join('.'), value)
+  return copy as T
 }
 
 //#endregion 列定義ヘルパー

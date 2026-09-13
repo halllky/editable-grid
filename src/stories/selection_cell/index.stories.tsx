@@ -8,6 +8,9 @@ import { createTextCellEditor } from "../editing_cell-editor/createTextCellEdito
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
 
+// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+const col = EG2.createColumnHelper<TestRow>()
+
 /**
  * セル選択の実演画面。
  *
@@ -18,12 +21,24 @@ const TextEditor = createTextCellEditor(false)
  */
 function CellSelectionExample() {
 
-  const { control, setValue, getValues } = ReactHookForm.useForm<{ rows: TestRow[] }>({
+  const { control, setValue, getValues, subscribe } = ReactHookForm.useForm<{ rows: TestRow[] }>({
     defaultValues: { rows: getDefaultValues() },
   })
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
   const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+
+  // React Hook Form の値が変わったことをグリッドに通知する
+  const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
+    name: "rows",
+    formState: { values: true },
+    callback: onChange,
+  }), [subscribe])
+
+  // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+    for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
+  }, [setValue])
 
   // フォーカスが外れたときに選択を解除するかどうか
   const [clearSelectionOnBlur, setClearSelectionOnBlur] = React.useState(false)
@@ -37,118 +52,96 @@ function CellSelectionExample() {
     )
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [{
+  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
     columnId: "no",
     renderHeader: () => <CellText>No.</CellText>,
     renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
     defaultWidth: 48,
     disableResizing: true,
     isFixed: true,
-  }, {
+  }), col.leaf({
     columnId: "name",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.name`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.name`, value),
+    getText: row => row.name ?? "",
+    setText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.name`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.name],
+    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 128,
     isFixed: true,
-  }, {
+  }), col.leaf({
     columnId: "category",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.category`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.category`, value),
+    getText: row => row.category ?? "",
+    setText: (row, text) => ({ ...row, category: text }),
     renderHeader: () => <CellText>区分</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.category`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.category],
+    renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
     defaultWidth: 96,
-  }, {
+  }), col.leaf({
     columnId: "unitPrice",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.unitPrice`) ?? ""),
-    setValueFromEditor: ({ rowIndex, value }) => {
-      if (value.trim() === "") {
-        setValue(`rows.${rowIndex}.unitPrice`, undefined)
-      } else {
-        const parsed = Number(value)
-        if (!Number.isFinite(parsed)) return
-        setValue(`rows.${rowIndex}.unitPrice`, parsed)
-      }
+    getText: row => String(row.unitPrice ?? ""),
+    setText: (row, text) => {
+      if (text.trim() === "") return { ...row, unitPrice: undefined }
+      const parsed = Number(text)
+      return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
     renderHeader: () => <CellText>単価</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.unitPrice`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.unitPrice],
+    renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
     defaultWidth: 88,
-  }, {
+  }), col.leaf({
     columnId: "quantity",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.quantity`) ?? ""),
-    setValueFromEditor: ({ rowIndex, value }) => {
-      if (value.trim() === "") {
-        setValue(`rows.${rowIndex}.quantity`, undefined)
-      } else {
-        const parsed = Number(value)
-        if (!Number.isFinite(parsed)) return
-        setValue(`rows.${rowIndex}.quantity`, parsed)
-      }
+    getText: row => String(row.quantity ?? ""),
+    setText: (row, text) => {
+      if (text.trim() === "") return { ...row, quantity: undefined }
+      const parsed = Number(text)
+      return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     // 数量（キー操作のカスタマイズ） ここから
     // + / - キーは本来クイック編集の開始キーだが、
     // preventDefault を呼ぶことでグリッドの既定の動作をキャンセルし、値の増減に置き換えている。
-    onCellKeyDown: ({ rowIndex, event }) => {
+    onCellKeyDown: ({ row, rowIndex, event }) => {
       if (event.key !== "+" && event.key !== "-") return
       event.preventDefault()
-      const current = getValues(`rows.${rowIndex}.quantity`) ?? 0
+      const current = row.quantity ?? 0
       setValue(`rows.${rowIndex}.quantity`, Math.max(0, current + (event.key === "+" ? 1 : -1)))
     },
     // 数量（キー操作のカスタマイズ） ここまで
     renderHeader: () => <CellText>数量（※1）</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.quantity`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.quantity],
+    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 96,
-  }, {
+  }), col.leaf({
     columnId: "supplier",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.supplier`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.supplier`, value),
+    getText: row => row.supplier ?? "",
+    setText: (row, text) => ({ ...row, supplier: text }),
     renderHeader: () => <CellText>仕入先</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.supplier`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.supplier],
+    renderBody: ({ deps: [supplier] }) => <CellText>{supplier}</CellText>,
     defaultWidth: 128,
-  }, {
+  }), col.leaf({
     columnId: "location",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.location`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.location`, value),
+    getText: row => row.location ?? "",
+    setText: (row, text) => ({ ...row, location: text }),
     renderHeader: () => <CellText>保管場所</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.location`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.location],
+    renderBody: ({ deps: [location] }) => <CellText>{location}</CellText>,
     defaultWidth: 112,
-  }, {
+  }), col.leaf({
     columnId: "note",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.note`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.note`, value),
+    getText: row => row.note ?? "",
+    setText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.note`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.note],
+    renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 240,
-  }], [control, getValues, setValue])
+  })], [setValue])
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -182,6 +175,8 @@ function CellSelectionExample() {
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={index => getValues(`rows.${index}`)}
+        subscribe={subscribeRows}
+        onRowsChange={handleRowsChange}
         columns={columns}
         clearSelectionOnBlur={clearSelectionOnBlur}
         className="h-80 border border-gray-500 resize-y"

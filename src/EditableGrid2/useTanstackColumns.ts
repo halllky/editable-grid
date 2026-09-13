@@ -2,15 +2,13 @@ import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import { EditableGrid2GroupColumn, EditableGrid2LeafColumn, EditableGrid2Props } from "./types-public"
 import { createRowCheckBoxColumn } from "./RowCheckBox"
-import { checkIfCellReadOnly, ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, normalizeFooterRenderers } from "./types-internal"
-import { RowAccessor } from "./useRowAccessor"
+import { ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, normalizeFooterRenderers } from "./types-internal"
 
 /**
  * EditableGrid2 の列定義を TanStack Table の列定義に変換するカスタムフック
  */
 export function useTanstackColumns<TRow>(
   props: EditableGrid2Props<TRow>,
-  getRowObject: RowAccessor<TRow>
 ) {
 
   // 列定義から導出する値。
@@ -81,7 +79,6 @@ export function useTanstackColumns<TRow>(
   latestRef.current = {
     leafByColumnId,
     groupByColumnId,
-    gridIsReadOnly: props.isReadOnly,
     showCheckBox: props.showCheckBox,
   }
 
@@ -138,17 +135,8 @@ export function useTanstackColumns<TRow>(
           header: context => latestRef.current.leafByColumnId.get(leafColumnId)?.renderHeader({
             columnWidth: context.header.getSize(),
           }),
-          cell: context => {
-            const currentLeaf = latestRef.current.leafByColumnId.get(leafColumnId)
-            if (!currentLeaf) return null
-            const row = getRowObject(context.row.index)
-            return currentLeaf.renderBody({
-              row,
-              rowIndex: context.row.index,
-              columnWidth: context.column.getSize(),
-              isReadOnly: checkIfCellReadOnly(meta, context.row.index, latestRef.current.gridIsReadOnly, row),
-            })
-          },
+          // ボディセルは TanStack の cell を経由せず、EditableGrid2 側で列定義の renderBody を直接呼び出して描画する
+          // （getValueForRerender の戻り値を比較して再描画を判定するため）。
           size: leaf.defaultWidth ?? DEFAULT_COLUMN_WIDTH,
           enableResizing: leaf.disableResizing !== true,
           meta,
@@ -252,6 +240,5 @@ type FlattenedColumn<TRow> = {
 type LatestColumnsState<TRow> = {
   leafByColumnId: Map<string, EditableGrid2LeafColumn<TRow>>
   groupByColumnId: Map<string, EditableGrid2GroupColumn<TRow>>
-  gridIsReadOnly: EditableGrid2Props<TRow>["isReadOnly"]
   showCheckBox: EditableGrid2Props<TRow>["showCheckBox"]
 }

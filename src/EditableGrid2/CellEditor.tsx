@@ -1,10 +1,11 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import { EditableGridCellEditor, EditableGridCellEditorProps, EditableGridCellEditorRef } from "./types-public"
-import { checkIfCellReadOnly, ColumnMetadataInternal } from "./types-internal"
+import { ColumnMetadataInternal } from "./types-internal"
 import { CellPosition } from "./useSelection"
 import { GetPixelFunction } from "./useGetPixel"
 import { RowAccessor } from "./useRowAccessor"
+import { CellWriter } from "./useCellWriter"
 
 export type CellEditorProps<TRow> = {
   /** グリッド全体がアクティブ状態かどうか */
@@ -19,12 +20,12 @@ export type CellEditorProps<TRow> = {
   onEditingStateChanged: (isEditing: boolean) => void
   /** グリッド全体のpropsで指定される標準コンポーネント */
   gridEditorComponent?: EditableGridCellEditor
-  /** グリッド全体のpropsで指定される読み取り専用条件 */
-  gridIsReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean) | undefined
   /** 座標計算関数 */
   getPixel: GetPixelFunction
   /** 最新の行データを取得する関数 */
   getRowObject: RowAccessor<TRow>
+  /** セルへの書き込み */
+  writer: CellWriter
 }
 
 export type CellEditorRef = {
@@ -52,9 +53,9 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   visibleLeafColumns,
   onEditingStateChanged,
   gridEditorComponent,
-  gridIsReadOnly,
   getPixel,
   getRowObject,
+  writer,
 }: CellEditorProps<TRow>, ref: React.ForwardedRef<CellEditorRef>) {
 
   const editorTextareaRef = React.useRef<EditableGridCellEditorRef>(null)
@@ -67,19 +68,22 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
 
   // -----------------------------------
 
+  /** セルの値をエディタに表示する文字列にする。getText が無い列は空文字。 */
+  const getTextForEditor = (cell: TanStack.Cell<string, unknown>): string => {
+    const columnMeta = cell.column.columnDef.meta as ColumnMetadataInternal<TRow>
+    return columnMeta.original?.getText?.(getRowObject(cell.row.index), cell.row.index) ?? ''
+  }
+
   // 編集確定
   const commitEditing = (v?: string) => {
     if (edittingCell === null) return;
 
-    const columnMeta = edittingCell.column.columnDef.meta as ColumnMetadataInternal<TRow>
     const value = v ?? editorTextareaRef.current?.getCurrentValue() ?? ''
-    if (columnMeta.original?.setValueFromEditor) {
-      columnMeta.original.setValueFromEditor({
-        rowIndex: edittingCell.row.index,
-        row: getRowObject(edittingCell.row.index),
-        value,
-      })
-    }
+    writer.commitWrites([{
+      rowIndex: edittingCell.row.index,
+      colIndex: edittingCell.column.getIndex(),
+      text: value,
+    }])
 
     setEdittingCell(null)
     onEditingStateChanged(false)
@@ -115,11 +119,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   const cancelEditing = () => {
     // エディタの値を編集前の値に戻す
     if (edittingCell) {
-      const columnMeta = edittingCell.column.columnDef.meta as ColumnMetadataInternal<TRow>
-      const rowOriginal = getRowObject(edittingCell.row.index)
-      const value = columnMeta.original?.getValueForEditor
-        ? columnMeta.original.getValueForEditor({ row: rowOriginal, rowIndex: edittingCell.row.index })
-        : ''
+      const value = getTextForEditor(edittingCell)
       // エディタが select 要素のとき編集確定後にキー操作ができなくなるので setTimeiout を挟む。
       // グリッドの中にフォーカスがある状態でグリッド外のボタンをクリックするなどした場合、
       // setTimeout後の時間ではグリッドからフォーカスが外れてしまっている可能性があるので考慮する。
@@ -173,16 +173,16 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     if (edittingCell) return
     if (!focusedCell) return
 
-    // 移動先の列のエディタコンポーネントに切り替え
+    // 移動先の列のエディタコンポーネントに切り替え。編集できない列（setText が無い列）では切り替えない。
     const columnMeta = visibleLeafColumns[focusedCell.colIndex]?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
     let value = ''
-    if (columnMeta?.original?.getValueForEditor) {
+    if (columnMeta?.original?.setText) {
       const cell = rowModel
         .flatRows[focusedCell.rowIndex]
         ?.getVisibleCells()
         ?.[focusedCell.colIndex]
       if (cell) {
-        value = columnMeta.original.getValueForEditor({ row: getRowObject(cell.row.index), rowIndex: cell.row.index })
+        value = getTextForEditor(cell)
       }
       setEditorComponent(columnMeta.original?.editor ?? gridEditorComponent ?? NoopEditor)
     }
@@ -210,15 +210,12 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
         ?.[focusedCell.colIndex]
       if (!cell) return;
 
-      const columnMeta = cell.column.columnDef.meta as ColumnMetadataInternal<TRow>
-      if (!columnMeta.original?.getValueForEditor) return;
-
-      const rowOriginal = getRowObject(cell.row.index)
-      if (checkIfCellReadOnly(columnMeta, cell.row.index, gridIsReadOnly, rowOriginal)) return;
+      // setText が無い列や読み取り専用のセルは編集開始しない
+      if (!writer.isCellWritable(focusedCell.rowIndex, focusedCell.colIndex)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、
       // その文字を初期値としてエディタにセットする
-      const value = inputChar ?? columnMeta.original.getValueForEditor({ row: rowOriginal, rowIndex: cell.row.index })
+      const value = inputChar ?? getTextForEditor(cell)
       editorTextareaRef.current?.setValueAndSelectAll(value, 'edit-start')
 
       setEdittingCell(cell)

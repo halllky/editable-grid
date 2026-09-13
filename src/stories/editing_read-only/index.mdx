@@ -73,10 +73,11 @@ import Link from "../Link"
 引数 `isReadOnly` （グリッド全体・行単位・列単位をすべて考慮した判定結果）を使って明示的に無効化してください。上記デモの「至急」列がこの例です。
 
 <Source language="tsx" code={`
-  renderBody: ({ row, isReadOnly }) => (
+  getValueForRerender: row => [row.urgent],
+  renderBody: ({ deps: [urgent], isReadOnly }) => (
     <input
       type="checkbox"
-      checked={row.urgent}
+      checked={urgent}
       disabled={isReadOnly} // チェックボックスを操作できなくする
       ...
     />
@@ -85,7 +86,7 @@ import Link from "../Link"
 
 ## 読み取り専用に設定していないのにセル編集できない場合
 
-その列にエディタ関連の定義（ `editor` / `getValueForEditor` / `setValueFromEditor` ）が定義されていない可能性があります。
+その列にエディタ関連の定義（ `editor` / `setText` ）が定義されていない可能性があります。
 
 「ユーザーが入力する項目だが、今は入力させない」ことを見た目で伝えたい場合は `isReadOnly` を、
 ボタン列のようにそもそも値を持たない列ではエディタ関連の定義を省略する、という使い分けを想定しています。

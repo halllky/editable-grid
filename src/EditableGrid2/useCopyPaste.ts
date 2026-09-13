@@ -2,8 +2,9 @@ import React from "react";
 import * as TanStack from "@tanstack/react-table";
 import { EditableGrid2CellRange, EditableGrid2Props } from "./types-public";
 import { CellSelectionRange } from "./useSelection";
-import { checkIfCellReadOnly, ColumnMetadataInternal } from "./types-internal";
+import { ColumnMetadataInternal } from "./types-internal";
 import { RowAccessor } from "./useRowAccessor";
+import { CellWriter } from "./useCellWriter";
 import { defaultCopyPasteFormat } from "./default-copy-paste-format";
 import { defaultPastePlanner } from "./default-paste-planner";
 
@@ -16,6 +17,7 @@ interface UseCopyPasteParams<TRow> {
   onRangeUpdated?: (range: CellSelectionRange) => void;
   isEditing: boolean;
   getRowObject: RowAccessor<TRow>;
+  writer: CellWriter;
   props: EditableGrid2Props<TRow>;
 }
 
@@ -25,6 +27,7 @@ export const useCopyPaste = <TRow,>({
   onRangeUpdated,
   isEditing,
   getRowObject,
+  writer,
   props,
 }: UseCopyPasteParams<TRow>) => {
 
@@ -63,10 +66,10 @@ export const useCopyPaste = <TRow,>({
         const colDef = meta?.original;
 
         let cellValue = '';
-        if (colDef && colDef.getValueForEditor) {
+        if (colDef && colDef.getText) {
           const row = getRowObject(r);
           if (row) {
-            cellValue = colDef.getValueForEditor({ row, rowIndex: r });
+            cellValue = colDef.getText(row, r);
           }
         }
         rowData.push(cellValue);
@@ -109,8 +112,8 @@ export const useCopyPaste = <TRow,>({
   /**
    * planPaste（未指定時は defaultPastePlanner）を呼び出して貼り付け計画を立て、
    * その結果を実行する。
-   * 列インデックスの基準の変換（内部座標 ⇔ データ列基準）と、
-   * グリッド外・書き込み不可セルの除外はここで行う。
+   * 列インデックスの基準の変換（内部座標 ⇔ データ列基準）はここで行う。
+   * グリッド外・書き込み不可セルの除外と実際の書き込みは CellWriter が行う。
    */
   const runPastePlan = (values: string[][], trigger: 'paste' | 'delete') => {
     if (!selectedRange) return;
@@ -126,16 +129,10 @@ export const useCopyPaste = <TRow,>({
 
     const columnIds = dataColumns.map(col => (col.columnDef.meta as ColumnMetadataInternal<TRow>).columnId);
 
+    // データ列基準の列インデックスで判定する（行チェックボックス列を指さないよう範囲を限定する）
     const isCellWritable = (rowIndex: number, colIndex: number): boolean => {
-      if (rowIndex < 0 || rowIndex >= props.rowKeys.length) return false;
       if (colIndex < 0 || colIndex >= dataColumns.length) return false;
-
-      const meta = dataColumns[colIndex].columnDef.meta as ColumnMetadataInternal<TRow>;
-      const colDef = meta.original;
-      if (!colDef || !colDef.setValueFromEditor) return false;
-
-      const row = getRowObject(rowIndex);
-      return !checkIfCellReadOnly(meta, rowIndex, props.isReadOnly, row);
+      return writer.isCellWritable(rowIndex, colIndex + offset);
     }
 
     const plan = (props.planPaste ?? defaultPastePlanner)({
@@ -146,19 +143,14 @@ export const useCopyPaste = <TRow,>({
       isCellWritable,
     });
 
-    for (const write of plan.writes) {
-      if (!isCellWritable(write.rowIndex, write.colIndex)) continue;
-
-      const meta = dataColumns[write.colIndex].columnDef.meta as ColumnMetadataInternal<TRow>;
-      const colDef = meta.original!;
-      const row = getRowObject(write.rowIndex);
-
-      colDef.setValueFromEditor!({
-        row,
+    // 1回の貼り付けにつき1回だけ onRowsChange が呼ばれるよう、まとめて書き込む
+    writer.commitWrites(plan.writes
+      .filter(write => write.colIndex >= 0 && write.colIndex < dataColumns.length)
+      .map(write => ({
         rowIndex: write.rowIndex,
-        value: write.value,
-      });
-    }
+        colIndex: write.colIndex + offset,
+        text: write.value,
+      })));
 
     if (plan.nextSelectedRange && onRangeUpdated) {
       onRangeUpdated({

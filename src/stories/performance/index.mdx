@@ -26,6 +26,19 @@ EditableGrid2 は TanStack Virtual による仮想化を利用しデータ数が
   source={{ language: "tsx", code: PerformanceStoriesTsx }}
 />
 
+## 値の変更と再描画
+
+1セルを編集しても、1万行分のデータを作り直したり、表示中のすべてのセルを描き直したりはしません。
+
+* データは React の state ではなくストア（下記の `PerfDataStore`）が保持し、グリッドには
+  行の並び（`rowKeys`）・最新の値の取得関数（`getLatestRowObject`）・変更通知の購読関数（`subscribe`）を渡しています。
+* 値が変わるとストアが通知し、グリッドは表示中のセルごとに列定義の `getValueForRerender` を呼び出して前回の戻り値と比較し、
+  **戻り値が変わったセルだけ**を描画し直します。
+  構成比のように他の行の値に依存する列でも、どのセルが影響を受けるかを利用側で管理する必要はありません。
+* グリッドの操作による変更（編集確定・貼り付け・Delete）は、1回の操作につき1回だけ、行単位にまとめて `onRowsChange` に渡されます。
+
+<ToggleSource summary="データストアの実装" language="ts" code={PerfDataStoreTs} />
+
 ## 仮想スクロール
 
 行と列の両方が仮想化されています。実際に DOM として描画されるのは、画面に見えている行・列と、その前後の少し外側（overscan）のセルだけです。

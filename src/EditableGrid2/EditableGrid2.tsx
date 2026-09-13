@@ -1,7 +1,7 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import * as TanStackVirtual from "@tanstack/react-virtual"
-import { EditableGrid2FooterCellRenderer, EditableGrid2Props, EditableGrid2Ref } from "./types-public"
+import { EditableGrid2BodyRenderer, EditableGrid2Deps, EditableGrid2FooterCellRenderer, EditableGrid2Props, EditableGrid2Ref } from "./types-public"
 import { useTanstackColumns } from "./useTanstackColumns"
 import { ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, ESTIMATED_ROW_HEIGHT, checkIfCellReadOnly, normalizeFooterRenderers } from "./types-internal"
 import { useGetPixel } from "./useGetPixel"
@@ -11,10 +11,21 @@ import { useScrollToCell } from "./useScrollToCell"
 import { CellEditor, CellEditorRef } from "./CellEditor"
 import { useOnKeyDownToStartEditing } from "./useOnKeyDownToStartEditing"
 import { useCopyPaste } from "./useCopyPaste"
-import { useRowAccessor, useStableArray } from "./useRowAccessor"
+import { RowAccessor, useRowAccessor, useStableArray } from "./useRowAccessor"
 import { useColumnWindow } from "./useColumnWindow"
+import { useCellWriter } from "./useCellWriter"
+import { DataChangeNotifier, useDataChangeNotifier, useDataChangeSelector } from "./useDataChange"
 
 import "./styles.css"
+
+/** getValueForRerender が定義されていない列の deps */
+const EMPTY_DEPS: EditableGrid2Deps = []
+
+/**
+ * 行の値に依存する判定関数。
+ * props の参照が変わっても memo 化されたセル・行を描画し直さずに最新の関数を参照できるよう、ref 経由で渡す。
+ */
+type RowDependentProps<TRow> = Pick<EditableGrid2Props<TRow>, 'isReadOnly' | 'getRowClassName'>
 
 /**
  * EditableGrid2 コンポーネント
@@ -26,9 +37,21 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
   const [isGridActive, setIsGridActive] = React.useState(false)
-  const [forceUpdateValue, forceUpdate] = React.useReducer(x => x >= Number.MAX_SAFE_INTEGER ? 0 : x + 1, 0)
   const rowKeys = useStableArray(props.rowKeys)
   const getRowObject = useRowAccessor(props.getLatestRowObject)
+
+  const rowDependentPropsRef = React.useRef<RowDependentProps<TRow>>(props)
+  rowDependentPropsRef.current = props
+
+  // 行の値が変わったことを表示中のセル・行・フッターへ伝える。
+  // 値が変わってもグリッド全体は再描画せず、各セルが getValueForRerender の戻り値を比較して必要なものだけ描画し直す。
+  const dataChange = useDataChangeNotifier(props.subscribe, [
+    props.getLatestRowObject,
+    props.isReadOnly,
+    props.showCheckBox,
+    props.getRowClassName,
+    rowKeys,
+  ])
 
   //#region Tanstack table
 
@@ -39,11 +62,12 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     hasHeaderGroup,
     lastFixedIndex,
     footerRowCount,
-  } = useTanstackColumns(props, getRowObject)
+  } = useTanstackColumns(props)
 
   // TanStack Table のテーブルインスタンス。
   // 行データではなく行のキー文字列だけを持つ。
   // 値の描画・編集は行の最新状態の取得関数経由で行われるため、テーブル自体は行の値を保持しない。
+  // （TanStack は data が変わるたびに全行の行モデルを作り直すため、値の変化のたびに data を差し替える設計にはしない）
   //
   // columnSizing は列の columnId（TanStack上のIDは
   // `col-${columnId}` / `group-${columnId}`）をキーに保持される。
@@ -138,6 +162,9 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     setSelectionRange,
   } = useSelection(table, props, visibleLeafColumns, scrollToCell)
 
+  // セルへの書き込み（編集確定・貼り付け・Delete 共通）
+  const writer = useCellWriter(visibleLeafColumns, rowKeys, getRowObject, props)
+
   // エディタ関連
   const editorRef = React.useRef<CellEditorRef>(null)
   const [isEditing, setIsEditing] = React.useState(false)
@@ -150,6 +177,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     onRangeUpdated: setSelectionRange,
     isEditing,
     getRowObject,
+    writer,
     props,
   })
 
@@ -174,7 +202,6 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
       return rows
     },
     selectRow,
-    forceUpdate,
   }))
 
   //#endregion 独自機能
@@ -283,9 +310,9 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
         visibleLeafColumns={visibleLeafColumns}
         onEditingStateChanged={setIsEditing}
         gridEditorComponent={props.editor}
-        gridIsReadOnly={props.isReadOnly}
         getPixel={getPixel}
         getRowObject={getRowObject}
+        writer={writer}
       />
 
       {/* 固定列用の選択範囲レイヤー (tableより手前に置くことで、sticky位置の基準をコンテナ左端にする) */}
@@ -323,7 +350,6 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                 start={header.getStart()}
                 allChecked={table.getIsAllRowsSelected()}
                 columnsTrigger={props.columns}
-                forceUpdateValue={forceUpdateValue}
               />
             )
             return (
@@ -347,7 +373,6 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
           {virtualItems.map(virtualRow => {
             const row = rowModel.rows[virtualRow.index];
             if (!row) return null;
-            const rowOriginal = getRowObject(row.index)
 
             // 画面のスクロール範囲内に表示されている列のみレンダリングされる
             const { fixed, spacerWidth, scrollable } = columnWindow.sliceLeaves(row.getVisibleCells())
@@ -358,12 +383,10 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                 key={cell.id}
                 cell={cell}
                 cellMeta={cell.column.columnDef.meta as ColumnMetadataInternal<TRow>}
-                rowOriginal={rowOriginal}
-                isReadOnly={checkIfCellReadOnly(
-                  cell.column.columnDef.meta as ColumnMetadataInternal<TRow>,
-                  cell.row.index,
-                  props.isReadOnly,
-                  rowOriginal)}
+                rowKey={row.id}
+                getRowObject={getRowObject}
+                rowDependentPropsRef={rowDependentPropsRef}
+                dataChange={dataChange}
                 isChecked={cell.row.getIsSelected()}
                 isLastFixedColumn={cell.column.getIndex() === lastFixedIndex}
                 size={cell.column.getSize()}
@@ -371,22 +394,22 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                 start={cell.column.getStart()}
                 propsStriped={props.striped}
                 columnsTrigger={props.columns}
-                forceUpdateValue={forceUpdateValue}
               />
             )
 
             return (
-              <tr
+              <BodyRow
                 // virtualRow.key はデータのID、
                 // virtualRow.index は表示範囲外も含めたデータ全体内での配列内の位置。
                 // key に index を含めない場合、先頭に行挿入などが行われて既存行の index がずれた際に、
                 // 画面上で行が増殖して見えたり重なったりする描画崩れが発生する。
                 key={`${virtualRow.key}::${virtualRow.index}`}
-
-                data-index={virtualRow.index} // data-index は TanStack Virtual の予約語
-                ref={tbodyTrRef} // 動的行高さを測定
-                className={`halllky-eg2-row ${props.getRowClassName?.(rowOriginal) ?? ''}`}
-                style={{ top: `${virtualRow.start}px` }}
+                rowIndex={virtualRow.index}
+                top={virtualRow.start}
+                trRef={tbodyTrRef} // 動的行高さを測定
+                getRowObject={getRowObject}
+                rowDependentPropsRef={rowDependentPropsRef}
+                dataChange={dataChange}
               >
                 {/* 固定列 */}
                 {fixed.map(renderCell)}
@@ -396,7 +419,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
 
                 {/* 描画範囲内の非固定列 */}
                 {scrollable.map(renderCell)}
-              </tr>
+              </BodyRow>
             )
           })}
 
@@ -429,8 +452,8 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                   size={column.getSize()}
                   height={ESTIMATED_ROW_HEIGHT}
                   start={column.getStart()}
+                  dataChange={dataChange}
                   columnsTrigger={props.columns}
-                  forceUpdateValue={forceUpdateValue}
                 />
               )
               return (
@@ -485,8 +508,6 @@ const MemorizedTH = React.memo<{
   allChecked: unknown
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
-  /** レンダリングのトリガーにのみ使用 */
-  forceUpdateValue: unknown
 }>(function MemorizedTH({ header, headerMeta, hasHeaderGroup, headerGroupIndex, isResizing, size, height, start }) {
 
   // 列グループの有無が混在しているテーブルにおいて、このheaderがグループでない列か否か
@@ -547,13 +568,59 @@ const MemorizedTH = React.memo<{
 //#region メモ化ボディ
 
 /**
- * テーブルボディセル
+ * テーブルボディの行。
+ * getRowClassName の結果が変わったときだけ描画し直す（中のセルは描画し直さない）。
+ */
+function BodyRow({ rowIndex, top, trRef, getRowObject, rowDependentPropsRef, dataChange, children }: {
+  rowIndex: number
+  top: number
+  trRef: React.RefCallback<HTMLTableRowElement>
+  getRowObject: RowAccessor<any>
+  rowDependentPropsRef: React.RefObject<RowDependentProps<any>>
+  dataChange: DataChangeNotifier
+  children: React.ReactNode
+}) {
+  const rowClassName = useDataChangeSelector(
+    dataChange,
+    () => rowDependentPropsRef.current.getRowClassName?.(getRowObject(rowIndex)) ?? '',
+    Object.is,
+  )
+
+  return (
+    <tr
+      data-index={rowIndex} // data-index は TanStack Virtual の予約語
+      ref={trRef}
+      className={`halllky-eg2-row ${rowClassName}`}
+      style={{ top: `${top}px` }}
+    >
+      {children}
+    </tr>
+  )
+}
+
+/** deps は getValueForRerender が毎回新しい配列を返すため、配列そのものではなく要素ごとに比較する */
+function isSameDeps(a: EditableGrid2Deps, b: EditableGrid2Deps): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (!Object.is(a[i], b[i])) return false
+  }
+  return true
+}
+
+/**
+ * テーブルボディセル。
+ * 列幅や選択状態などグリッド本体の状態が変わったときは props の変化で描画し直す。
+ * 行の値が変わったときは、読み取り専用の判定結果が変わった場合だけこの td ごと描画し直し、
+ * それ以外はセルの中身（BodyCellContent）だけが自分の deps を比較して描画し直す。
+ * 値の変化で描画し直すコンポーネントを小さくするため、購読を td と中身に分けている。
  */
 const MemorizedTD = React.memo<{
   cell: TanStack.Cell<any, any>
   cellMeta: ColumnMetadataInternal<any>
-  rowOriginal: unknown
-  isReadOnly: boolean
+  rowKey: string
+  getRowObject: RowAccessor<any>
+  rowDependentPropsRef: React.RefObject<RowDependentProps<any>>
+  dataChange: DataChangeNotifier
   isLastFixedColumn: boolean
   size: number
   minHeight: number
@@ -563,14 +630,21 @@ const MemorizedTD = React.memo<{
   isChecked: unknown
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
-  /** レンダリングのトリガーにのみ使用 */
-  forceUpdateValue: unknown
-}>(function MemorizedTD({ cell, cellMeta, size, minHeight, start, propsStriped, isReadOnly, isLastFixedColumn }) {
+}>(function MemorizedTD({ cell, cellMeta, rowKey, getRowObject, rowDependentPropsRef, dataChange, size, minHeight, start, propsStriped, isLastFixedColumn }) {
+
+  const rowIndex: number = cell.row.index
+
+  // 読み取り専用かどうかは行の値に依存しうる（isReadOnly に関数が指定されている場合）ため、値が変わるたびに判定し直す
+  const isReadOnly = useDataChangeSelector(
+    dataChange,
+    () => checkIfCellReadOnly(cellMeta, rowIndex, rowDependentPropsRef.current.isReadOnly, getRowObject(rowIndex)),
+    Object.is,
+  )
 
   let className = 'halllky-eg2-td'
 
   if (!isReadOnly) {
-    className += !propsStriped || cell.row.index % 2 === 0
+    className += !propsStriped || rowIndex % 2 === 0
       ? ' halllky-eg2-td--bg-default'
       : ' halllky-eg2-td--bg-striped'
   } else if (cellMeta.isFixed) {
@@ -586,7 +660,7 @@ const MemorizedTD = React.memo<{
 
   return (
     <td
-      data-eg2-row-index={cell.row.index}
+      data-eg2-row-index={rowIndex}
       data-eg2-col-index={cell.column.getIndex()}
       className={className}
       style={{
@@ -595,18 +669,27 @@ const MemorizedTD = React.memo<{
         left: cellMeta.isFixed ? `${start}px` : undefined,
       }}
     >
-      {TanStack.flexRender(cell.column.columnDef.cell, cell.getContext())}
+      {cellMeta.isRowCheckBox ? (
+        <RowCheckBoxCellContent cell={cell} dataChange={dataChange} />
+      ) : (
+        <BodyCellContent
+          cellMeta={cellMeta}
+          dataChange={dataChange}
+          rowIndex={rowIndex}
+          rowKey={rowKey}
+          getRowObject={getRowObject}
+          columnWidth={size}
+          isReadOnly={isReadOnly}
+        />
+      )}
     </td>
   )
 
 }, (prev, next) => {
   // 再レンダリングを抑制する条件（trueを返すと再レンダリングしない）。
   // cell はレンダリングの度に新しいオブジェクトが渡されるため比較に使用しない
-  const { cell: prevCell, rowOriginal: prevRowOriginal, ...prevRest } = prev
-  const { cell: nextCell, rowOriginal: nextRowOriginal, ...nextRest } = next
-
-  // オリジナルの行オブジェクトは参照比較を行う
-  if (prevRowOriginal !== nextRowOriginal) return false
+  const { cell: prevCell, ...prevRest } = prev
+  const { cell: nextCell, ...nextRest } = next
 
   // それ以外
   for (const key in prevRest) {
@@ -617,6 +700,54 @@ const MemorizedTD = React.memo<{
   return true
 })
 
+/**
+ * 利用側のボディセルのレンダリング関数をコンポーネントとして描画する。
+ * 値が変わったことの通知を受けるたびに getValueForRerender を呼び直し、戻り値が変わったときだけ描画し直す。
+ *
+ * レンダリング関数内で呼ばれたフックが MemorizedTD 自身のフックと混ざらないよう td とは分離している。
+ * （このコンポーネント自身のフックはレンダリング関数より前に固定の数だけ呼ぶため、順序は崩れない）
+ */
+function BodyCellContent({ cellMeta, dataChange, rowIndex, rowKey, getRowObject, columnWidth, isReadOnly }: {
+  cellMeta: ColumnMetadataInternal<any>
+  dataChange: DataChangeNotifier
+  rowIndex: number
+  rowKey: string
+  getRowObject: RowAccessor<any>
+  columnWidth: number
+  isReadOnly: boolean
+}) {
+  // original は最新の列定義を返す
+  const deps = useDataChangeSelector(
+    dataChange,
+    () => cellMeta.original?.getValueForRerender?.(getRowObject(rowIndex), rowIndex) ?? EMPTY_DEPS,
+    isSameDeps,
+  )
+
+  const render: EditableGrid2BodyRenderer<any, any> | undefined = cellMeta.original?.renderBody
+  if (!render) return null
+
+  return <>{render({
+    deps,
+    rowIndex,
+    rowKey,
+    getRow: () => getRowObject(rowIndex),
+    columnWidth,
+    isReadOnly,
+  })}</>
+}
+
+/**
+ * 行チェックボックス列のセルの中身。グリッド内部で定義した TanStack の列定義で描画する。
+ * showCheckBox の判定結果（行の値に依存しうる）が変わったときに描画し直す。
+ */
+function RowCheckBoxCellContent({ cell, dataChange }: {
+  cell: TanStack.Cell<any, any>
+  dataChange: DataChangeNotifier
+}) {
+  useDataChangeSelector(dataChange, () => cell.row.getCanSelect(), Object.is)
+  return <>{TanStack.flexRender(cell.column.columnDef.cell, cell.getContext())}</>
+}
+
 //#endregion メモ化ボディ
 
 //#region メモ化フッタ
@@ -624,6 +755,7 @@ const MemorizedTD = React.memo<{
 /**
  * 列フッタセル。
  * 行の値はここから渡さず、 render 内部で直接取得する想定。
+ * 行の値が変わったことの通知を受けるたびに描画し直し、スクロールだけでは描画し直さない。
  */
 const MemorizedTF = React.memo<{
   columnMeta: ColumnMetadataInternal<any>
@@ -631,11 +763,13 @@ const MemorizedTF = React.memo<{
   size: number
   height: number
   start: number
+  dataChange: DataChangeNotifier
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
-  /** レンダリングのトリガーにのみ使用 */
-  forceUpdateValue: unknown
-}>(function MemorizedTF({ columnMeta, footerRowIndex, size, height, start }) {
+}>(function MemorizedTF({ columnMeta, footerRowIndex, size, height, start, dataChange }) {
+
+  // 通知の回数を購読することで、値が変わるたびに描画し直す
+  useDataChangeSelector(dataChange, dataChange.getVersion, Object.is)
 
   // original は最新の列定義を返す。行チェックボックス列は null のため常に空セル
   const render = normalizeFooterRenderers(columnMeta.original?.renderFooter)[footerRowIndex]

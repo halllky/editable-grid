@@ -10,6 +10,9 @@ import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellE
 const TextEditor = createTextCellEditor(false)
 const StatusEditor = createSelectCellEditor(["出荷済", "未出荷"] satisfies TestRow["status"][])
 
+// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+const col = EG2.createColumnHelper<TestRow>()
+
 /**
  * 行選択の実演画面。
  *
@@ -19,24 +22,30 @@ const StatusEditor = createSelectCellEditor(["出荷済", "未出荷"] satisfies
  */
 function RowSelectionExample() {
 
-  const { control, setValue, getValues } = ReactHookForm.useForm<{ rows: TestRow[] }>({
+  const { control, setValue, getValues, subscribe } = ReactHookForm.useForm<{ rows: TestRow[] }>({
     defaultValues: { rows: getDefaultValues() },
   })
   const { fields, remove, replace } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
   const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
 
+  // React Hook Form の値が変わったことをグリッドに通知する
+  const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
+    name: "rows",
+    formState: { values: true },
+    callback: onChange,
+  }), [subscribe])
+
+  // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+    for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
+  }, [setValue])
+
   // チェックボックスの表示方法
   const [showCheckBoxMode, setShowCheckBoxMode] = React.useState<"all" | "function">("all")
-  const changeShowCheckBoxMode = (value: typeof showCheckBoxMode) => {
-    setShowCheckBoxMode(value)
 
-    // 表示条件が変わることは滅多にないので自動的には再レンダリングされない。
-    // 明示的に再レンダリングをかける。
-    gridRef.current?.forceUpdate()
-  }
-
-  // 行ごとに判定する場合: 出荷済の行にはチェックボックスを表示しない
+  // 行ごとに判定する場合: 出荷済の行にはチェックボックスを表示しない。
+  // 状態を「出荷済」に変更すると、その行のチェックボックスはすぐに消える。
   const showCheckBox: EG2.EditableGrid2Props<TestRow>["showCheckBox"] = showCheckBoxMode === "all"
     ? true
     : row => row.status !== "出荷済"
@@ -60,72 +69,58 @@ function RowSelectionExample() {
     remove(rowIndexes)
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [{
+  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
     columnId: "no",
     renderHeader: () => <CellText>No.</CellText>,
     renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
     defaultWidth: 48,
     disableResizing: true,
-  }, {
+  }), col.leaf({
     columnId: "name",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.name`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.name`, value),
+    getText: row => row.name ?? "",
+    setText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.name`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.name],
+    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 128,
-  }, {
+  }), col.leaf({
     columnId: "status",
     editor: StatusEditor,
-    getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.status`) ?? ""),
-    setValueFromEditor: ({ rowIndex, value }) => {
-      if (value.trim() === "") {
-        setValue(`rows.${rowIndex}.status`, undefined)
-
-      } else if ((["未出荷", "出荷済"] as const).includes(value as NonNullable<TestRow["status"]>)) {
-        setValue(`rows.${rowIndex}.status`, value as NonNullable<TestRow["status"]>)
-      }
+    getText: row => String(row.status ?? ""),
+    setText: (row, text) => {
+      if (text.trim() === "") return { ...row, status: undefined }
+      return (["未出荷", "出荷済"] as const).includes(text as NonNullable<TestRow["status"]>)
+        ? { ...row, status: text as NonNullable<TestRow["status"]> }
+        : undefined
     },
     renderHeader: () => <CellText>状態</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.status`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.status],
+    renderBody: ({ deps: [status] }) => <CellText>{status}</CellText>,
     defaultWidth: 88,
-  }, {
+  }), col.leaf({
     columnId: "quantity",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => String(getValues(`rows.${rowIndex}.quantity`) ?? ""),
-    setValueFromEditor: ({ rowIndex, value }) => {
-      if (value.trim() === "") {
-        setValue(`rows.${rowIndex}.quantity`, undefined)
-      } else {
-        const parsed = Number(value)
-        if (!Number.isFinite(parsed)) return
-        setValue(`rows.${rowIndex}.quantity`, parsed)
-      }
+    getText: row => String(row.quantity ?? ""),
+    setText: (row, text) => {
+      if (text.trim() === "") return { ...row, quantity: undefined }
+      const parsed = Number(text)
+      return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     renderHeader: () => <CellText>数量</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.quantity`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.quantity],
+    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 80,
-  }, {
+  }), col.leaf({
     columnId: "note",
     editor: TextEditor,
-    getValueForEditor: ({ rowIndex }) => getValues(`rows.${rowIndex}.note`) ?? "",
-    setValueFromEditor: ({ rowIndex, value }) => setValue(`rows.${rowIndex}.note`, value),
+    getText: row => row.note ?? "",
+    setText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    renderBody: ({ rowIndex }) => {
-      const watched = ReactHookForm.useWatch({ name: `rows.${rowIndex}.note`, control })
-      return <CellText>{watched}</CellText>
-    },
+    getValueForRerender: row => [row.note],
+    renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 240,
-  }], [control, getValues, setValue])
+  })], [])
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -136,7 +131,7 @@ function RowSelectionExample() {
               type="radio"
               name="showCheckBoxMode"
               checked={showCheckBoxMode === "all"}
-              onChange={() => changeShowCheckBoxMode("all")}
+              onChange={() => setShowCheckBoxMode("all")}
               className="cursor-pointer"
             />
             すべての行に表示する
@@ -146,7 +141,7 @@ function RowSelectionExample() {
               type="radio"
               name="showCheckBoxMode"
               checked={showCheckBoxMode === "function"}
-              onChange={() => changeShowCheckBoxMode("function")}
+              onChange={() => setShowCheckBoxMode("function")}
               className="cursor-pointer"
             />
             出荷済の行には表示しない
@@ -179,6 +174,8 @@ function RowSelectionExample() {
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={index => getValues(`rows.${index}`)}
+        subscribe={subscribeRows}
+        onRowsChange={handleRowsChange}
         columns={columns}
         showCheckBox={showCheckBox}
         className="h-80 border border-gray-500 resize-y"
