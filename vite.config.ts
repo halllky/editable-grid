@@ -32,7 +32,7 @@ export default defineConfig({
       cssFileName: 'index'
     },
     rollupOptions: {
-      external: ['react', 'react/jsx-runtime', 'react-dom', '@tanstack/react-table', '@tanstack/react-virtual']
+      external: ['react', 'react/jsx-runtime', 'react-dom', '@tanstack/react-store', '@tanstack/react-table', '@tanstack/react-virtual']
     },
   },
   test: {

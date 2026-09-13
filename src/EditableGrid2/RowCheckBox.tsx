@@ -1,5 +1,4 @@
-import * as TanStack from "@tanstack/react-table"
-import { ColumnMetadataInternal } from "./types-internal"
+import { GridColumnDef, GridColumnHelper } from "./types-internal"
 
 /** 行ヘッダー列のID */
 export const ROW_HEADER_COLUMN_ID = "hallky-eg2-row-header"
@@ -7,23 +6,23 @@ export const ROW_HEADER_COLUMN_ID = "hallky-eg2-row-header"
 /**
  * 行ヘッダのチェックボックス列を作成する
  */
-export function createRowCheckBoxColumn<TRow>(
-  columnHelper: TanStack.ColumnHelper<string>,
-): TanStack.ColumnDef<string, unknown> {
+export function createRowCheckBoxColumn(
+  columnHelper: GridColumnHelper,
+): GridColumnDef {
 
   return columnHelper.display({
     id: ROW_HEADER_COLUMN_ID,
     size: 40,
     enableResizing: false,
+    // 範囲選択の対象外（クリックしても選択されず、矢印キーでの移動でも飛ばされる）
+    enableCellSelection: false,
     meta: {
       columnId: ROW_HEADER_COLUMN_ID,
-      leafIndex: null,
       original: null,
-      isFixed: true,
       isReadOnly: false,
       isGroupedColumn: false,
       isRowCheckBox: true,
-    } satisfies ColumnMetadataInternal<TRow>,
+    },
 
     // テーブル左上の角の全選択チェックボックス
     header: ctx => (

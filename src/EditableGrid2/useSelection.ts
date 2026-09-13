@@ -1,6 +1,6 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
-import { ColumnMetadataInternal } from "./types-internal"
+import { GridCell, GridColumn, GridTable } from "./types-internal"
 import { EditableGrid2Props } from "./types-public"
 import { ScrollToCellFunction } from "./useScrollToCell"
 
@@ -26,51 +26,109 @@ export interface CellSelectionRange {
   endCol: number
 }
 
+/** 矢印キーと、選択を動かす方向の対応 */
+const ARROW_KEY_DIRECTIONS: Partial<Record<string, TanStack.CellSelectionDirection>> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+}
+
 /**
  * グリッドの範囲選択機能を提供するフック。
+ *
+ * 選択状態は TanStack Table の cellSelectionFeature が行・列のIDで持つ
+ * （行の挿入・削除があっても同じセルを指し続ける）。
+ * このフックはキーボード・マウス・フォーカスの操作を cellSelectionFeature の API に変換し、
+ * 描画用に行・列のインデックスに直した選択範囲を返す。
  */
 export function useSelection<TRow>(
-  table: TanStack.Table<string>,
+  table: GridTable,
   props: EditableGrid2Props<TRow>,
-  visibleLeafColumns: TanStack.ColumnDef<string, unknown>[],
+  visibleLeafColumns: GridColumn[],
   scrollToCell: ScrollToCellFunction,
 ) {
 
   //#region 状態
 
-  // アンカーセル。範囲選択の起点。
-  // Shiftキーを押しながら矢印キーやマウスクリックで選択範囲を拡張したとき、
-  // このセルは固定されたまま、選択範囲の反対側のセルが移動する。
-  const [anchorCell, setAnchorCell] = React.useState<CellPosition | null>(null)
-  const setAnchorCellWithClamp = useClampSetter(setAnchorCell, props.rowKeys.length, visibleLeafColumns.length, props.showCheckBox)
+  // 選択範囲。範囲選択は1つの矩形のみ（enableMultiCellRangeSelection: false）
+  const bounds = table.getCellSelectionBounds()[0]
+  const selectedRange = React.useMemo<CellSelectionRange | null>(() => bounds ? {
+    startRow: bounds.minRowIndex,
+    startCol: bounds.minColumnIndex,
+    endRow: bounds.maxRowIndex,
+    endCol: bounds.maxColumnIndex,
+  } : null, [bounds])
 
-  // 選択範囲を構成する2点のセルのうちアンカーセルの反対側。
-  // Shiftキーを押しながら矢印キーやマウスクリックで選択範囲を拡張したとき、
-  // こちら側のセルが移動する。
-  const [focusedCell, setFocusedCell] = React.useState<CellPosition | null>(null)
-  const setFocusedCellWithClamp = useClampSetter(setFocusedCell, props.rowKeys.length, visibleLeafColumns.length, props.showCheckBox)
-  // マウスダウン中かどうか。
-  // マウスダウンによってフォーカスが当たった場合、フォーカスイベントによる選択セルの上書きを防ぐために使用する。
-  const isMouseDownRef = React.useRef(false)
+  // アクティブセル。範囲選択の起点で、Shiftキーを押しながらの選択範囲の拡張では動かない。
+  // セルエディタはこのセルの位置に置かれ、キー入力による編集の対象になる。
+  const activeTanstackCell = table.getFocusedCell()
+  const activeCell = React.useMemo(() => {
+    return activeTanstackCell ? toPosition(activeTanstackCell) : null
+    // 列の表示・非表示が変わると、セルが同じでも列インデックスが変わる
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTanstackCell, visibleLeafColumns])
 
-  // 選択範囲。
-  const selectedRange = React.useMemo<CellSelectionRange | null>(() => {
-    if (!anchorCell || !focusedCell) return null
-    return {
-      startRow: Math.min(anchorCell.rowIndex, focusedCell.rowIndex),
-      startCol: Math.min(anchorCell.colIndex, focusedCell.colIndex),
-      endRow: Math.max(anchorCell.rowIndex, focusedCell.rowIndex),
-      endCol: Math.max(anchorCell.colIndex, focusedCell.colIndex),
-    }
-  }, [anchorCell, focusedCell])
+  // フォーカスが外れたときに選択をクリアした場合の、クリア前の選択
+  const lastSelectionRef = React.useRef<TanStack.CellSelectionState | null>(null)
 
-  // フォーカスを外す前に最後に選択していたセル
-  const [lastFocused, setLastFocused] = React.useState<{ anchor: CellPosition | null, focused: CellPosition | null }>({ anchor: null, focused: null })
-
-  // キー操作によるセル移動を検知して自動スクロールするために使う状態
-  const [keyMoveState, setKeyMoveState] = React.useState<CellPosition | null>(null)
+  // キー操作によるセル移動の後、移動先のセルが見えるように自動スクロールするかどうか
+  const scrollRequestedRef = React.useRef(false)
 
   //#endregion 状態
+
+  // -------------------------------
+
+  //#region 変換
+
+  /** インデックスで指定したセルをグリッドの範囲内に収め、行・列のIDにする。グリッドが空の場合は null */
+  const toCellIds = (cell: CellPosition) => {
+    const rows = table.getRowModel().rows
+    const minColIndex = visibleLeafColumns.findIndex(c => c.columnDef.enableCellSelection !== false)
+    if (rows.length === 0 || minColIndex === -1) return null
+
+    return {
+      rowId: rows[clamp(cell.rowIndex, 0, rows.length - 1)].id,
+      columnId: visibleLeafColumns[clamp(cell.colIndex, minColIndex, visibleLeafColumns.length - 1)].id,
+    }
+  }
+
+  /** 行・列のIDで指定したセルの位置。セルが存在しない場合は null */
+  const idsToPosition = (rowId: string, columnId: string): CellPosition | null => {
+    const cell = table.getRowModel().rowsById[rowId]?.getAllCellsByColumnId()[columnId]
+    return cell ? toPosition(cell) : null
+  }
+
+  /** インデックスで指定した範囲を選択する。範囲外のインデックスはグリッドの範囲内に収める */
+  const selectRange = (anchor: CellPosition, focus: CellPosition) => {
+    const a = toCellIds(anchor)
+    const f = toCellIds(focus)
+    if (!a || !f) {
+      table.resetCellSelection(true)
+      return
+    }
+    table.selectCellRange({
+      anchorRowId: a.rowId,
+      anchorColumnId: a.columnId,
+      focusRowId: f.rowId,
+      focusColumnId: f.columnId,
+    })
+  }
+
+  /** マウスイベントの対象のボディセル。フッター等、ボディセル以外の td は対象外 */
+  const getCellFromMouseEvent = (e: React.MouseEvent): GridCell | undefined => {
+    // 属性名は EditableGrid2.tsx で設定しているものと一致させる必要がある
+    const td = (e.target as HTMLElement).closest('td[data-eg2-row-index]')
+    if (!td) return undefined
+
+    const row = table.getRowModel().rows[Number(td.getAttribute('data-eg2-row-index'))]
+    const column = visibleLeafColumns[Number(td.getAttribute('data-eg2-col-index'))]
+    if (!row || !column) return undefined
+
+    return row.getAllCellsByColumnId()[column.id]
+  }
+
+  //#endregion 変換
 
   // -------------------------------
 
@@ -84,121 +142,67 @@ export function useSelection<TRow>(
 
   // 矢印キーによるセル移動
   handleKeyDown.current = e => {
-    if (!focusedCell) return
     if (e.altKey) return // Altキーはセル種別特有のイベント（ドロップダウンのメニュー展開など）が多いのでここでは処理しない
-    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return
+    const direction = ARROW_KEY_DIRECTIONS[e.key]
+    if (!direction) return
 
     e.preventDefault()
 
-    let { rowIndex, colIndex } = focusedCell
-    const colCount = visibleLeafColumns.length
-    const showCheckBox = props.showCheckBox === true || typeof props.showCheckBox === 'function'
-    const minColIndex = showCheckBox ? 1 : 0
-
-    if (e.ctrlKey || e.metaKey) {
-      // Ctrl キーが押されていれば端まで移動
-      switch (e.key) {
-        case 'ArrowUp': rowIndex = 0; break
-        case 'ArrowDown': rowIndex = props.rowKeys.length - 1; break
-        case 'ArrowLeft': colIndex = minColIndex; break
-        case 'ArrowRight': colIndex = colCount - 1; break
-      }
-    } else {
-      // 押された矢印キーに応じて1セル移動
-      switch (e.key) {
-        case 'ArrowUp': rowIndex -= 1; break
-        case 'ArrowDown': rowIndex += 1; break
-        case 'ArrowLeft': colIndex -= 1; break
-        case 'ArrowRight': colIndex += 1; break
-      }
-    }
-    const nextPos = { rowIndex, colIndex }
-
-    if (e.shiftKey) {
-      setFocusedCellWithClamp(nextPos)
-    } else {
-      setAnchorCellWithClamp(nextPos)
-      setFocusedCellWithClamp(nextPos)
-    }
-
-    // セル移動を検知してスクロールするために状態を更新
-    setKeyMoveState({
-      rowIndex: Math.min(Math.max(nextPos.rowIndex, 0), props.rowKeys.length - 1),
-      colIndex: Math.min(Math.max(nextPos.colIndex, minColIndex), colCount - 1),
-    })
-  }
-
-  // マウスダウン。
-  // Shiftキーが押されていれば範囲選択拡張、押されていなければ新規選択開始。
-  handleMouseDown.current = e => {
-    const helper = getHelper(table)
-    const cellPos = helper.getCellPositionFromMouseEvent(e)
-    if (!cellPos) return
-
-    // チェックボックス列が押された場合は無視
-    if (cellPos.colIndex === 0
-      && (props.showCheckBox === true
-        || typeof props.showCheckBox === 'function')) {
+    // 選択していたセルが行の削除などで無くなった場合は先頭セルから始める
+    const active = getActiveRange(table.atoms.cellSelection.get())
+    if (!active || !activeCell) {
+      selectRange({ rowIndex: 0, colIndex: 0 }, { rowIndex: 0, colIndex: 0 })
       return
     }
 
-    // セル選択
-    if (e.shiftKey) {
-      setFocusedCellWithClamp(cellPos)
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl キーが押されていれば端まで移動。範囲の外側の端はグリッドの範囲内に収められる
+      const from = e.shiftKey
+        ? idsToPosition(active.focusRowId, active.focusColumnId)
+        : activeCell
+      if (!from) return
+      const to = { ...from }
+      switch (direction) {
+        case 'up': to.rowIndex = 0; break
+        case 'down': to.rowIndex = Number.MAX_SAFE_INTEGER; break
+        case 'left': to.colIndex = 0; break
+        case 'right': to.colIndex = Number.MAX_SAFE_INTEGER; break
+      }
+      selectRange(e.shiftKey ? activeCell : to, to)
+
+    } else if (e.shiftKey) {
+      table.extendCellSelection(direction)
     } else {
-      setAnchorCellWithClamp(cellPos)
-      setFocusedCellWithClamp(cellPos)
+      table.moveCellSelection(direction)
     }
 
-    // マウスアップ時に解除するよう予約
-    isMouseDownRef.current = true
-    window.addEventListener('mouseup', () => {
-      isMouseDownRef.current = false
-    }, { once: true })
+    scrollRequestedRef.current = true
   }
 
-  // マウスムーブ。
-  // マウスダウン中であれば範囲選択拡張。
+  // マウスダウン。Shiftキーが押されていれば範囲選択拡張、押されていなければ新規選択開始。
+  // ドラッグの終了（mouseup）は TanStack Table が document で検知する。
+  handleMouseDown.current = e => {
+    getCellFromMouseEvent(e)?.getSelectionStartHandler()(e)
+  }
+
+  // マウスムーブ。ドラッグ中であれば範囲選択拡張。
   handleMouseMove.current = e => {
-    if (!isMouseDownRef.current) return
-
-    const helper = getHelper(table)
-    const cellPos = helper.getCellPositionFromMouseEvent(e)
-    if (!cellPos) return
-    if (cellPos.rowIndex === focusedCell?.rowIndex
-      && cellPos.colIndex === focusedCell?.colIndex) return
-
-    setFocusedCellWithClamp(cellPos)
+    getCellFromMouseEvent(e)?.getSelectionExtendHandler()(e)
   }
 
   // グリッドのアクティブ状態が変化したとき。
-  // * フォーカスがあたったときは、最後に選択していたセルか、それがなければ先頭セルを選択
+  // * フォーカスがあたったときは、最後に選択していた範囲か、それがなければ先頭セルを選択
+  //   （セルのクリックでフォーカスが当たった場合は、先に mousedown で選択されている）
   // * フォーカスが外れたときは選択解除（プロパティで指定されている場合のみ）
   handleGridActiveChanged.current = isGridActive => {
-    const helper = getHelper(table)
-
     if (isGridActive) {
-      // マウスダウンによってフォーカスが当たった場合（セルクリック時など）は
-      // handleMouseDown の方で適切なセルが選択されるため、
-      // ここでの「前回選択していたセルの復元」は行わない。
-      if (isMouseDownRef.current) return
-
-      if (lastFocused.anchor && lastFocused.focused) {
-        setAnchorCellWithClamp(lastFocused.anchor)
-        setFocusedCellWithClamp(lastFocused.focused)
-      } else {
-        const firstCell = helper.getFirstDataCell()
-        setAnchorCellWithClamp(firstCell)
-        setFocusedCellWithClamp(firstCell)
-      }
+      if (table.getFocusedCell()) return
+      if (lastSelectionRef.current) table.setCellSelection(lastSelectionRef.current)
+      if (!table.getFocusedCell()) selectRange({ rowIndex: 0, colIndex: 0 }, { rowIndex: 0, colIndex: 0 })
 
     } else if (props.clearSelectionOnBlur) {
-      setLastFocused({
-        anchor: anchorCell,
-        focused: focusedCell,
-      })
-      setAnchorCellWithClamp(null)
-      setFocusedCellWithClamp(null)
+      lastSelectionRef.current = table.atoms.cellSelection.get()
+      table.resetCellSelection(true)
     }
   }
 
@@ -215,119 +219,58 @@ export function useSelection<TRow>(
 
   //#region useEffect
 
-  // 行数、列数が変わったら選択セルをクランプする
+  // キー操作によるセル移動の後、選択範囲の動く側の角が見えるように自動スクロール
+  const cellSelection = table.atoms.cellSelection.get()
   React.useEffect(() => {
-    setAnchorCellWithClamp(anchorCell)
-    setFocusedCellWithClamp(focusedCell)
-  }, [props.rowKeys.length, visibleLeafColumns.length])
+    if (!scrollRequestedRef.current) return
+    scrollRequestedRef.current = false
 
-  // キー操作によるセル移動を検知して移動後のセルが見えるように自動スクロール
-  React.useEffect(() => {
-    if (keyMoveState) {
-      scrollToCell(keyMoveState)
-      setKeyMoveState(null)
-    }
-  }, [keyMoveState, scrollToCell])
+    const active = getActiveRange(cellSelection)
+    if (active) scrollToCell(idsToPosition(active.focusRowId, active.focusColumnId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cellSelection, scrollToCell])
 
   //#endregion useEffect
 
   //#region API
 
+  const selectRowRef = React.useRef(selectRange)
+  selectRowRef.current = selectRange
+
   const selectRow = React.useCallback((startRow: number, endRow: number) => {
-    setAnchorCellWithClamp({ rowIndex: endRow, colIndex: Number.MAX_SAFE_INTEGER })
-    setFocusedCellWithClamp({ rowIndex: startRow, colIndex: 0 })
-  }, [setAnchorCellWithClamp, setFocusedCellWithClamp])
+    selectRowRef.current(
+      { rowIndex: endRow, colIndex: Number.MAX_SAFE_INTEGER },
+      { rowIndex: startRow, colIndex: 0 })
+  }, [])
 
   const setSelectionRange = React.useCallback((range: CellSelectionRange) => {
-    setAnchorCellWithClamp({ rowIndex: range.startRow, colIndex: range.startCol })
-    setFocusedCellWithClamp({ rowIndex: range.endRow, colIndex: range.endCol })
-  }, [setAnchorCellWithClamp, setFocusedCellWithClamp])
+    selectRowRef.current(
+      { rowIndex: range.startRow, colIndex: range.startCol },
+      { rowIndex: range.endRow, colIndex: range.endCol })
+  }, [])
 
   //#endregion API
 
   return {
     selectedRange,
-    anchorCell,
-    focusedCell,
+    activeCell,
     selectionEvents,
     selectRow,
     setSelectionRange,
   }
 }
 
-/**
- * セル位置設定関数のラッパー。
- * 指定された最大行・列インデックスを超えないようにクランプしてから設定する。
- */
-function useClampSetter(
-  setter: React.Dispatch<React.SetStateAction<CellPosition | null>>,
-  rowCount: number,
-  colCount: number,
-  hasCheckBoxColumn?: EditableGrid2Props<any>["showCheckBox"],
-) {
-  return React.useCallback((cell: CellPosition | null) => {
-    if (!cell || rowCount === 0 || colCount === 0) {
-      setter(null)
-
-    } else {
-      const showCheckBox = hasCheckBoxColumn === true || typeof hasCheckBoxColumn === 'function'
-      setter({
-        rowIndex: Math.min(Math.max(cell.rowIndex, 0), rowCount - 1),
-        colIndex: Math.min(Math.max(cell.colIndex, showCheckBox ? 1 : 0), colCount - 1),
-      })
-    }
-  }, [setter, rowCount, colCount, hasCheckBoxColumn])
+/** セルの位置。列が非表示の場合は null */
+function toPosition(cell: GridCell): CellPosition | null {
+  const colIndex = cell.column.getIndex()
+  return colIndex === -1 ? null : { rowIndex: cell.row.index, colIndex }
 }
 
-/**
- * Tanstack Table の標準のAPIに加えて
- * EditableGrid2 固有の情報を考慮したヘルパーを作成する
- */
-function getHelper<TRow>(
-  table: TanStack.Table<TRow>,
-) {
+/** 操作中の範囲（最後に追加された範囲）。Shift キーやドラッグによる拡張の対象になる */
+function getActiveRange(cellSelection: TanStack.CellSelectionState): TanStack.CellSelectionRange | undefined {
+  return cellSelection[cellSelection.length - 1]
+}
 
-  return {
-    /** データが1行以上あるか */
-    hasDataRow: () => table.getRowModel().rows.length > 0,
-
-    /** 列が1列以上あるか。チェックボックス列は除外。 */
-    hasVisibleDataColumn: () => table.getVisibleFlatColumns().some(col => {
-      const meta = col.columnDef.meta as ColumnMetadataInternal<TRow>
-      return !meta.isRowCheckBox
-    }),
-
-    /** 選択可能な最初のセルを取得する。データ行やデータ列が存在しない場合は null を返す。 */
-    getFirstDataCell: (): CellPosition | null => {
-      const rowModel = table.getRowModel()
-      if (rowModel.rows.length === 0) return null
-
-      const dataColumns = table.getVisibleFlatColumns().filter(col => {
-        const meta = col.columnDef.meta as ColumnMetadataInternal<TRow>
-        return !meta.isRowCheckBox
-      })
-      if (dataColumns.length === 0) return null
-
-      return {
-        rowIndex: 0,
-        colIndex: dataColumns[0].getIndex(),
-      }
-    },
-
-    /** マウスイベントの座標と対応するセル位置を取得する */
-    getCellPositionFromMouseEvent: (e: React.MouseEvent): CellPosition | null => {
-      const target = e.target as HTMLElement
-      // フッター等、ボディセル以外の td は対象外（属性が無いと Number(null) === 0 となり先頭セル扱いになるため）
-      const td = target.closest('td[data-eg2-row-index]')
-      if (!td) return null
-
-      // 属性名は EditableGrid2.tsx で設定しているものと一致させる必要がある
-      const rowIndex = Number(td.getAttribute('data-eg2-row-index'))
-      const colIndex = Number(td.getAttribute('data-eg2-col-index'))
-
-      if (isNaN(rowIndex) || isNaN(colIndex)) return null
-
-      return { rowIndex, colIndex }
-    },
-  }
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
 }

@@ -1,7 +1,6 @@
-import * as TanStack from "@tanstack/react-table"
-import { CellPosition } from "./useSelection"
 import React from "react"
-import { ColumnMetadataInternal } from "./types-internal"
+import { CellPosition } from "./useSelection"
+import { GridColumn } from "./types-internal"
 import { GetPixelFunction } from "./useGetPixel"
 
 /**
@@ -12,10 +11,11 @@ export type ScrollToCellFunction = (cell: CellPosition | null) => void
 /**
  * 指定のセルが見えるようにスクロールする関数を返す
  */
-export function useScrollToCell<TRow>(
+export function useScrollToCell(
   getPixel: GetPixelFunction,
-  visibleLeafColumns: TanStack.Column<TRow, unknown>[],
-  lastFixedIndex: number | null,
+  visibleLeafColumns: GridColumn[],
+  /** 固定列の合計幅 */
+  fixedWidth: number,
   tableContainerRef: React.RefObject<HTMLDivElement | null>,
   totalHeaderHeight: number,
   totalFooterHeight: number,
@@ -55,10 +55,9 @@ export function useScrollToCell<TRow>(
       }
     }
 
-    // 列スクロール
+    // 列スクロール（固定列は常に見えているので対象外）
     const column = visibleLeafColumns[cell.colIndex]
-    const meta = column?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
-    if (column && !meta?.isFixed) {
+    if (column && !column.getIsPinned()) {
 
       const columnLeft = column.getStart()
       const columnWidth = column.getSize()
@@ -66,15 +65,6 @@ export function useScrollToCell<TRow>(
 
       const containerLeft = container.scrollLeft
       const containerWidth = container.clientWidth
-
-      // 固定列の幅を計算
-      let fixedWidth = 0
-      if (lastFixedIndex !== null && lastFixedIndex >= 0) {
-        const lastFixedCol = visibleLeafColumns[lastFixedIndex]
-        if (lastFixedCol) {
-          fixedWidth = lastFixedCol.getStart() + lastFixedCol.getSize()
-        }
-      }
 
       // 可視領域の右端（絶対座標）
       const visibleRightBoundary = containerLeft + containerWidth
@@ -94,5 +84,5 @@ export function useScrollToCell<TRow>(
         }
       }
     }
-  }, [getPixel, visibleLeafColumns, lastFixedIndex, tableContainerRef, totalHeaderHeight, totalFooterHeight])
+  }, [getPixel, visibleLeafColumns, fixedWidth, tableContainerRef, totalHeaderHeight, totalFooterHeight])
 }

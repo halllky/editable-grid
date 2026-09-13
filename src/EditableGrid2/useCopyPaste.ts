@@ -1,15 +1,14 @@
 import React from "react";
-import * as TanStack from "@tanstack/react-table";
 import { EditableGrid2CellRange, EditableGrid2Props } from "./types-public";
 import { CellSelectionRange } from "./useSelection";
-import { ColumnMetadataInternal } from "./types-internal";
+import { GridTable } from "./types-internal";
 import { RowAccessor } from "./useRowAccessor";
 import { BatchDispatcher } from "./useBatchDispatcher";
 import { defaultCopyPasteFormat } from "./default-copy-paste-format";
 import { defaultPastePlanner } from "./default-paste-planner";
 
 interface UseCopyPasteParams<TRow> {
-  table: TanStack.Table<string>;
+  table: GridTable;
   selectedRange: CellSelectionRange | null;
   /**
    * ペースト時に選択範囲を拡張したらここに新しい選択範囲が渡される
@@ -34,7 +33,7 @@ export const useCopyPaste = <TRow,>({
   // 可視データ列（チェックボックス列を除いた、行チェックボックス列との colIndex オフセット調整用）を取得する
   const getDataColumns = () => {
     const columns = table.getVisibleLeafColumns();
-    const offset = columns.length > 0 && (columns[0].columnDef.meta as ColumnMetadataInternal<TRow> | undefined)?.isRowCheckBox
+    const offset = columns.length > 0 && columns[0].columnDef.meta?.isRowCheckBox
       ? 1
       : 0;
     return { dataColumns: columns.slice(offset), offset };
@@ -61,9 +60,7 @@ export const useCopyPaste = <TRow,>({
         // 列定義の存在チェック
         if (c < 0 || c >= dataColumns.length) break;
 
-        const col = dataColumns[c];
-        const meta = col.columnDef.meta as ColumnMetadataInternal<TRow> | undefined;
-        const colDef = meta?.original;
+        const colDef = dataColumns[c].columnDef.meta?.original;
 
         let cellValue = '';
         if (colDef && colDef.getText) {
@@ -127,7 +124,7 @@ export const useCopyPaste = <TRow,>({
       endCol: selectedRange.endCol - offset,
     };
 
-    const columnIds = dataColumns.map(col => (col.columnDef.meta as ColumnMetadataInternal<TRow>).columnId);
+    const columnIds = dataColumns.map(col => col.columnDef.meta!.columnId);
 
     // データ列基準の列インデックスで判定する（行チェックボックス列を指さないよう範囲を限定する）
     const isCellWritable = (rowIndex: number, colIndex: number): boolean => {

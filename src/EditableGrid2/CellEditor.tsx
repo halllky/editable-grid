@@ -1,7 +1,6 @@
 import React from "react"
-import * as TanStack from "@tanstack/react-table"
 import { EditableGridCellEditor, EditableGridCellEditorProps, EditableGridCellEditorRef } from "./types-public"
-import { ColumnMetadataInternal } from "./types-internal"
+import { GridColumn } from "./types-internal"
 import { CellPosition } from "./useSelection"
 import { GetPixelFunction } from "./useGetPixel"
 import { RowAccessor } from "./useRowAccessor"
@@ -10,12 +9,11 @@ import { BatchDispatcher } from "./useBatchDispatcher"
 export type CellEditorProps<TRow> = {
   /** グリッド全体がアクティブ状態かどうか */
   isGridActive: boolean
-  /** useSelection で管理されているフォーカスセル */
-  focusedCell: CellPosition | null
+  /** useSelection で管理されているアクティブセル。エディタはこのセルの位置に置かれる */
+  activeCell: CellPosition | null
   /** スクロールコンテナのDOM要素のscrollLeft */
   scrollContainerScrollLeft: number
-  rowModel: TanStack.RowModel<string>
-  visibleLeafColumns: TanStack.Column<string, unknown>[]
+  visibleLeafColumns: GridColumn[]
   /** 編集状態が変わったときに呼ばれるコールバック */
   onEditingStateChanged: (isEditing: boolean) => void
   /** グリッド全体のpropsで指定される標準コンポーネント */
@@ -47,9 +45,8 @@ export type CellEditorRef = {
  */
 export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   isGridActive,
-  focusedCell,
+  activeCell,
   scrollContainerScrollLeft,
-  rowModel,
   visibleLeafColumns,
   onEditingStateChanged,
   gridEditorComponent,
@@ -61,7 +58,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   const editorTextareaRef = React.useRef<EditableGridCellEditorRef>(null)
 
   const [editorComponent, setEditorComponent] = React.useState<EditableGridCellEditor>(gridEditorComponent ?? NoopEditor)
-  const [edittingCell, setEdittingCell] = React.useState<TanStack.Cell<string, unknown> | null>(null)
+  const [edittingCell, setEdittingCell] = React.useState<CellPosition | null>(null)
 
   const isGridActiveRef = React.useRef(isGridActive)
   isGridActiveRef.current = isGridActive
@@ -69,9 +66,9 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   // -----------------------------------
 
   /** セルの値をエディタに表示する文字列にする。getText が無い列は空文字。 */
-  const getTextForEditor = (cell: TanStack.Cell<string, unknown>): string => {
-    const columnMeta = cell.column.columnDef.meta as ColumnMetadataInternal<TRow>
-    return columnMeta.original?.getText?.(getRowObject(cell.row.index), cell.row.index) ?? ''
+  const getTextForEditor = (cell: CellPosition): string => {
+    const columnMeta = visibleLeafColumns[cell.colIndex]?.columnDef.meta
+    return columnMeta?.original?.getText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
   }
 
   // 編集確定
@@ -80,8 +77,8 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
 
     const value = v ?? editorTextareaRef.current?.getCurrentValue() ?? ''
     batchDispatcher.dispatch([{
-      rowIndex: edittingCell.row.index,
-      colIndex: edittingCell.column.getIndex(),
+      rowIndex: edittingCell.rowIndex,
+      colIndex: edittingCell.colIndex,
       text: value,
     }])
 
@@ -143,19 +140,18 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       pointerEvents: edittingCell ? undefined : 'none',
     }
 
-    if (!focusedCell) return style
+    if (!activeCell) return style
 
     // エディタを編集対象セルの位置に移動させる
-    const left = getPixel({ position: 'left', colIndex: focusedCell.colIndex })
-    const right = getPixel({ position: 'right', colIndex: focusedCell.colIndex })
-    const top = getPixel({ position: 'top', rowIndex: focusedCell.rowIndex })
-    const bottom = getPixel({ position: 'bottom', rowIndex: focusedCell.rowIndex })
-    const columnMeta = visibleLeafColumns[focusedCell.colIndex]?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
+    const left = getPixel({ position: 'left', colIndex: activeCell.colIndex })
+    const right = getPixel({ position: 'right', colIndex: activeCell.colIndex })
+    const top = getPixel({ position: 'top', rowIndex: activeCell.rowIndex })
+    const bottom = getPixel({ position: 'bottom', rowIndex: activeCell.rowIndex })
 
     // 固定列の場合、セル本体は position: sticky によってスクロール位置に追従するが、
     // セルエディタは position: absolute で配置しているため、そのままだとスクロール量の分だけ左にずれてしまう。
     // 固定列のときだけ scrollLeft を補正として加算し、見た目上のセル位置と一致させる。
-    if (columnMeta?.isFixed) {
+    if (visibleLeafColumns[activeCell.colIndex]?.getIsPinned()) {
       style.left = `${left + scrollContainerScrollLeft}px`
     } else {
       style.left = `${left}px`
@@ -166,24 +162,18 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     style.height = `${bottom - top}px`
 
     return style
-  }, [focusedCell, getPixel, edittingCell, visibleLeafColumns, scrollContainerScrollLeft])
+  }, [activeCell, getPixel, edittingCell, visibleLeafColumns, scrollContainerScrollLeft])
 
   // 移動後のセルの値をエディタにセットする
   React.useEffect(() => {
     if (edittingCell) return
-    if (!focusedCell) return
+    if (!activeCell) return
 
     // 移動先の列のエディタコンポーネントに切り替え
-    const columnMeta = visibleLeafColumns[focusedCell.colIndex]?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
+    const columnMeta = visibleLeafColumns[activeCell.colIndex]?.columnDef.meta
     let value = ''
     if (columnMeta?.original?.setText) {
-      const cell = rowModel
-        .flatRows[focusedCell.rowIndex]
-        ?.getVisibleCells()
-        ?.[focusedCell.colIndex]
-      if (cell) {
-        value = getTextForEditor(cell)
-      }
+      value = getTextForEditor(activeCell)
       setEditorComponent(columnMeta.original.editor ?? gridEditorComponent ?? NoopEditor)
     } else {
       // 編集できない列の場合
@@ -197,31 +187,25 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       if (!isGridActiveRef.current) return
       editorTextareaRef.current?.setValueAndSelectAll(value, 'move-focus')
     }, 0)
-  }, [focusedCell, rowModel, visibleLeafColumns])
+  }, [activeCell, visibleLeafColumns])
 
   // ref
   React.useImperativeHandle(ref, () => ({
     requestEditStart: inputChar => {
-      if (!focusedCell) return;
+      if (!activeCell) return;
 
       // エディタコンポーネントが指定されていない場合は編集開始しない
       if (editorComponent === NoopEditor) return;
 
-      const cell = rowModel
-        .flatRows[focusedCell.rowIndex]
-        ?.getVisibleCells()
-        ?.[focusedCell.colIndex]
-      if (!cell) return;
-
-      // setText が無い列や読み取り専用のセルは編集開始しない
-      if (!batchDispatcher.isCellWritable(focusedCell.rowIndex, focusedCell.colIndex)) return;
+      // 範囲外のセル、setText が無い列、読み取り専用のセルは編集開始しない
+      if (!batchDispatcher.isCellWritable(activeCell.rowIndex, activeCell.colIndex)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、
       // その文字を初期値としてエディタにセットする
-      const value = inputChar ?? getTextForEditor(cell)
+      const value = inputChar ?? getTextForEditor(activeCell)
       editorTextareaRef.current?.setValueAndSelectAll(value, 'edit-start')
 
-      setEdittingCell(cell)
+      setEdittingCell(activeCell)
       onEditingStateChanged(true)
     },
   }))

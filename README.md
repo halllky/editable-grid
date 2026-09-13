@@ -11,7 +11,8 @@ npm install "@halllky/react-editable-grid@git+ssh://git@github.com/halllky/react
 peerDependencies として以下が必要です:
 
 - react ^19
-- @tanstack/react-table ^8.21
+- @tanstack/react-table ^9.2
+- @tanstack/react-store ^0.11
 - @tanstack/react-virtual ^3.14
 
 スタイルはパッケージに同梱されており、`import { EditableGrid2 } from '@halllky/react-editable-grid'`

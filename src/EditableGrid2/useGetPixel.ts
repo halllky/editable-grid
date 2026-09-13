@@ -1,6 +1,6 @@
 import React from "react"
-import * as TanStack from "@tanstack/react-table"
 import * as TanStackVirtual from "@tanstack/react-virtual"
+import { GridColumn } from "./types-internal"
 
 /**
  * rowIndexやcolIndexから、スクロールエリア内でのx, y座標のピクセルを導出する関数。
@@ -19,10 +19,8 @@ export type GetPixelFunction = (args
  */
 export function useGetPixel(
   /** 可視の非グループ列 */
-  visibleLeafColumns: TanStack.Column<any, unknown>[],
-  /** tanstack 行モデル */
-  totalRowCount: number,
-  /** スクロール表示範囲に含まれる行 */
+  visibleLeafColumns: GridColumn[],
+  /** スクロール表示範囲に含まれる行。行の位置が変わったことを検知するためだけに使う */
   virtualItems: TanStackVirtual.VirtualItem[],
   /** 行の仮想化を司るオブジェクト */
   rowVirtualizer: TanStackVirtual.Virtualizer<HTMLDivElement, Element>,
@@ -32,53 +30,25 @@ export function useGetPixel(
   columnSizing: unknown,
 ): GetPixelFunction {
 
-  const virtualItemsMap = React.useMemo(() => {
-    return new Map(virtualItems.map(item => [item.index, item]))
-  }, [virtualItems])
-
   return React.useCallback(args => {
 
     // 水平方向の位置
     if (args.position === 'left' || args.position === 'right') {
-      const { colIndex } = args
-      const column = visibleLeafColumns[colIndex]
+      const column = visibleLeafColumns[args.colIndex]
       if (!column) return 0
 
-      if (args.position === 'left') {
-        return column.getStart()
-      } else {
-        return column.getStart() + column.getSize()
-      }
-
+      return args.position === 'left'
+        ? column.getStart()
+        : column.getStart() + column.getSize()
     }
 
-    // 垂直方向の位置
-    else {
-      const { rowIndex } = args
-      if (rowIndex < 0 || rowIndex >= totalRowCount) return 0
+    // 垂直方向の位置。
+    // TanStack Virtual が全行の位置を計算済み（描画範囲外の行は推定の高さ、描画した行は実測の高さ）なのでそれを使う
+    const item = rowVirtualizer.measurementsCache[args.rowIndex]
+    if (!item) return 0
 
-      // 表示範囲内に含まれる行の場合は現在のDOM上の配置位置(絶対座標)を取得できる
-      const virtualItem = virtualItemsMap.get(rowIndex)
-      if (virtualItem) {
-        if (args.position === 'top') {
-          return virtualItem.start + totalHeaderHeight
-        } else {
-          return virtualItem.start + virtualItem.size + totalHeaderHeight
-        }
-      }
+    return (args.position === 'top' ? item.start : item.end) + totalHeaderHeight
 
-      // 表示範囲外の行の場合は、tanstackの行オフセット情報から位置を取得する
-      if (args.position === 'top') {
-        return rowVirtualizer.getOffsetForIndex?.(rowIndex, "start")?.[0] ?? 0
-      } else {
-        // bottomの場合、次の行の開始位置、または全体のサイズを返す
-        if (rowIndex < totalRowCount - 1) {
-          return rowVirtualizer.getOffsetForIndex?.(rowIndex + 1, "start")?.[0] ?? 0
-        } else {
-          return rowVirtualizer.getTotalSize()
-        }
-      }
-    }
-
-  }, [visibleLeafColumns, totalRowCount, virtualItemsMap, rowVirtualizer, totalHeaderHeight, columnSizing])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleLeafColumns, rowVirtualizer, totalHeaderHeight, virtualItems, columnSizing])
 }

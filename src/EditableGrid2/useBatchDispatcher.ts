@@ -1,6 +1,5 @@
-import * as TanStack from "@tanstack/react-table"
 import { EditableGrid2Props, EditableGrid2RowUpdate } from "./types-public"
-import { checkIfCellReadOnly, ColumnMetadataInternal } from "./types-internal"
+import { checkIfCellReadOnly, GridColumn } from "./types-internal"
 import { RowAccessor } from "./useRowAccessor"
 
 /**
@@ -26,7 +25,7 @@ export type CellTextWrite = {
  * 呼び出し回数がセルの数ではなく行の数で済むようにするため。
  */
 export const useBatchDispatcher = <TRow,>(
-  visibleLeafColumns: TanStack.Column<string, unknown>[],
+  visibleLeafColumns: GridColumn[],
   rowKeys: string[],
   getRowObject: RowAccessor<TRow>,
   props: EditableGrid2Props<TRow>,
@@ -39,11 +38,8 @@ export const useBatchDispatcher = <TRow,>(
   const isCellWritable = (rowIndex: number, colIndex: number): boolean => {
     if (rowIndex < 0 || rowIndex >= rowKeys.length) return false
 
-    const column = visibleLeafColumns[colIndex]
-    if (!column) return false
-
-    const meta = column.columnDef.meta as ColumnMetadataInternal<TRow>
-    if (!meta.original?.setText) return false
+    const meta = visibleLeafColumns[colIndex]?.columnDef.meta
+    if (!meta?.original?.setText) return false
 
     return !checkIfCellReadOnly(meta, rowIndex, props.isReadOnly, getRowObject(rowIndex))
   }
@@ -59,7 +55,7 @@ export const useBatchDispatcher = <TRow,>(
     for (const { rowIndex, colIndex, text } of writes) {
       if (!isCellWritable(rowIndex, colIndex)) continue
 
-      const meta = visibleLeafColumns[colIndex].columnDef.meta as ColumnMetadataInternal<TRow>
+      const meta = visibleLeafColumns[colIndex].columnDef.meta!
       const changed = changedRows.get(rowIndex)
       const current = changed?.row ?? getRowObject(rowIndex)
       const next = meta.original!.setText!(current, text, rowIndex)
