@@ -377,6 +377,8 @@ function PerformanceExample() {
           rowKeys={rowKeys}
           getLatestRowObject={index => store.getRowAt(index)}
           columns={columns}
+          overscan={50} // 描画範囲外を何行描画しておくか。
+                        // データが多く高速スクロールが発生するグリッドほど大きい値を推奨
           showCheckBox
           striped
           className="h-[32rem] border border-gray-500 resize-y"
