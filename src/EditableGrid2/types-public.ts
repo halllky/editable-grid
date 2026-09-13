@@ -46,6 +46,7 @@ export type EditableGrid2Props<TRow> = {
    * const subscribe = React.useCallback(onChange => {
    *   listeners.current.add(onChange)
    *   const unsubscribe = () => listeners.current.delete(onChange)
+   *   return unsubscribe
    * }, [listeners])
    * 
    * // 例えば行追加があったときにそれをグリッドに通知する
