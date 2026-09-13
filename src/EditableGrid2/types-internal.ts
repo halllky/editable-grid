@@ -20,7 +20,7 @@ export type ColumnMetadataInternal<TRow> = {
 
 /**
  * EditableGrid2 が TanStack Table に登録する機能。
- * 固定列は columnPinning（start）、範囲選択は cellSelection で管理する。
+ * 固定列は columnPinning、範囲選択は cellSelection で管理する。
  */
 export const gridFeatures = TanStack.tableFeatures({
   rowSelectionFeature: TanStack.rowSelectionFeature,
@@ -37,9 +37,11 @@ export const gridFeatures = TanStack.tableFeatures({
 /**
  * TanStack Table に渡す行データ。
  * 行の値は持たず、行のキーだけを持つ（TanStack Table v9 は行データにオブジェクトか配列を要求するため包んでいる）。
- */
+*/
 export type GridRow = { rowKey: string }
 
+// TanStack の各種型定義は TanStack.tableFeatures と連動しているので
+// ここで宣言したものを import して使うこと。
 export type GridFeatures = typeof gridFeatures
 export type GridTable = TanStack.Table<GridFeatures, GridRow>
 export type GridColumn = TanStack.Column<GridFeatures, GridRow, unknown>

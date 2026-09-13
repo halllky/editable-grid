@@ -5,7 +5,7 @@ import { GridHeader, GridTable } from "./types-internal"
 /**
  * 列の仮想化の結果。1行の中で非固定列のどの要素を描画するかを決める。
  *
- * 固定列（TanStack の column pinning で start に固定した列）は sticky を成立させるため常に描画し、ここでは扱わない。
+ * 固定列は sticky を成立させるため常に描画し、ここでは扱わない。
  * 非固定列は画面の表示範囲 + overscan の分だけ描画し、描画を省略した列の幅は、
  * 固定列と非固定列の間に置くスペーサー1個で埋める
  * （行は display: flex で左から詰めて並ぶため、左側の余白だけあれば位置が合う。

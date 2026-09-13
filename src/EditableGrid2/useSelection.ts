@@ -51,7 +51,7 @@ export function useSelection<TRow>(
 
   //#region 状態
 
-  // 選択範囲。範囲選択は1つの矩形のみ（enableMultiCellRangeSelection: false）
+  // 選択範囲。
   const bounds = table.getCellSelectionBounds()[0]
   const selectedRange = React.useMemo<CellSelectionRange | null>(() => bounds ? {
     startRow: bounds.minRowIndex,

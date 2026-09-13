@@ -68,9 +68,9 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   const tableData = React.useMemo(() => rowKeys.map((rowKey): GridRow => ({ rowKey })), [rowKeys])
 
   // TanStack Table のテーブルインスタンス。
-  // 列幅（columnSizing）は TanStack 内部に列のID（`col-${columnId}`）をキーに保持される。
+  // 列幅は TanStack 内部に列のID（`col-${columnId}`）をキーに保持される。
   // 列が削除されたときのエントリはあえて残す（同じ columnId の列が後で復活した場合に幅も復元されるため）。
-  // 範囲選択（cellSelection）も TanStack 内部に行・列のIDで保持される。
+  // 範囲選択も TanStack 内部に行・列のIDで保持される。
   const table = TanStack.useTable({
     features: gridFeatures,
     data: tableData,
@@ -86,9 +86,9 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     enableRowSelection: row => props.showCheckBox === true
       || typeof props.showCheckBox === 'function'
       && props.showCheckBox(getRowObject(row.index), row.index),
-    // 範囲選択は1つの矩形のみ（Ctrl キーによる複数範囲の選択はしない）
+    // 範囲選択は1つの矩形のみ（ややこしいので Ctrl キーによる複数範囲の選択はしない）
     enableMultiCellRangeSelection: false,
-    // 行の追加・削除のたびに data が変わるが、範囲選択は行のIDで持っているので残す
+    // data が変わった時に選択範囲をリセットするかどうか
     autoResetCellSelection: false,
     enableColumnResizing: true,
     defaultColumn: {
@@ -278,11 +278,11 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   // -----------------------------
   //#region レンダリング
 
-  // 固定列（start）と非固定列（center）のヘッダ。TanStack が固定列の境界でグループ見出しを分割する
+  // 固定列と非固定列のヘッダ。TanStack が固定列の境界でグループ見出しを分割する
   const fixedHeaderGroups = table.getStartHeaderGroups()
   const centerHeaderGroups = table.getCenterHeaderGroups()
 
-  // 画面のスクロール範囲内に表示されている非固定列のみレンダリングされる
+  // 画面のスクロール範囲内に表示されている非固定列のフッター
   const footerColumnSlice = columnWindow.sliceLeaves(table.getCenterVisibleLeafColumns())
 
   // ボディ行の中のセルの描画に影響するグリッドの状態。
