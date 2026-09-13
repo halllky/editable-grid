@@ -173,7 +173,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     if (edittingCell) return
     if (!focusedCell) return
 
-    // 移動先の列のエディタコンポーネントに切り替え。編集できない列（setText が無い列）では切り替えない。
+    // 移動先の列のエディタコンポーネントに切り替え。編集できない列では切り替えない。
     const columnMeta = visibleLeafColumns[focusedCell.colIndex]?.columnDef.meta as ColumnMetadataInternal<TRow> | undefined
     let value = ''
     if (columnMeta?.original?.setText) {

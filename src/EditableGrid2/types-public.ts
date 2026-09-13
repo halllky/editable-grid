@@ -8,6 +8,7 @@ import React from "react"
 export type EditableGrid2Props<TRow> = {
   /**
    * 行を一意に識別する文字列の配列。
+   * 行に表示される値そのものは、この配列ではなく {@link EditableGrid2Props.getLatestRowObject} で取得される。
    *
    * - 配列の長さがそのままグリッドの行数になります。
    * - 各要素がその行のIDとして使われます。重複する値を含めてはいけません。
@@ -15,20 +16,12 @@ export type EditableGrid2Props<TRow> = {
    *   行の追加・削除・並び替えが発生したものとしてグリッドが再描画されます。
    *   逆に内容が同じであれば、毎回新しい配列インスタンスを渡しても再描画は発生しないため、
    *   呼び出し側で useMemo する必要はありません。
-   * 行に表示される値そのものは、この配列ではなく getLatestRowObject から取得されます。
-   *
    */
   rowKeys: string[]
 
   /**
    * 指定されたインデックスの行の、呼び出された時点での最新の値を取得する関数。
-   *
-   * - セルの描画・編集・コピー＆ペーストで使用される行の値は、すべてこの関数から取得されます。
-   * - 返す行オブジェクトの参照が新しいか古いかは問いません。
-   *   値が直接書き換えられた同じオブジェクトを返しても構いません（React Hook Form の getValues など）。
-   * - 値が変わったことの検知にはこの関数は使われません。
-   *   値の変化は subscribe による通知、またはグリッドを含むコンポーネントの再描画によってグリッドに伝わります。
-   *   どのセルを描画し直すかは、列定義の getValueForRerender の戻り値の比較で決まります。
+   * セルの描画・編集・コピー＆ペーストで使用される行の値は、すべてこの関数から取得されます。
    */
   getLatestRowObject: (index: number) => TRow
 
@@ -41,6 +34,23 @@ export type EditableGrid2Props<TRow> = {
    *   変わったセルとフッターだけが描画し直されます（グリッド全体は再描画されません）。
    * - 値を React の state で持つ場合は、state の更新でグリッドも再描画されるため指定不要です。
    * - この関数の参照が変わるたびに購読し直すため、参照は安定させてください。
+   * 
+   * @example
+   * // 何らかの購読機構
+   * const listeners = React.useRef(new Set<() => void>())
+   * const subscribe = React.useCallback(onChange => {
+   *   listeners.current.add(onChange)
+   *   const unsubscribe = () => listeners.current.delete(onChange)
+   * }, [listeners])
+   * 
+   * // 例えば行追加があったときにそれをグリッドに通知する
+   * const handleAddRowButtonClicked = () => {
+   *   someExternalStore.addNewRow({})
+   *   for (const onChange of listeners) onChange()
+   * }
+   * 
+   * // サブスクライブ関数を渡す
+   * <EditableGrid2 subscribe={subscribe} />
    */
   subscribe?: (onChange: () => void) => () => void
 
@@ -103,17 +113,19 @@ export type EditableGrid2Props<TRow> = {
 }
 
 /**
- * グリッドの操作によって値が変わった1行分の情報。
- * EditableGrid2Props.onRowsChange の引数。
+ * グリッドの操作によって値が変わった1行
  */
 export type EditableGrid2RowUpdate<TRow> = {
   /** 行インデックス */
   rowIndex: number
-  /** 行のキー（rowKeys の要素） */
+  /** 行のキー */
   rowKey: string
-  /** 列定義の setText を適用した後の新しい行オブジェクト。元の行オブジェクトは書き換えられていない。 */
+  /** 
+   * グリッドの操作による値変更を適用した後の新しい行オブジェクト。
+   * 元の行オブジェクトのプロパティの書き換えではなく、値適用後のディープクローンされたオブジェクトである必要がある。
+   */
   row: TRow
-  /** 値が変わった列の columnId。外部マスタの非同期検索の開始判定などに使う。 */
+  /** この更新でどの列が変わったか */
   changedColumnIds: string[]
 }
 
@@ -136,10 +148,7 @@ export type EditableGrid2Ref<TRow> = {
 //#region 列
 
 /**
- * EditableGrid2 の列定義。
- *
- * リーフ列の getValueForRerender と renderBody の deps の型を対応づけたい場合は
- * createColumnHelper を使って定義すること（配列リテラルに直接書いた場合 deps は any になる）。
+ * EditableGrid2 の列定義
  */
 export type EditableGrid2Column<TRow> =
   | EditableGrid2GroupColumn<TRow>
@@ -163,13 +172,16 @@ export type EditableGrid2GroupColumn<TRow> = {
   columnId: string
 }
 
-/** セルの再描画の要否を判定するための値の配列。getValueForRerender の戻り値。 */
+/**
+ * セルの値。そのセルを再描画するかどうかの判定前に列定義指定の方法で抽出され、レンダリング処理の引数になる。
+ * 配列なのは1つのセルの描画にその行の複数のプロパティが必要な場合にも対応できるようにするため。
+ */
 export type EditableGrid2Deps = readonly unknown[]
 
 /**
  * EditableGrid2 の列定義（グループ化されていない列）
  *
- * @template TDeps getValueForRerender の戻り値の型。renderBody の引数 deps の型になる。
+ * @template TDeps セルの値の型。そのセルを再描画するかどうかの判定前に列定義指定の方法で抽出され、レンダリング処理の引数になる。
  */
 export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = EditableGrid2Deps> = {
   /** 列のヘッダーのレンダリング処理をカスタマイズする関数。 */
@@ -190,6 +202,10 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
   renderFooter?: EditableGrid2FooterRenderer
   /**
    * セルの描画に必要な値だけを配列で返す関数。
+   * 
+   * パフォーマンス高速化のためには再レンダリングは最小限である必要があるが、
+   * かといってレンダリングしなさすぎるとデータが変わったのにセルの外観が変わらないことになってしまう。
+   * そこで {@link EditableGrid2LeafColumn.renderBody} ではこの関数で取得した値だけが利用可能という形でバランスをとっている。
    *
    * - グリッドはこの配列を前回の描画時のものと要素ごとに Object.is で比較し、
    *   1つでも異なる場合だけセルを描画し直す。
@@ -206,6 +222,11 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
   getValueForRerender?: (row: TRow, rowIndex: number) => TDeps
   /**
    * セルのボディのレンダリング処理をカスタマイズする関数。
+   * 
+   * パフォーマンス高速化のためには再レンダリングは最小限である必要があるが、
+   * かといってレンダリングしなさすぎるとデータが変わったのにセルの外観が変わらないことになってしまう。
+   * そこでここでは {@link EditableGrid2LeafColumn.getValueForRerender} で取得した値だけが利用可能という形でバランスをとっている。
+   * 
    * セルの中にボタンを配置するなど、セル選択を防ぎたい要素がある場合、
    * mouseDown イベントの stopPropagation を呼び出し、イベントの伝播を防ぐこと。
    */
@@ -236,10 +257,10 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
   getText?: (row: TRow, rowIndex: number) => string
   /**
    * 文字列を行に反映した新しい行オブジェクトを返す関数。
-   * セル編集の確定・貼り付け・Deleteキーによるクリア（空文字が渡される）で使われる。
+   * セル編集の確定・貼り付け・Deleteキーによるクリアで使われる。
+   * 引数の行オブジェクトのプロパティを書き換えるのではなく、
+   * 引数の行オブジェクトのディープクローンをとりそちらの値を書き換えて返すこと。
    *
-   * - 引数の行オブジェクトは書き換えず、新しい行オブジェクトを返すこと。
-   *   返された行はグリッドが onRowsChange に渡し、実際の反映は onRowsChange 側で行う。
    * - 文字列から数値・真偽値・外部参照オブジェクト等への変換や、ネストしたプロパティへの配置はここで行う。
    * - 文字列を解釈できない場合など、そのセルへの書き込みをやめる場合は undefined を返す。
    * - 同じ行の複数のセルへ貼り付ける場合は、前の列の setText の戻り値が次の列の引数に渡される。
@@ -295,21 +316,18 @@ export type EditableGrid2FooterRenderer =
   | EditableGrid2FooterCellRenderer
   | EditableGrid2FooterCellRenderer[]
 
-/**
- * ボディセルのレンダリング処理。
- * 行オブジェクトは渡されない。描画に使う値は getValueForRerender で deps として受け取ること。
- */
+/** ボディセルのレンダリング処理 */
 export type EditableGrid2BodyRenderer<TRow, TDeps extends EditableGrid2Deps = EditableGrid2Deps> = (args: {
-  /** 列定義の getValueForRerender の戻り値。未定義の列では空配列。 */
+  /** 列定義の {@link EditableGrid2LeafColumn.getValueForRerender} で定義した値だけがここで使える。未定義の列では空配列。 */
   deps: TDeps
   /** 行インデックス。画面表示範囲外も含めたデータ全体内での配列内の位置。 */
   rowIndex: number
-  /** 行のキー（rowKeys の要素）。ダイアログを開くなど、非同期処理の後で行を特定し直すときに使う。 */
+  /** 行のキー。ダイアログを開くなど、非同期処理の後で行を特定し直すときに使う。 */
   rowKey: string
   /**
-   * 行の最新の値を取得する関数。getLatestRowObject を呼び出す。
+   * 行の最新の値を取得する関数。 {@link EditableGrid2Props.getLatestRowObject} を呼び出す。
    * ボタンのクリック時などイベントハンドラの中で使うためのもの。
-   * 描画中に呼び出して表示に使うと、その値が変わっても表示が更新されないため、表示に使う値は deps に含めること。
+   * 描画中に呼び出して表示に使うと、その値が変わっても表示が更新されないため、表示に使う値は deps 経由で受け取ること。
    */
   getRow: () => TRow
   /** この列の現在の幅（px） */

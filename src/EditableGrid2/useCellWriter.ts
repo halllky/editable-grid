@@ -10,6 +10,10 @@ import { RowAccessor } from "./useRowAccessor"
 export type CellTextWrite = {
   rowIndex: number
   colIndex: number
+  /** 
+   * エディタに入力されたテキスト。
+   * テキストのフォーマットや数値変換などがかかる前の状態。
+   */
   text: string
 }
 
@@ -85,4 +89,7 @@ export const useCellWriter = <TRow,>(
   return { isCellWritable, commitWrites }
 }
 
+/**
+ * @see {@link useCellWriter}
+ */
 export type CellWriter = ReturnType<typeof useCellWriter>
