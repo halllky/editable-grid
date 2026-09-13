@@ -12,6 +12,7 @@ import { CellEditor, CellEditorRef } from "./CellEditor"
 import { useOnKeyDownToStartEditing } from "./useOnKeyDownToStartEditing"
 import { useCopyPaste } from "./useCopyPaste"
 import { useRowAccessor, useStableArray } from "./useRowAccessor"
+import { useColumnWindow } from "./useColumnWindow"
 
 import "./styles.css"
 
@@ -83,7 +84,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     measureElement: element => element?.getBoundingClientRect().height,
-    overscan: props.overscan ?? 10,
+    overscan: props.rowOverscan ?? 10,
     // 行が追加・削除・移動されたときに正しく再計算されるようにする
     getItemKey: React.useCallback((index: number) => {
       return rowModel.rows[index].id
@@ -93,6 +94,15 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   const tbodyTrRef = React.useCallback((node: HTMLTableRowElement) => {
     if (node) rowVirtualizer.measureElement(node) // 動的行高さを測定
   }, [rowVirtualizer])
+
+  // 列の仮想化
+  const columnWindow = useColumnWindow(
+    visibleLeafColumns,
+    lastFixedIndex,
+    tableContainerRef,
+    props.columnOverscan ?? 3,
+    columnSizing,
+  )
 
   //#endregion Tanstack table
   // -----------------------------
@@ -295,27 +305,40 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
         {/* 列ヘッダ */}
         <thead className="halllky-eg2-thead">
 
-          {headerGroups.map((headerGroup, headerGroupIndex) => (
-            <tr key={headerGroup.id} className="halllky-eg2-header-row">
+          {headerGroups.map((headerGroup, headerGroupIndex) => {
+            // 画面のスクロール範囲内に表示されている列のみレンダリングされる
+            const { fixed, spacerWidth, scrollable } = columnWindow.sliceHeaders(headerGroup.headers)
 
-              {headerGroup.headers.map(header => (
-                <MemorizedTH
-                  key={header.id}
-                  header={header}
-                  headerGroupIndex={headerGroupIndex}
-                  headerMeta={header.column.columnDef.meta as ColumnMetadataInternal<TRow>}
-                  hasHeaderGroup={hasHeaderGroup}
-                  isResizing={header.column.getIsResizing()}
-                  size={header.getSize()}
-                  height={ESTIMATED_ROW_HEIGHT}
-                  start={header.getStart()}
-                  allChecked={table.getIsAllRowsSelected()}
-                  columnsTrigger={props.columns}
-                  forceUpdateValue={forceUpdateValue}
-                />
-              ))}
-            </tr>
-          ))}
+            // 固定列と非固定列で全く同じ呼び出しが2回出てくるので関数化しておく
+            const renderHeader = (header: TanStack.Header<string, unknown>) => (
+              <MemorizedTH
+                key={header.id}
+                header={header}
+                headerGroupIndex={headerGroupIndex}
+                headerMeta={header.column.columnDef.meta as ColumnMetadataInternal<TRow>}
+                hasHeaderGroup={hasHeaderGroup}
+                isResizing={header.column.getIsResizing()}
+                size={header.getSize()}
+                height={ESTIMATED_ROW_HEIGHT}
+                start={header.getStart()}
+                allChecked={table.getIsAllRowsSelected()}
+                columnsTrigger={props.columns}
+                forceUpdateValue={forceUpdateValue}
+              />
+            )
+            return (
+              <tr key={headerGroup.id} className="halllky-eg2-header-row">
+                {/* 固定列 */}
+                {fixed.map(renderHeader)}
+
+                {/* 描画範囲外の非固定列 */}
+                <ColumnSpacer as="th" width={spacerWidth} />
+
+                {/* 描画範囲内の非固定列 */}
+                {scrollable.map(renderHeader)}
+              </tr>
+            )
+          })}
         </thead>
 
         <tbody className="halllky-eg2-tbody" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
@@ -325,6 +348,33 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
             const row = rowModel.rows[virtualRow.index];
             if (!row) return null;
             const rowOriginal = getRowObject(row.index)
+
+            // 画面のスクロール範囲内に表示されている列のみレンダリングされる
+            const { fixed, spacerWidth, scrollable } = columnWindow.sliceLeaves(row.getVisibleCells())
+
+            // 固定列と非固定列で全く同じ呼び出しが2回出てくるので関数化しておく
+            const renderCell = (cell: TanStack.Cell<string, unknown>) => (
+              <MemorizedTD
+                key={cell.id}
+                cell={cell}
+                cellMeta={cell.column.columnDef.meta as ColumnMetadataInternal<TRow>}
+                rowOriginal={rowOriginal}
+                isReadOnly={checkIfCellReadOnly(
+                  cell.column.columnDef.meta as ColumnMetadataInternal<TRow>,
+                  cell.row.index,
+                  props.isReadOnly,
+                  rowOriginal)}
+                isChecked={cell.row.getIsSelected()}
+                isLastFixedColumn={cell.column.getIndex() === lastFixedIndex}
+                size={cell.column.getSize()}
+                minHeight={ESTIMATED_ROW_HEIGHT}
+                start={cell.column.getStart()}
+                propsStriped={props.striped}
+                columnsTrigger={props.columns}
+                forceUpdateValue={forceUpdateValue}
+              />
+            )
+
             return (
               <tr
                 // virtualRow.key はデータのID、
@@ -338,27 +388,14 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
                 className={`halllky-eg2-row ${props.getRowClassName?.(rowOriginal) ?? ''}`}
                 style={{ top: `${virtualRow.start}px` }}
               >
-                {row.getVisibleCells().map(cell => (
-                  <MemorizedTD
-                    key={cell.id}
-                    cell={cell}
-                    cellMeta={cell.column.columnDef.meta as ColumnMetadataInternal<TRow>}
-                    rowOriginal={rowOriginal}
-                    isReadOnly={checkIfCellReadOnly(
-                      cell.column.columnDef.meta as ColumnMetadataInternal<TRow>,
-                      cell.row.index,
-                      props.isReadOnly,
-                      rowOriginal)}
-                    isChecked={cell.row.getIsSelected()}
-                    isLastFixedColumn={cell.column.getIndex() === lastFixedIndex}
-                    size={cell.column.getSize()}
-                    minHeight={ESTIMATED_ROW_HEIGHT}
-                    start={cell.column.getStart()}
-                    propsStriped={props.striped}
-                    columnsTrigger={props.columns}
-                    forceUpdateValue={forceUpdateValue}
-                  />
-                ))}
+                {/* 固定列 */}
+                {fixed.map(renderCell)}
+
+                {/* 描画範囲外の非固定列 */}
+                <ColumnSpacer as="td" width={spacerWidth} />
+
+                {/* 描画範囲内の非固定列 */}
+                {scrollable.map(renderCell)}
               </tr>
             )
           })}
@@ -379,22 +416,36 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
         {/* 列フッタ。段が足りない列は空セルになる */}
         {footerRowCount > 0 && (
           <tfoot className="halllky-eg2-tfoot">
-            {Array.from({ length: footerRowCount }, (_, footerRowIndex) => (
-              <tr key={footerRowIndex} className="halllky-eg2-footer-row">
-                {visibleLeafColumns.map(column => (
-                  <MemorizedTF
-                    key={column.id}
-                    columnMeta={column.columnDef.meta as ColumnMetadataInternal<TRow>}
-                    footerRowIndex={footerRowIndex}
-                    size={column.getSize()}
-                    height={ESTIMATED_ROW_HEIGHT}
-                    start={column.getStart()}
-                    columnsTrigger={props.columns}
-                    forceUpdateValue={forceUpdateValue}
-                  />
-                ))}
-              </tr>
-            ))}
+            {Array.from({ length: footerRowCount }, (_, footerRowIndex) => {
+              // 画面のスクロール範囲内に表示されている列のみレンダリングされる
+              const { fixed, spacerWidth, scrollable } = columnWindow.sliceLeaves(visibleLeafColumns)
+
+              // 固定列と非固定列で全く同じ呼び出しが2回出てくるので関数化しておく
+              const renderFooterCell = (column: TanStack.Column<string, unknown>) => (
+                <MemorizedTF
+                  key={column.id}
+                  columnMeta={column.columnDef.meta as ColumnMetadataInternal<TRow>}
+                  footerRowIndex={footerRowIndex}
+                  size={column.getSize()}
+                  height={ESTIMATED_ROW_HEIGHT}
+                  start={column.getStart()}
+                  columnsTrigger={props.columns}
+                  forceUpdateValue={forceUpdateValue}
+                />
+              )
+              return (
+                <tr key={footerRowIndex} className="halllky-eg2-footer-row">
+                  {/* 固定列 */}
+                  {fixed.map(renderFooterCell)}
+
+                  {/* 描画範囲外の非固定列 */}
+                  <ColumnSpacer as="td" width={spacerWidth} />
+
+                  {/* 描画範囲内の非固定列 */}
+                  {scrollable.map(renderFooterCell)}
+                </tr>
+              )
+            })}
           </tfoot>
         )}
       </table>
@@ -615,3 +666,19 @@ function FooterCellContent({ render, columnWidth }: {
 }
 
 //#endregion メモ化フッタ
+
+//#region 列の仮想化
+
+/**
+ * 列の仮想化で描画を省略した列の幅を埋める要素。
+ * data-eg2-row-index を持たないため、クリックしてもセル選択の対象にならない。
+ */
+function ColumnSpacer({ as: Tag, width }: {
+  as: 'th' | 'td'
+  width: number
+}) {
+  if (width <= 0) return null
+  return <Tag aria-hidden className="halllky-eg2-spacer" style={{ width }} />
+}
+
+//#endregion 列の仮想化

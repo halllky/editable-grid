@@ -50,6 +50,7 @@
 .halllky-eg2-footer-row,
 .halllky-eg2-tf,
 .halllky-eg2-empty-cell,
+.halllky-eg2-spacer,
 .halllky-eg2-resize-handle,
 .halllky-eg2-selection-fixed-layer,
 .halllky-eg2-selection-border,
@@ -210,6 +211,14 @@
   text-align: center;
   user-select: none;
   color: var(--halllky-eg2-color-empty-text);
+}
+
+/* 列の仮想化で描画を省略した列の幅を埋める要素 */
+.halllky-eg2-spacer {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 /* --- チェックボックス列 --- */
