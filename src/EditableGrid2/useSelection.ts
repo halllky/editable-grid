@@ -85,7 +85,7 @@ export function useSelection<TRow>(
   // 矢印キーによるセル移動
   handleKeyDown.current = e => {
     if (!focusedCell) return
-    if (e.altKey || e.metaKey) return // Alt, Meta キーはセル種別特有のイベント（ドロップダウンのメニュー展開など）が多いのでここでは処理しない
+    if (e.altKey) return // Altキーはセル種別特有のイベント（ドロップダウンのメニュー展開など）が多いのでここでは処理しない
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return
 
     e.preventDefault()
@@ -95,7 +95,7 @@ export function useSelection<TRow>(
     const showCheckBox = props.showCheckBox === true || typeof props.showCheckBox === 'function'
     const minColIndex = showCheckBox ? 1 : 0
 
-    if (e.ctrlKey) {
+    if (e.ctrlKey || e.metaKey) {
       // Ctrl キーが押されていれば端まで移動
       switch (e.key) {
         case 'ArrowUp': rowIndex = 0; break

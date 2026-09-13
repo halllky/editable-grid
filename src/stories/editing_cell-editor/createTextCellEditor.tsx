@@ -27,8 +27,9 @@ export function createTextCellEditor(wrap: boolean): EditableGridCellEditor {
 
     // エディタ内部のキー操作
     const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = e => {
-      // 編集を確定させる
-      if (isEditing) {
+      // 編集を確定させる。
+      // IME変換確定のEnterで編集が確定してしまわないよう、isComposintも考慮する
+      if (isEditing && !e.nativeEvent.isComposing) {
         if (e.key === 'Enter' || e.key === 'Tab') {
           // セル内改行のため普通のEnterでは編集終了しないようにする
           if (wrap && e.shiftKey) return;
