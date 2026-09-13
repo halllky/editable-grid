@@ -772,7 +772,7 @@ const MemorizedTF = React.memo<{
 }>(function MemorizedTF({ columnMeta, footerRowIndex, isFixed, size, height, start, dataChange }) {
 
   // 通知の回数を購読することで、値が変わるたびに描画し直す
-  useDataChangeSelector(dataChange, () => dataChange.get())
+  useDataChangeSelector(dataChange, dataChange.getVersion)
 
   // original は最新の列定義を返す。行チェックボックス列は null のため常に空セル
   const render = normalizeFooterRenderers(columnMeta.original?.renderFooter)[footerRowIndex]
