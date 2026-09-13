@@ -571,7 +571,7 @@ const MemorizedTH = React.memo<{
  * テーブルボディの行。
  * getRowClassName の結果が変わったときだけ描画し直す（中のセルは描画し直さない）。
  */
-function BodyRow({ rowIndex, top, trRef, getRowObject, rowDependentPropsRef, dataChange, children }: {
+const BodyRow = React.memo(function BodyRow({ rowIndex, top, trRef, getRowObject, rowDependentPropsRef, dataChange, children }: {
   rowIndex: number
   top: number
   trRef: React.RefCallback<HTMLTableRowElement>
@@ -596,7 +596,17 @@ function BodyRow({ rowIndex, top, trRef, getRowObject, rowDependentPropsRef, dat
       {children}
     </tr>
   )
-}
+}, (prev, next) => {
+  // children の変更はレンダリングのトリガーにしない
+  const {children: cp ,...prevRest} = prev
+  const {children: cn, ...nextRest} = next
+  for (const key in prevRest) {
+    const p = prevRest[key as keyof typeof prevRest]
+    const n = nextRest[key as keyof typeof nextRest]
+    if (!Object.is(p, n)) return false
+  }
+  return true
+})
 
 /** deps は getValueForRerender が毎回新しい配列を返すため、配列そのものではなく要素ごとに比較する */
 function isSameDeps(a: EditableGrid2Deps, b: EditableGrid2Deps): boolean {
