@@ -28,6 +28,7 @@ function RowSelectionExample() {
   const { fields, remove, replace } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
   const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
   const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
@@ -46,9 +47,11 @@ function RowSelectionExample() {
 
   // 行ごとに判定する場合: 出荷済の行にはチェックボックスを表示しない。
   // 状態を「出荷済」に変更すると、その行のチェックボックスはすぐに消える。
-  const showCheckBox: EG2.EditableGrid2Props<TestRow>["showCheckBox"] = showCheckBoxMode === "all"
-    ? true
-    : row => row.status !== "出荷済"
+  const showCheckBox = React.useMemo<EG2.EditableGrid2Props<TestRow>["showCheckBox"]>(() => {
+    return showCheckBoxMode === "all"
+      ? true
+      : row => row.status !== "出荷済"
+  }, [showCheckBoxMode])
 
   // ref API で取得したチェック行の表示用
   const showCheckedRows = () => {
@@ -173,7 +176,7 @@ function RowSelectionExample() {
       <EG2.EditableGrid2
         ref={gridRef}
         rowKeys={rowKeys}
-        getLatestRowObject={index => getValues(`rows.${index}`)}
+        getLatestRowObject={getLatestRowObject}
         subscribe={subscribeRows}
         onRowsChange={handleRowsChange}
         columns={columns}

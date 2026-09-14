@@ -84,12 +84,18 @@ export function useFieldArrayForEditableGrid2<
     }
   }, [setValue, arrayName])
 
+  // 行の最新の値を取得する関数。
+  // レンダリングに使われる値はこの関数経由で取得される。
+  const getLatestRowObject = React.useCallback((index: number) => {
+    return getValues(`${arrayName}.${index}` as ReactHookForm.Path<TField>)
+  }, [getValues, arrayName])
+
   // EditableGrid2 の props
   const editableGrid2Props: EditableGrid2Props<TRow> & { ref: React.RefObject<EditableGrid2Ref<TRow> | null> } = {
     ref: gridRef,
     rowKeys,
     columns,
-    getLatestRowObject: index => getValues(`${arrayName}.${index}` as ReactHookForm.Path<TField>),
+    getLatestRowObject,
     subscribe: subscribeRows,
     onRowsChange: handleRowsChange,
   }

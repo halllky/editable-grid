@@ -9,7 +9,7 @@ import { defaultPastePlanner } from "./default-paste-planner";
 
 interface UseCopyPasteParams<TRow> {
   table: GridTable;
-  selectedRange: CellSelectionRange | null;
+  getSelectedRange: () => CellSelectionRange | null;
   /**
    * ペースト時に選択範囲を拡張したらここに新しい選択範囲が渡される
    */
@@ -22,7 +22,7 @@ interface UseCopyPasteParams<TRow> {
 
 export const useCopyPaste = <TRow,>({
   table,
-  selectedRange,
+  getSelectedRange,
   onRangeUpdated,
   isEditing,
   getRowObject,
@@ -40,6 +40,7 @@ export const useCopyPaste = <TRow,>({
   }
 
   const handleCopy: React.ClipboardEventHandler = e => {
+    const selectedRange = getSelectedRange();
     if (isEditing || !selectedRange) return;
 
     if (props.rowKeys.length === 0) return;
@@ -81,7 +82,7 @@ export const useCopyPaste = <TRow,>({
   }
 
   const handlePaste: React.ClipboardEventHandler = e => {
-    if (isEditing || !selectedRange) return;
+    if (isEditing || !getSelectedRange()) return;
 
     // ペースト開始セルの読み取り専用チェック
     // （ループ内でもチェックするが、開始地点がダメなら全体をキャンセルするかどうか。
@@ -102,7 +103,7 @@ export const useCopyPaste = <TRow,>({
   }
 
   const handleDelete = () => {
-    if (isEditing || !selectedRange) return;
+    if (isEditing || !getSelectedRange()) return;
     runPastePlan([['']], 'delete');
   }
 
@@ -113,6 +114,7 @@ export const useCopyPaste = <TRow,>({
    * グリッド外・書き込み不可セルの除外と実際の書き込みは BatchDispatcher が行う。
    */
   const runPastePlan = (values: string[][], trigger: 'paste' | 'delete') => {
+    const selectedRange = getSelectedRange();
     if (!selectedRange) return;
 
     const { dataColumns, offset } = getDataColumns();

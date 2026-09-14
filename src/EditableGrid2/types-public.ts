@@ -24,6 +24,8 @@ export type EditableGrid2Props<TRow> = {
    * 指定された行の、呼び出された時点での最新の値を取得する関数。
    * セルの描画・編集・コピー＆ペーストで使用される行の値は、すべてこの関数から取得されます。
    *
+   * この関数の参照が変わると、表示中の全セルが値を取得し直して前回の値と比較するため、 `useCallback` 等で参照を安定させてください。
+   *
    * @param index 行インデックス
    * @param rowKey 行のキー（{@link EditableGrid2Props.rowKeys} の index 番目の要素）。
    * 行の値をキーで管理している場合に使います。
@@ -80,13 +82,22 @@ export type EditableGrid2Props<TRow> = {
    * 含めない場合、その値が変わっても列定義内の関数は古い値を参照したままになる。
    */
   columns: EditableGrid2Column<TRow>[]
-  /** 行ヘッダのチェックボックスを表示するかどうか。 */
+  /**
+   * 行ヘッダのチェックボックスを表示するかどうか。
+   * 関数を渡す場合は `useCallback` 等で参照を安定させること。
+   */
   showCheckBox?: boolean | ((row: TRow, rowIndex: number) => boolean)
-  /** trueの場合はグリッド全体が読み取り専用。関数を設定した場合は行単位で判定される。 */
+  /**
+   * trueの場合はグリッド全体が読み取り専用。関数を設定した場合は行単位で判定される。
+   * 関数を渡す場合は `useCallback` 等で参照を安定させること。
+   */
   isReadOnly?: boolean | ((row: TRow, rowIndex: number) => boolean)
   /** スタイル調整用 */
   className?: string
-  /** 行のclassNameを取得する関数。基本的にその行のテキスト色を変更する程度の想定。 */
+  /**
+   * 行のclassNameを取得する関数。基本的にその行のテキスト色を変更する程度の想定。
+   * `useCallback` 等で参照を安定させること。
+   */
   getRowClassName?: (row: TRow) => string
   /** フォーカスが外れたときに選択をクリアするかどうか */
   clearSelectionOnBlur?: boolean

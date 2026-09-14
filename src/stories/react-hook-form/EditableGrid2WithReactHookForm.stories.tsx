@@ -95,13 +95,15 @@ function EditableGrid2WithReactHookForm({
     replace(rows)
   }, [isLargeData, replace])
 
+  const isRowReadOnly = React.useCallback((row: TestRow) => row.willBeDeleted === true, [])
+
   return (
     <div className="flex flex-col items-start">
       <EG2.EditableGrid2
         {...editableGrid2Props}
         showCheckBox
         clearSelectionOnBlur={clearSelectionOnBlur}
-        isReadOnly={row => row.willBeDeleted === true}
+        isReadOnly={isRowReadOnly}
         className="h-96 self-stretch resize-y border border-gray-300"
       />
 

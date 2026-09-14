@@ -43,7 +43,24 @@ export type GridRow = { rowKey: string }
 // TanStack の各種型定義は TanStack.tableFeatures と連動しているので
 // ここで宣言したものを import して使うこと。
 export type GridFeatures = typeof gridFeatures
-export type GridTable = TanStack.Table<GridFeatures, GridRow>
+
+/**
+ * TanStack Table の state のうちグリッド全体の再描画をするものがどれかを選ぶ関数。
+ * 
+ * 逆に、ここで選ばれなかった state に依存して再レンダリングしたい部分がある場合は
+ * `<table.Subscribe source={table.atoms.cellSelection}>` で囲むとそれをトリガーにできる。
+ */
+export function selectGridState(state: TanStack.TableState<GridFeatures>): Partial<TanStack.TableState<GridFeatures>> {
+  // セル選択は更新頻度が高いのと、セル本体とは別のDOMで描いており
+  // グリッド本体のレンダリングには影響しないので、外す。
+  const { cellSelection, ...rest } = state
+  return rest
+}
+
+/** グリッド本体が購読する state。 @see selectGridState */
+export type GridTableState = ReturnType<typeof selectGridState>
+
+export type GridTable = TanStack.ReactTable<GridFeatures, GridRow, GridTableState>
 export type GridColumn = TanStack.Column<GridFeatures, GridRow, unknown>
 export type GridColumnDef = TanStack.ColumnDef<GridFeatures, GridRow, unknown>
 export type GridColumnHelper = TanStack.ColumnHelper<GridFeatures, GridRow>

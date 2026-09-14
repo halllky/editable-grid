@@ -40,6 +40,8 @@ function PerformanceExample() {
   // 行の並びだけが React の state。行の追加・削除のときにのみ更新される。
   const [rowKeys, setRowKeys] = React.useState(() => store.getRowKeys())
 
+  const getLatestRowObject = React.useCallback((index: number) => store.getRowAt(index), [store])
+
   const gridRef = React.useRef<EG2.EditableGrid2Ref<PerfRow>>(null)
 
   // 行追加時に末尾へスクロールするために、グリッドのスクロールコンテナを引くための ref。
@@ -388,7 +390,7 @@ function PerformanceExample() {
         <EG2.EditableGrid2
           ref={gridRef}
           rowKeys={rowKeys}
-          getLatestRowObject={index => store.getRowAt(index)}
+          getLatestRowObject={getLatestRowObject}
           subscribe={store.subscribe}
           onRowsChange={handleRowsChange}
           columns={columns}

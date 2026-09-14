@@ -37,6 +37,12 @@ EditableGrid2 は TanStack Virtual による仮想化を利用しデータ数が
   構成比のように他の行の値に依存する列でも、どのセルが影響を受けるかを利用側で管理する必要はありません。
 * グリッドの操作による変更（編集確定・貼り付け・Delete）は、1回の操作につき1回だけ、行単位にまとめて `onRowsChange` に渡されます。
 
+再描画の最適化の恩恵を最大限に受けるためには、グリッドに渡す関数
+（`getLatestRowObject` / `isReadOnly` / `showCheckBox` / `getRowClassName`）の参照を
+`useCallback` や `useMemo` で安定させる必要があります。
+これらの参照が変わると、グリッドは判定結果が変わったかもしれないと見なして、
+表示中の全セルの値を取得し直して比較をやり直します。
+
 <ToggleSource summary="データストアの実装" language="ts" code={PerfDataStoreTs} />
 
 ## 仮想スクロール

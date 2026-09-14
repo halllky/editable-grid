@@ -41,6 +41,11 @@ const ARROW_KEY_DIRECTIONS: Partial<Record<string, TanStack.CellSelectionDirecti
  * （行の挿入・削除があっても同じセルを指し続ける）。
  * このフックはキーボード・マウス・フォーカスの操作を cellSelectionFeature の API に変換し、
  * 描画用に行・列のインデックスに直した選択範囲を返す。
+ * 
+ * 選択範囲とアクティブセルは、レンダリング時の値ではなく「呼び出した時点の値を返す関数」として提供する。
+ * 値として返すとグリッド本体がセル選択の state を購読することになり、
+ * 選択が動くたびに表示中のセルすべての React 要素の生成と比較が走るため。
+ * 選択状態に依存したレンダリングが必要なコンポーネントは table.Subscribe を使う。
  */
 export function useSelection<TRow>(
   table: GridTable,
@@ -51,29 +56,29 @@ export function useSelection<TRow>(
 
   //#region 状態
 
-  // 選択範囲。
-  const bounds = table.getCellSelectionBounds()[0]
-  const selectedRange = React.useMemo<CellSelectionRange | null>(() => bounds ? {
-    startRow: bounds.minRowIndex,
-    startCol: bounds.minColumnIndex,
-    endRow: bounds.maxRowIndex,
-    endCol: bounds.maxColumnIndex,
-  } : null, [bounds])
+  /** 選択範囲。無い場合は null */
+  const getSelectedRange = (): CellSelectionRange | null => {
+    const bounds = table.getCellSelectionBounds()[0]
+    return bounds ? {
+      startRow: bounds.minRowIndex,
+      startCol: bounds.minColumnIndex,
+      endRow: bounds.maxRowIndex,
+      endCol: bounds.maxColumnIndex,
+    } : null
+  }
 
-  // アクティブセル。範囲選択の起点で、Shiftキーを押しながらの選択範囲の拡張では動かない。
-  // セルエディタはこのセルの位置に置かれ、キー入力による編集の対象になる。
-  const activeTanstackCell = table.getFocusedCell()
-  const activeCell = React.useMemo(() => {
-    return activeTanstackCell ? toPosition(activeTanstackCell) : null
-    // 列の表示・非表示が変わると、セルが同じでも列インデックスが変わる
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTanstackCell, visibleLeafColumns])
+  /**
+   * アクティブセル。
+   * 範囲選択の起点で、Shiftキーを押しながらの選択範囲の拡張では動かない。
+   * セルエディタはこのセルの位置に置かれ、キー入力による編集の対象になる。
+   */
+  const getActiveCell = (): CellPosition | null => {
+    const cell = table.getFocusedCell()
+    return cell ? toPosition(cell) : null
+  }
 
   // フォーカスが外れたときに選択をクリアした場合の、クリア前の選択
   const lastSelectionRef = React.useRef<TanStack.CellSelectionState | null>(null)
-
-  // キー操作によるセル移動の後、移動先のセルが見えるように自動スクロールするかどうか
-  const scrollRequestedRef = React.useRef(false)
 
   //#endregion 状態
 
@@ -115,6 +120,17 @@ export function useSelection<TRow>(
     })
   }
 
+  /**
+   * 選択範囲の動く側の角が見えるようにスクロールする。
+   */
+  const scrollToFocusedCell = () => {
+    // セル選択の state をもとに移動先を決める。
+    // state はキー操作の中で同期的に更新されるため、
+    // レンダリングを待たずして移動先セルの位置が分かる。
+    const active = getActiveRange(table.atoms.cellSelection.get())
+    if (active) scrollToCell(idsToPosition(active.focusRowId, active.focusColumnId))
+  }
+
   /** マウスイベントの対象のボディセル。フッター等、ボディセル以外の td は対象外 */
   const getCellFromMouseEvent = (e: React.MouseEvent): GridCell | undefined => {
     // 属性名は EditableGrid2.tsx で設定しているものと一致させる必要がある
@@ -150,6 +166,7 @@ export function useSelection<TRow>(
 
     // 選択していたセルが行の削除などで無くなった場合は先頭セルから始める
     const active = getActiveRange(table.atoms.cellSelection.get())
+    const activeCell = getActiveCell()
     if (!active || !activeCell) {
       selectRange({ rowIndex: 0, colIndex: 0 }, { rowIndex: 0, colIndex: 0 })
       return
@@ -176,7 +193,7 @@ export function useSelection<TRow>(
       table.moveCellSelection(direction)
     }
 
-    scrollRequestedRef.current = true
+    scrollToFocusedCell()
   }
 
   // マウスダウン。Shiftキーが押されていれば範囲選択拡張、押されていなければ新規選択開始。
@@ -217,21 +234,6 @@ export function useSelection<TRow>(
 
   // -------------------------------
 
-  //#region useEffect
-
-  // キー操作によるセル移動の後、選択範囲の動く側の角が見えるように自動スクロール
-  const cellSelection = table.atoms.cellSelection.get()
-  React.useEffect(() => {
-    if (!scrollRequestedRef.current) return
-    scrollRequestedRef.current = false
-
-    const active = getActiveRange(cellSelection)
-    if (active) scrollToCell(idsToPosition(active.focusRowId, active.focusColumnId))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cellSelection, scrollToCell])
-
-  //#endregion useEffect
-
   //#region API
 
   const selectRowRef = React.useRef(selectRange)
@@ -252,8 +254,8 @@ export function useSelection<TRow>(
   //#endregion API
 
   return {
-    selectedRange,
-    activeCell,
+    getSelectedRange,
+    getActiveCell,
     selectionEvents,
     selectRow,
     setSelectionRange,

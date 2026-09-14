@@ -27,6 +27,7 @@ function CellSelectionExample() {
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
   const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
   const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
@@ -174,7 +175,7 @@ function CellSelectionExample() {
       <EG2.EditableGrid2
         ref={gridRef}
         rowKeys={rowKeys}
-        getLatestRowObject={index => getValues(`rows.${index}`)}
+        getLatestRowObject={getLatestRowObject}
         subscribe={subscribeRows}
         onRowsChange={handleRowsChange}
         columns={columns}

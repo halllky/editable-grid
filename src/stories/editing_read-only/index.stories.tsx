@@ -28,6 +28,7 @@ function ReadOnlyExample() {
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
   const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
   const subscribeRows = React.useCallback((onChange: () => void) => subscribe({
@@ -55,6 +56,12 @@ function ReadOnlyExample() {
       return next
     })
   }, [])
+
+  // グリッド全体／行単位の読み取り専用判定。
+  // 参照が変わるたびにグリッドが表示中の全セルの判定をやり直すため、useMemo で安定させる。
+  const isReadOnly = React.useMemo(
+    () => isGridReadOnly ? true : (row: TestRow) => lockedRowIds.has(row.rowId),
+    [isGridReadOnly, lockedRowIds])
 
   const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
     // 行ロック切り替えボタン ここから
@@ -194,12 +201,12 @@ function ReadOnlyExample() {
       <EG2.EditableGrid2
         ref={gridRef}
         rowKeys={rowKeys}
-        getLatestRowObject={index => getValues(`rows.${index}`)}
+        getLatestRowObject={getLatestRowObject}
         subscribe={subscribeRows}
         onRowsChange={handleRowsChange}
 
         // true を渡すとグリッド全体が、関数を渡すと行単位で読み取り専用になる。
-        isReadOnly={isGridReadOnly ? true : row => lockedRowIds.has(row.rowId)}
+        isReadOnly={isReadOnly}
 
         columns={columns}
         className="border border-gray-500 resize-y"
