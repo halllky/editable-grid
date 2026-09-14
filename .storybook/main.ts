@@ -3,8 +3,14 @@ import remarkGfm from 'remark-gfm';
 
 const config: StorybookConfig = {
   "stories": [
-    "../src/**/*.mdx",
-    "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"
+    "../src/stories/**/*.mdx",
+    "../src/stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+
+    // 開発時だけの実験用ページ
+    ...(process.env.NODE_ENV === 'development' ? [
+      "../src/stories_only-dev/**/*.mdx",
+      "../src/stories_only-dev/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    ] : []),
   ],
   "addons": [
     "@chromatic-com/storybook",
