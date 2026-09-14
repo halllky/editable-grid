@@ -395,13 +395,6 @@ function PerformanceExample() {
           showCheckBox
           striped
           className="h-[32rem] border border-gray-500 resize-y"
-
-          // 描画範囲外を何行（何列）描画しておくか。
-          // 高速スクロール時に表示が遅れる場合は大きめに、
-          // そこまで気にならない場合は小さめに設定する。
-          // 未指定の場合は既定値が使われる。
-          rowOverscan={80}
-          columnOverscan={15}
         />
       </div>
     </div>
