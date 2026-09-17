@@ -1,0 +1,261 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as CellErrorStories from "./index.stories"
+import CellErrorStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={CellErrorStories} />
+
+# セル単位のエラー表示
+
+**グリッドにはエラー表示のための専用の仕組みはありません。**
+エラーメッセージを `renderBody` まで届け、セルの中身を利用側で描き分けるだけです。
+
+そのため「どう表示するか」よりも「エラーをどこに持ち、いつ検証し、いつ消すか」の方が実装上の論点になります。
+以下の例では、クライアント側の検証と擬似的なサーバー検証の2種類のエラーを同時に扱っています。
+
+<Canvas
+  of={CellErrorStories.セル単位のエラー表示}
+  layout="fullscreen"
+  source={{ language: "tsx", code: CellErrorStoriesTsx }}
+/>
+
+## 表示のしかた
+
+`renderBody` が返す要素の見た目を変えるだけです。
+セルの高さは行の高さに制限されるため、メッセージ本文はツールチップ（`title` 属性）や
+グリッドの外の一覧に出し、セルの中では「エラーがある」ことだけを示す実装がよく合います。
+
+<Source language="tsx" code={`
+  function CellText({ children, error }: { children?: React.ReactNode, error?: string }) {
+    return (
+      <span
+        title={error} // メッセージ本文はツールチップで見せる
+        className={\`px-1 py-px border text-sm truncate \${error
+          ? "border-rose-600 bg-rose-100 text-rose-900"
+          : "border-transparent"}\`} // エラーが無いときも透明な枠線を置き、位置がずれないようにする
+      >
+        {children}
+      </span>
+    )
+  }
+`} />
+
+セルの背景色を変える場合、グリッドが塗る背景色（`halllky-eg2-td--bg-default` 等）の上に
+`renderBody` が返した要素が重なる形になるため、グリッド側の指定と競合することはありません。
+選択範囲のハイライトは `mix-blend-mode: multiply` の重ね塗りなので、
+エラーの背景色は選択中も見えたままになります。
+
+行全体の文字色を変えたい場合は、グリッドのプロパティ `getRowClassName` も使えます。
+ただしセル単位の描き分けはできないため、セル単位のエラー表示には `renderBody` を使ってください。
+
+### グリッドの外の一覧
+
+メッセージの一覧は、**セル単位ではなく行単位にまとめる**と読みやすくなります。
+1件を1行にして並べると、未入力の行が1つあるだけで一覧が何行にも膨らみ、
+何行目に問題があるのかが読み取りにくくなるためです。
+
+<Source language="text" code={`
+  NG: セル単位に並べる
+  1行目（R108）の商品名：商品名を入力してください。
+  1行目（R108）の数量：数量を入力してください。
+  1行目（R108）の単価：単価を入力してください。
+
+  OK: 行単位にまとめる
+  1行目（R108）：商品名を入力してください。数量を入力してください。単価を入力してください。
+`} />
+
+まとめる場合は列名を添えられなくなるため、
+「数量を入力してください。」のように**メッセージ自体に項目名を含めておく**とよいです。
+
+## エラーを deps に含める
+
+セルは `getValueForRerender` の戻り値が変わったときだけ描画し直されます。
+**エラーメッセージも表示に使う値なので、この配列に含めてください。**
+含めないと、値は変わっていないのにエラーだけが変わった場合に、セルの表示が古いままになります。
+
+<Source language="tsx" code={`
+  col.leaf({
+    columnId: "name",
+    getValueForRerender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
+    renderBody: ({ deps: [name, error] }) => <CellText error={error}>{name}</CellText>,
+    ...
+  })
+`} />
+
+エラーを React の state で持つ場合、state の変化で列定義の `useMemo` が作り直され、
+`columns` の参照が変わることでも表示中のセルは描画し直されます。
+そのため deps に含めなくても動いてしまうことがありますが、
+エラーを React の外（独自ストアなど）に持つ場合はこの経路が無く、deps だけが頼りになります。
+どちらでも正しく動くよう、常に deps に含めておくことを推奨します。
+
+なお `getValueForRerender` は描画中のセルの数だけ呼ばれます。
+エラーの一覧を毎回線形探索すると行数×列数のコストがかかるため、
+上記デモのように「行のキー → 列ID → メッセージ」の形に索引を作っておいてください。
+
+## いつ検証するか
+
+必須入力・桁数・書式・行内の項目間の整合性など、**その行の値だけを見れば判定できるエラー**は、
+どこにも保持せず `renderBody` の中で毎回計算してしまうこともできます。
+行を挿入しても入れ替えてもエラーが値と一緒に動く、消し忘れが原理的に起こらない、という利点があります。
+
+ただしこの方法には、**行を追加した直後、まだ何も入力していないセルが一斉に赤くなる**
+という難点があります。「未入力だからエラー」は正しくても、
+「まだ触っていないのにエラー」は利用者に対して不親切です。
+
+そこで上記デモでは、クライアント検証の結果もサーバー検証と同じように state に保持し、
+**検証にかけるタイミングを利用側で決められるようにしています。**
+
+* **画面初期表示時**（`useEffect`）: 全行・全列にかけます。すでに保存されている不正なデータは、利用者が触る前から見えていてほしいためです。
+* **セル編集時**（`onRowsChange`）: `fromText` がかかった列（`changedColumnIds`）だけをかけ直します。行全体にかけてしまうと、編集していない隣の未入力のセルまで赤くなります。
+* **送信時**: 全行・全列にかけます。行を追加したまま一度も編集していないセルは、ここで初めてエラーが付きます。
+
+<Source language="tsx" code={`
+  // 画面初期表示時。全行・全列にかける
+  React.useEffect(() => {
+    setClientErrors(validateRows(getValues("rows")))
+  }, [getValues])
+
+  // セル編集時。値が変わった列だけをかけ直す
+  const handleRowsChange = (updates: EditableGrid2RowUpdate<Row>[]) => {
+    for (const { rowIndex, row } of updates) setValue(\`rows.\${rowIndex}\`, row)
+
+    setClientErrors(prev => {
+      const next = new Map(prev)
+      for (const { row, changedColumnIds } of updates) {
+        // エラーが無い列にも undefined を設定して上書きすることで、直ったセルのエラーが消える
+        next.set(row.rowId, { ...next.get(row.rowId), ...validateRow(row, changedColumnIds) })
+      }
+      return next
+    })
+  }
+`} />
+
+保持するとはいえ、行の値だけから求まるエラーであることは変わりません。
+そのため、次の節のサーバー検証と同じく **行のIDをキーにして保持してください。**
+
+## 行の値から導出できないエラーの持ち方
+
+マスタとの照合・在庫チェック・他のレコードとの重複チェックなど、
+**行の値だけからは判定できないエラー**は、検証結果を利用側で保持するしかありません。
+
+このとき **エラーを行番号（`rowIndex`）で保持してはいけません。**
+検証してから表示するまでの間に行の挿入・並べ替え・削除があると、
+エラーが別の行に付いたままになります。行オブジェクトが持つID（上記デモの `rowId`）のような、
+**行の位置が変わっても変わらないキー**で保持してください。
+
+<Source language="tsx" code={`
+  // NG: 行番号をキーにする。行を1行挿入しただけで、すべてのエラーが1行ずつずれる
+  const errors: Map<number, string> = new Map([[3, "在庫が不足しています。"]])
+
+  // OK: 行のIDをキーにする。行が動いてもエラーは同じ行に付いたまま
+  const errors: Map<string, string> = new Map([["R2", "在庫が不足しています。"]])
+`} />
+
+サーバーへ送信する際は、行の値と一緒に行のIDも送り、
+返ってきたエラーをIDで突き合わせられるようにしておきます。
+API がエラーの位置を配列のインデックスで返す形式（例: `rows[3].quantity`）の場合は、
+**受け取った直後に、送信時の配列を使ってインデックスをIDに変換してください。**
+インデックスのまま保持すると、非同期の待ち時間の間に行が動いたときにずれます。
+
+上記デモではラジオボタンで「行ID」と「行番号」を切り替えられます。
+`サーバーに送信して検証する` でエラーを出した後に `先頭に行を挿入する` や
+`1行目と2行目を入れ替える` を押すと、行番号で結び付けた場合に
+エラーが無関係な行に付いたままになる様子を確認できます。
+
+### 保持したエラーをいつ消すか
+
+サーバー検証のエラーは「送信した時点の値」に対する指摘なので、値が変われば古い情報になります。
+クライアント検証のように編集時に検証し直して上書きすることができないため、取り下げる処理が必要です。
+`onRowsChange` の引数には変更された行と `changedColumnIds` が含まれるので、
+これを使って該当のセルのエラーだけを取り下げられます。
+
+<Source language="tsx" code={`
+  const handleRowsChange = (updates: EditableGrid2RowUpdate<Row>[]) => {
+    for (const { rowIndex, row } of updates) setValue(\`rows.\${rowIndex}\`, row)
+
+    // 値が変わったセルのサーバーエラーを取り下げる
+    setServerErrors(prev => prev.filter(error => !updates.some(update => (
+      update.row.rowId === error.rowId && update.changedColumnIds.includes(error.columnId)
+    ))))
+  }
+`} />
+
+一方、**行が削除された場合のエラーの後始末は不要**です。
+エラーの一覧を「現在の行」の側から組み立てておけば、
+対応する行が無くなったエラーは自然に表示されなくなります（上記デモの一覧がこの作りです）。
+
+## zod との組み合わせ
+
+`zod` などのスキーマ検証ライブラリを使う場合も、考え方は同じです。
+スキーマの検証結果を「列ID → メッセージ」の形に変換し、`getValueForRerender` から引くだけです。
+
+<Source language="ts" code={`
+  const rowSchema = z.object({
+    name: z.string().min(1, "商品名を入力してください。").max(10, "商品名は10文字以内で入力してください。"),
+    quantity: z.number("数量を入力してください。").int().positive("数量は1以上の整数で入力してください。"),
+    unitPrice: z.number("単価を入力してください。").nonnegative("単価に負の数は指定できません。"),
+  })
+
+  /** 1行分の検証結果を「列ID → メッセージ」にする。列IDとプロパティ名を一致させておくと単純に済む。 */
+  function validateRow(row: Row): Partial<Record<string, string>> {
+    const result = rowSchema.safeParse(row)
+    if (result.success) return {}
+
+    const errors: Partial<Record<string, string>> = {}
+    for (const issue of result.error.issues) {
+      const columnId = String(issue.path[0])
+      errors[columnId] ??= issue.message // 同じ項目に複数の指摘がある場合は先頭だけ表示する
+    }
+    return errors
+  }
+`} />
+
+上記デモのように検証結果を state に保持する場合、`validateRow` が呼ばれるのは
+検証のタイミング（画面初期表示時・セル編集時・送信時）だけなので、コストは問題になりません。
+一方、保持せず `getValueForRerender` の中で毎回検証する場合は `validateRow` がセルの数だけ呼ばれ、
+行数の多いグリッドでは無視できないコストになります。
+その場合は列ごとに必要な部分だけを検証するか、行のキーごとに結果をキャッシュしてください。
+
+<Source language="ts" code={`
+  // 行オブジェクトをキーにしたキャッシュ。
+  // fromText が行のディープクローンを返す（＝値が変わると別のオブジェクトになる）ことを利用して、
+  // 値が変わっていない行の検証結果を使い回す。
+  const cache = new WeakMap<Row, Partial<Record<string, string>>>()
+
+  function validateRowCached(row: Row) {
+    let result = cache.get(row)
+    if (!result) {
+      result = validateRow(row)
+      cache.set(row, result)
+    }
+    return result
+  }
+`} />
+
+React Hook Form の `resolver` にスキーマを渡している場合は、
+`formState.errors` をそのままエラーの持ち主として使うこともできます。
+その場合、エラーは React Hook Form が行の並びに追従させてくれますが、
+`formState.errors` の変化はグリッドの `subscribe` の対象外（値の変化ではない）なので、
+エラーが変わったときに列定義を作り直すなどして、セルを描画し直す経路を用意する必要があります。
+
+## セル単位に購読する（応用）
+
+`renderBody` はセルごとに独立したコンポーネントとして描画されるため、内部でフックを呼び出せます。
+エラーの購読をセル単位で行いたい場合はこの性質を使えます。
+
+<Source language="tsx" code={`
+  renderBody: ({ deps: [name], rowKey }) => <NameCell name={name} rowKey={rowKey} />,
+
+  // ...
+
+  function NameCell({ name, rowKey }: { name?: string, rowKey: string }) {
+    const error = useCellError(rowKey, "name") // 自分のセルのエラーだけを購読する
+    return <CellText error={error}>{name}</CellText>
+  }
+`} />
+
+ただし、表示中のセルの数だけ購読が張られること、
+フックのルール通り呼び出し順が毎回同じでなければならないことに注意してください。
+`getValueForRerender` の deps で足りる場合はそちらの方が単純です。
+
+セルの再描画の仕組みそのものについては <Link to="パフォーマンス">パフォーマンスと仮想スクロール</Link> を参照してください。
