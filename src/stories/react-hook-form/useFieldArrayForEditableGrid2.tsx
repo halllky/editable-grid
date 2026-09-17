@@ -218,8 +218,8 @@ function useColumnDefHelper<
               {formatValue(value)}
             </div>
           ),
-          toText: row => formatValue(getIn(row, key)),
-          fromText: (row, text) => setIn(row, key, parse ? parse(text) : text),
+          cellToText: row => formatValue(getIn(row, key)),
+          textToCell: (row, text) => setIn(row, key, parse ? parse(text) : text),
           ...restOptions,
         })
       },
@@ -320,8 +320,8 @@ function useColumnDefHelper<
             </div>
           ),
           editor: Editor,
-          toText: row => (getIn(row, key) as string | undefined) ?? '',
-          fromText: (row, text) => setIn(row, key, text),
+          cellToText: row => (getIn(row, key) as string | undefined) ?? '',
+          textToCell: (row, text) => setIn(row, key, text),
           onCellKeyDown: ({ event, requestEditStart }) => {
             const alt = event.altKey || event.metaKey
             const upDown = event.key === 'ArrowUp' || event.key === 'ArrowDown'
@@ -370,8 +370,8 @@ function useColumnDefHelper<
             )
           }
         },
-        toText: row => getIn(row, key) ? 'true' : 'false',
-        fromText: (row, text) => setIn(row, key, ['true', '1', 'yes'].includes(text.trim().toLowerCase())),
+        cellToText: row => getIn(row, key) ? 'true' : 'false',
+        textToCell: (row, text) => setIn(row, key, ['true', '1', 'yes'].includes(text.trim().toLowerCase())),
         ...options,
       }),
       //#endregion ヘルパー: チェックボックス

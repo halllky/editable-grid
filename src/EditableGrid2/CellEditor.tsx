@@ -65,10 +65,10 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
 
   // -----------------------------------
 
-  /** セルの値をエディタに表示する文字列にする。toText が無い列は空文字。 */
+  /** セルの値をエディタに表示する文字列にする。cellToText が無い列は空文字。 */
   const toEditorText = (cell: CellPosition): string => {
     const columnMeta = visibleLeafColumns[cell.colIndex]?.columnDef.meta
-    return columnMeta?.original?.toText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
+    return columnMeta?.original?.cellToText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
   }
 
   // 編集確定
@@ -172,7 +172,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     // 移動先の列のエディタコンポーネントに切り替え
     const columnMeta = visibleLeafColumns[activeCell.colIndex]?.columnDef.meta
     let value = ''
-    if (columnMeta?.original?.fromText) {
+    if (columnMeta?.original?.textToCell) {
       value = toEditorText(activeCell)
       setEditorComponent(columnMeta.original.editor ?? gridEditorComponent ?? NoopEditor)
     } else {
@@ -197,7 +197,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       // エディタコンポーネントが指定されていない場合は編集開始しない
       if (editorComponent === NoopEditor) return;
 
-      // 範囲外のセル、fromText が無い列、読み取り専用のセルは編集開始しない
+      // 範囲外のセル、textToCell が無い列、読み取り専用のセルは編集開始しない
       if (!batchDispatcher.isCellWritable(activeCell.rowIndex, activeCell.colIndex)) return;
 
       // 英数字などIME変換不要な文字が入力されたことによる編集開始の場合、

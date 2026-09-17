@@ -18,7 +18,7 @@ const col = EG2.createColumnHelper<TestRow>()
  * コピー＆ペースト実演画面。
  *
  * コピー＆ペーストを有効にするための専用のプロパティは無く、
- * 下記の各列のように toText / fromText を定義した列は
+ * 下記の各列のように cellToText / textToCell を定義した列は
  * 自動的にクリップボードとの相互コピペの対象になる。
  */
 function CopyPasteExample() {
@@ -48,10 +48,10 @@ function CopyPasteExample() {
     // 商品名 エディタ用設定 ここから
     // もっとも基本的なコピペ対象列。
     editor: NameEditor,
-    toText: row => row.name ?? "",
+    cellToText: row => row.name ?? "",
     // コピペのロジックは自由に定義できる。
     // ここでは改行コードが含まれた値がペーストされるなどに備え、改行除去したうえで設定している。
-    fromText: (row, text) => ({ ...row, name: text.replace(/[\r\n\u2028\u2029]/g, '') }),
+    textToCell: (row, text) => ({ ...row, name: text.replace(/[\r\n\u2028\u2029]/g, '') }),
     // 商品名 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>商品名</CellText>,
@@ -64,8 +64,8 @@ function CopyPasteExample() {
     // クリップボードから渡ってくる値は常に文字列なので、数値列でも自前でパースする必要がある。
     // パースできない文字列が貼り付けられた場合は undefined を返し、そのセルだけ書き込まずに元の値を保つ。
     editor: NameEditor,
-    toText: row => String(row.unitPrice ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.unitPrice ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, unitPrice: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
@@ -80,8 +80,8 @@ function CopyPasteExample() {
     columnId: "quantity",
     // 数量 エディタ用設定 ここから
     editor: NameEditor,
-    toText: row => String(row.quantity ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.quantity ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, quantity: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
@@ -95,11 +95,11 @@ function CopyPasteExample() {
   }), col.leaf({
     columnId: "amount",
     // 金額（読み取り専用・計算列） ここから
-    // toText だけを定義し fromText を定義しないことで、
+    // cellToText だけを定義し textToCell を定義しないことで、
     // 「コピーはできるがペーストは常にスキップされる列」になる。
     // isReadOnly も併せて true にしているため、Delete キーでのクリアもスキップされる。
     isReadOnly: true,
-    toText: row => String((row.unitPrice ?? 0) * (row.quantity ?? 0)),
+    cellToText: row => String((row.unitPrice ?? 0) * (row.quantity ?? 0)),
     // 金額（読み取り専用・計算列） ここまで
 
     renderHeader: () => <CellText>金額（※2）</CellText>,
@@ -113,8 +113,8 @@ function CopyPasteExample() {
     // 選択肢に無い文字列が貼り付けられた場合は undefined を返して無視することで、
     // 型として許容されない値がセルに入り込むのを防いでいる。
     editor: CategoryEditor,
-    toText: row => row.category ?? "",
-    fromText: (row, text) => {
+    cellToText: row => row.category ?? "",
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, category: undefined }
       return (["食品", "日用品", "その他"] as const).includes(text as NonNullable<TestRow["category"]>)
         ? { ...row, category: text as NonNullable<TestRow["category"]> }
@@ -132,8 +132,8 @@ function CopyPasteExample() {
     // セル内に改行を含められる列。TSV上はダブルクォートで囲まれた1セルとして
     // 表現されるため、Excel との間で改行込みのまま相互にコピペできる。
     editor: NoteEditor,
-    toText: row => row.note ?? "",
-    fromText: (row, text) => ({ ...row, note: text }),
+    cellToText: row => row.note ?? "",
+    textToCell: (row, text) => ({ ...row, note: text }),
     // 備考（改行あり） エディタ用設定 ここまで
 
     renderHeader: () => <CellText>備考（※4）</CellText>,

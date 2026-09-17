@@ -19,7 +19,7 @@ export type CellTextWrite = {
 /**
  * グリッドの操作（セル編集の確定・貼り付け・Deleteキーによるクリア）による値の変更を一括で反映する。
  *
- * 変更はすべて dispatch を経由し、列定義の fromText で新しい行オブジェクトを作ってから、
+ * 変更はすべて dispatch を経由し、列定義の textToCell で新しい行オブジェクトを作ってから、
  * 1回の操作につき1回だけ onRowsChange を呼ぶ。
  * React Hook Form の setValue のように1回ごとのコストが高い反映先でも、
  * 呼び出し回数がセルの数ではなく行の数で済むようにするため。
@@ -33,21 +33,21 @@ export const useBatchDispatcher = <TRow,>(
 
   /**
    * そのセルに書き込めるかどうか。
-   * 範囲外のセル、fromText が定義されていない列、読み取り専用のセルは書き込めない。
+   * 範囲外のセル、textToCell が定義されていない列、読み取り専用のセルは書き込めない。
    */
   const isCellWritable = (rowIndex: number, colIndex: number): boolean => {
     if (rowIndex < 0 || rowIndex >= rowKeys.length) return false
 
     const meta = visibleLeafColumns[colIndex]?.columnDef.meta
-    if (!meta?.original?.fromText) return false
+    if (!meta?.original?.textToCell) return false
 
     return !checkIfCellReadOnly(meta, rowIndex, props.isReadOnly, getRowObject(rowIndex))
   }
 
   /**
    * 書き込みを行単位にまとめて onRowsChange を1回呼ぶ。
-   * 同じ行の複数のセルへの書き込みは、前の列の fromText の戻り値に次の列の fromText を適用する。
-   * 書き込めないセルや、fromText が undefined を返したセルはスキップする。
+   * 同じ行の複数のセルへの書き込みは、前の列の textToCell の戻り値に次の列の textToCell を適用する。
+   * 書き込めないセルや、textToCell が undefined を返したセルはスキップする。
    */
   const dispatch = (writes: CellTextWrite[]) => {
     const changedRows = new Map<number, { row: TRow, changedColumnIds: Set<string> }>()
@@ -58,7 +58,7 @@ export const useBatchDispatcher = <TRow,>(
       const meta = visibleLeafColumns[colIndex].columnDef.meta!
       const changed = changedRows.get(rowIndex)
       const current = changed?.row ?? getRowObject(rowIndex)
-      const next = meta.original!.fromText!(current, text, rowIndex)
+      const next = meta.original!.textToCell!(current, text, rowIndex)
 
       // 書き込み不可、または値に変化が無い
       if (next === undefined || next === current) continue

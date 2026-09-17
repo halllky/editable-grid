@@ -88,8 +88,8 @@ function ReadOnlyExample() {
   }), col.leaf({
     columnId: "name",
     editor: TextEditor,
-    toText: row => row.name ?? "",
-    fromText: (row, text) => ({ ...row, name: text }),
+    cellToText: row => row.name ?? "",
+    textToCell: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
     getValuesForRender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
@@ -97,13 +97,13 @@ function ReadOnlyExample() {
     isFixed: true,
   }), col.leaf({
     // 単価（列単位の読み取り専用） ここから
-    // toText / fromText が定義されていても、
+    // cellToText / textToCell が定義されていても、
     // isReadOnly: true の列では編集・ペースト・Delete によるクリアはできない。コピーは可能。
     columnId: "unitPrice",
     isReadOnly: true,
     editor: TextEditor,
-    toText: row => String(row.unitPrice ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.unitPrice ?? ""),
+    textToCell: (row, text) => {
       const parsed = Number(text)
       return text.trim() !== "" && Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
@@ -116,8 +116,8 @@ function ReadOnlyExample() {
     // 数量 エディタ用設定 ここから
     columnId: "quantity",
     editor: TextEditor,
-    toText: row => String(row.quantity ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.quantity ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, quantity: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
@@ -133,8 +133,8 @@ function ReadOnlyExample() {
     columnId: "discountRate",
     isReadOnly: row => (row.quantity ?? 0) < 10,
     editor: TextEditor,
-    toText: row => String(row.discountRate ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.discountRate ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, discountRate: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, discountRate: parsed } : undefined
@@ -148,7 +148,7 @@ function ReadOnlyExample() {
     // 金額（読み取り専用・計算列） ここから
     columnId: "amount",
     isReadOnly: true,
-    toText: row => String(calcAmount(row)),
+    cellToText: row => String(calcAmount(row)),
     renderHeader: () => <CellText>金額（※1）</CellText>,
     getValuesForRender: row => [calcAmount(row)],
     renderBody: ({ deps: [amount] }) => <CellText>{amount}</CellText>,
@@ -178,8 +178,8 @@ function ReadOnlyExample() {
   }), col.leaf({
     columnId: "note",
     editor: TextEditor,
-    toText: row => row.note ?? "",
-    fromText: (row, text) => ({ ...row, note: text }),
+    cellToText: row => row.note ?? "",
+    textToCell: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
     getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,

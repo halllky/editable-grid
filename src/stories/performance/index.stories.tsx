@@ -175,7 +175,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>品目コード</HeaderText>,
       getValuesForRender: row => [row.code],
       renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
-      toText: row => row.code, // コピーはできるが編集・貼り付けはできない列
+      cellToText: row => row.code, // コピーはできるが編集・貼り付けはできない列
       defaultWidth: 88,
       isFixed: true,
       isReadOnly: true,
@@ -186,8 +186,8 @@ function PerformanceExample() {
       // 自分のセルの値だけに依存する。他の列が編集されてもこのセルは描画し直されない。
       getValuesForRender: row => [row.name],
       renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
-      toText: row => row.name,
-      fromText: (row, text) => ({ ...row, name: text }),
+      cellToText: row => row.name,
+      textToCell: (row, text) => ({ ...row, name: text }),
       defaultWidth: 120,
       isFixed: true,
     })]
@@ -199,8 +199,8 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>単価</HeaderText>,
       getValuesForRender: row => [row.unitPrice],
       renderBody: ({ deps: [unitPrice] }) => <CellText align="right">{formatNumber(unitPrice)}</CellText>,
-      toText: row => String(row.unitPrice),
-      fromText: (row, text) => {
+      cellToText: row => String(row.unitPrice),
+      textToCell: (row, text) => {
         const parsed = parseNumber(text)
         return parsed === undefined ? undefined : { ...row, unitPrice: parsed }
       },
@@ -212,7 +212,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>年間計画</HeaderText>,
       getValuesForRender: row => [store.getPlanTotal(row)],
       renderBody: ({ deps: [planTotal] }) => <CellText align="right">{formatNumber(planTotal)}</CellText>,
-      toText: row => String(store.getPlanTotal(row)),
+      cellToText: row => String(store.getPlanTotal(row)),
       defaultWidth: 88,
       isReadOnly: true,
     }), col.leaf({
@@ -221,7 +221,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>年間実績</HeaderText>,
       getValuesForRender: row => [store.getActualTotal(row)],
       renderBody: ({ deps: [actualTotal] }) => <CellText align="right">{formatNumber(actualTotal)}</CellText>,
-      toText: row => String(store.getActualTotal(row)),
+      cellToText: row => String(store.getActualTotal(row)),
       defaultWidth: 88,
       isReadOnly: true,
     }), col.leaf({
@@ -230,7 +230,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>年間計画金額</HeaderText>,
       getValuesForRender: row => [store.getAmount(row)],
       renderBody: ({ deps: [amount] }) => <CellText align="right">{formatNumber(amount)}</CellText>,
-      toText: row => String(store.getAmount(row)),
+      cellToText: row => String(store.getAmount(row)),
       defaultWidth: 112,
       isReadOnly: true,
     }), col.leaf({
@@ -242,7 +242,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>構成比</HeaderText>,
       getValuesForRender: row => [store.getShare(row).toFixed(6)],
       renderBody: ({ deps: [share] }) => <CellText align="right">{share} %</CellText>,
-      toText: row => store.getShare(row).toFixed(6),
+      cellToText: row => store.getShare(row).toFixed(6),
       defaultWidth: 104,
       isReadOnly: true,
     }), col.leaf({
@@ -253,7 +253,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>累計構成比</HeaderText>,
       getValuesForRender: (_, rowIndex) => [store.getCumulativeShare(rowIndex).toFixed(3)],
       renderBody: ({ deps: [cumulativeShare] }) => <CellText align="right">{cumulativeShare} %</CellText>,
-      toText: (_, rowIndex) => store.getCumulativeShare(rowIndex).toFixed(3),
+      cellToText: (_, rowIndex) => store.getCumulativeShare(rowIndex).toFixed(3),
       defaultWidth: 104,
       isReadOnly: true,
     })]
@@ -273,8 +273,8 @@ function PerformanceExample() {
           renderHeader: () => <HeaderText>計画</HeaderText>,
           getValuesForRender: row => [row.plan[month]],
           renderBody: ({ deps: [plan] }) => <CellText align="right">{formatNumber(plan)}</CellText>,
-          toText: row => String(row.plan[month]),
-          fromText: (row, text) => {
+          cellToText: row => String(row.plan[month]),
+          textToCell: (row, text) => {
             const parsed = parseNumber(text)
             if (parsed === undefined) return undefined
             const plan = [...row.plan]
@@ -288,8 +288,8 @@ function PerformanceExample() {
           renderHeader: () => <HeaderText>実績</HeaderText>,
           getValuesForRender: row => [row.actual[month]],
           renderBody: ({ deps: [actual] }) => <CellText align="right">{formatNumber(actual)}</CellText>,
-          toText: row => String(row.actual[month]),
-          fromText: (row, text) => {
+          cellToText: row => String(row.actual[month]),
+          textToCell: (row, text) => {
             const parsed = parseNumber(text)
             if (parsed === undefined) return undefined
             const actual = [...row.actual]
@@ -308,7 +308,7 @@ function PerformanceExample() {
               {formatNumber(diff)}
             </CellText>
           ),
-          toText: row => String(store.getDiff(row, month)),
+          cellToText: row => String(store.getDiff(row, month)),
           defaultWidth: 64,
           isReadOnly: true,
         })],

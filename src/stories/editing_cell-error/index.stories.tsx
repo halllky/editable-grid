@@ -91,7 +91,7 @@ function CellErrorExample() {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
 
     // セル編集時のクライアント検証。
-    // fromText がかかった列（changedColumnIds）だけを検証し直す。
+    // textToCell がかかった列（changedColumnIds）だけを検証し直す。
     // 行全体を検証してしまうと、編集していない隣の未入力のセルまでエラーになる。
     // 検証の対象の列が1つも変わっていない場合は、
     // 無駄な再描画を避けるために state を作り替えず prev をそのまま返す。
@@ -164,8 +164,8 @@ function CellErrorExample() {
     // 商品名（クライアント検証＋サーバー検証） ここから
     columnId: "name",
     editor: TextEditor,
-    toText: row => row.name ?? "",
-    fromText: (row, text) => ({ ...row, name: text }),
+    cellToText: row => row.name ?? "",
+    textToCell: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
 
     // エラーメッセージも deps に含める。
@@ -179,8 +179,8 @@ function CellErrorExample() {
   }), col.leaf({
     columnId: "quantity",
     editor: TextEditor,
-    toText: row => String(row.quantity ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.quantity ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, quantity: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
@@ -192,8 +192,8 @@ function CellErrorExample() {
   }), col.leaf({
     columnId: "unitPrice",
     editor: TextEditor,
-    toText: row => String(row.unitPrice ?? ""),
-    fromText: (row, text) => {
+    cellToText: row => String(row.unitPrice ?? ""),
+    textToCell: (row, text) => {
       if (text.trim() === "") return { ...row, unitPrice: undefined }
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
@@ -205,8 +205,8 @@ function CellErrorExample() {
   }), col.leaf({
     columnId: "deliveryDate",
     editor: TextEditor,
-    toText: row => row.deliveryDate ?? "",
-    fromText: (row, text) => ({ ...row, deliveryDate: text.trim() }),
+    cellToText: row => row.deliveryDate ?? "",
+    textToCell: (row, text) => ({ ...row, deliveryDate: text.trim() }),
     renderHeader: () => <CellText>納品日</CellText>,
     getValuesForRender: (row, rowIndex) => [row.deliveryDate, getCellError(row, rowIndex, "deliveryDate")],
     renderBody: ({ deps: [deliveryDate, error] }) => <CellText error={error}>{deliveryDate}</CellText>,
@@ -215,8 +215,8 @@ function CellErrorExample() {
     // 検証の対象外の列。エラーが無い列では特別なことは何もしない。
     columnId: "note",
     editor: TextEditor,
-    toText: row => row.note ?? "",
-    fromText: (row, text) => ({ ...row, note: text }),
+    cellToText: row => row.note ?? "",
+    textToCell: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
     getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
