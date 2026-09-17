@@ -37,7 +37,7 @@ export type EditableGrid2Props<TRow> = {
    * 引数のコールバックを登録し、登録を解除する関数を返してください。
    *
    * - React Hook Form や独自のストアなど、React の state の外側に値を持つ場合に指定します。
-   *   値が変わるたびにコールバックを呼ぶと、表示中の各セルが getValueForRerender を呼び直して前回の戻り値と比較し、
+   *   値が変わるたびにコールバックを呼ぶと、表示中の各セルが getValuesForRender を呼び直して前回の戻り値と比較し、
    *   変わったセルとフッターだけが描画し直されます（グリッド全体は再描画されません）。
    * - 値を React の state で持つ場合は、state の更新でグリッドも再描画されるため指定不要です。
    * - この関数の参照が変わるたびに購読し直すため、参照は安定させてください。
@@ -237,13 +237,13 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
    * - 他の行の値に依存する値（構成比など）を返してもよい。ただし描画中のセルの数だけ呼ばれるため、
    *   全行の合計のような重い計算は呼び出し側でキャッシュすること。
    */
-  getValueForRerender?: (row: TRow, rowIndex: number) => TDeps
+  getValuesForRender?: (row: TRow, rowIndex: number) => TDeps
   /**
    * セルのボディのレンダリング処理をカスタマイズする関数。
    * 
    * パフォーマンス高速化のためには再レンダリングは最小限である必要があるが、
    * かといってレンダリングしなさすぎるとデータが変わったのにセルの外観が変わらないことになってしまう。
-   * そこでここでは {@link EditableGrid2LeafColumn.getValueForRerender} で取得した値だけが利用可能という形でバランスをとっている。
+   * そこでここでは {@link EditableGrid2LeafColumn.getValuesForRender} で取得した値だけが利用可能という形でバランスをとっている。
    * 
    * セルの中にボタンを配置するなど、セル選択を防ぎたい要素がある場合、
    * mouseDown イベントの stopPropagation を呼び出し、イベントの伝播を防ぐこと。
@@ -336,7 +336,7 @@ export type EditableGrid2FooterRenderer =
 
 /** ボディセルのレンダリング処理 */
 export type EditableGrid2BodyRenderer<TRow, TDeps extends EditableGrid2Deps = EditableGrid2Deps> = (args: {
-  /** 列定義の {@link EditableGrid2LeafColumn.getValueForRerender} で定義した値だけがここで使える。未定義の列では空配列。 */
+  /** 列定義の {@link EditableGrid2LeafColumn.getValuesForRender} で定義した値だけがここで使える。未定義の列では空配列。 */
   deps: TDeps
   /** 行インデックス。画面表示範囲外も含めたデータ全体内での配列内の位置。 */
   rowIndex: number

@@ -8,7 +8,7 @@ import { createTextCellEditor } from "../editing_cell-editor/createTextCellEdito
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -68,7 +68,7 @@ function ReadOnlyExample() {
     // セル内のボタンは読み取り専用とは無関係にクリックできるため、
     // グリッド全体が読み取り専用のときだけ明示的に disabled にしている。
     columnId: "lock",
-    getValueForRerender: row => [row.rowId],
+    getValuesForRender: row => [row.rowId],
     renderBody: ({ deps: [rowId] }) => (
       <button
         type="button"
@@ -91,7 +91,7 @@ function ReadOnlyExample() {
     toText: row => row.name ?? "",
     fromText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
-    getValueForRerender: row => [row.name],
+    getValuesForRender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 128,
     isFixed: true,
@@ -108,7 +108,7 @@ function ReadOnlyExample() {
       return text.trim() !== "" && Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
     renderHeader: () => <CellText>単価（※1）</CellText>,
-    getValueForRerender: row => [row.unitPrice],
+    getValuesForRender: row => [row.unitPrice],
     renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
     defaultWidth: 96,
     // 単価（列単位の読み取り専用） ここまで
@@ -123,7 +123,7 @@ function ReadOnlyExample() {
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     renderHeader: () => <CellText>数量</CellText>,
-    getValueForRerender: row => [row.quantity],
+    getValuesForRender: row => [row.quantity],
     renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 72,
     // 数量 エディタ用設定 ここまで
@@ -140,7 +140,7 @@ function ReadOnlyExample() {
       return Number.isFinite(parsed) ? { ...row, discountRate: parsed } : undefined
     },
     renderHeader: () => <CellText>割引率%（※2）</CellText>,
-    getValueForRerender: row => [row.discountRate],
+    getValuesForRender: row => [row.discountRate],
     renderBody: ({ deps: [discountRate] }) => <CellText>{discountRate}</CellText>,
     defaultWidth: 120,
     // 割引率（セル単位の読み取り専用） ここまで
@@ -150,7 +150,7 @@ function ReadOnlyExample() {
     isReadOnly: true,
     toText: row => String(calcAmount(row)),
     renderHeader: () => <CellText>金額（※1）</CellText>,
-    getValueForRerender: row => [calcAmount(row)],
+    getValuesForRender: row => [calcAmount(row)],
     renderBody: ({ deps: [amount] }) => <CellText>{amount}</CellText>,
     defaultWidth: 96,
     // 金額（読み取り専用・計算列） ここまで
@@ -159,7 +159,7 @@ function ReadOnlyExample() {
     // renderBody 内に置いたチェックボックス等は、グリッドの読み取り専用設定では止まらない。
     // 引数の isReadOnly（グリッド全体・行・列の判定結果）を見て、利用側で disabled にする。
     columnId: "urgent",
-    getValueForRerender: row => [row.urgent ?? false],
+    getValuesForRender: row => [row.urgent ?? false],
     renderBody: ({ deps: [urgent], rowIndex, isReadOnly }) => (
       <label className={`flex items-center justify-center w-full ${isReadOnly ? "" : "cursor-pointer"}`}>
         <input
@@ -181,7 +181,7 @@ function ReadOnlyExample() {
     toText: row => row.note ?? "",
     fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    getValueForRerender: row => [row.note],
+    getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 160,
   })], [isGridReadOnly, lockedRowIds, toggleLock, setValue])

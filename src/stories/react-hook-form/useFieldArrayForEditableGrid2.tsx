@@ -126,7 +126,7 @@ export type GetColumnDefWithHelper<TRow> = (helper: ColumnDefHelper<TRow>) => Ed
 
 /**
  * ヘルパーが返す列定義。
- * 列ごとに getValueForRerender の戻り値の型が異なるため、deps の型は any とする。
+ * 列ごとに getValuesForRender の戻り値の型が異なるため、deps の型は any とする。
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type HelperLeafColumn<TRow> = EditableGrid2LeafColumn<TRow, any>
@@ -212,7 +212,7 @@ function useColumnDefHelper<
               {header}
             </div>
           ),
-          getValueForRerender: row => [getIn(row, key)],
+          getValuesForRender: row => [getIn(row, key)],
           renderBody: ({ deps: [value] }) => (
             <div className={`px-1 py-px text-sm ${wrap ? 'whitespace-pre-wrap' : 'truncate'}`}>
               {formatValue(value)}
@@ -231,7 +231,7 @@ function useColumnDefHelper<
         return col.leaf({
           renderHeader: () => null,
           // ボタンの文言が変わったときだけ描画し直す
-          getValueForRerender: (row, rowIndex) => [text(row, rowIndex)],
+          getValuesForRender: (row, rowIndex) => [text(row, rowIndex)],
           renderBody: ({ deps: [label], rowIndex, getRow, isReadOnly }) => (
             <button type="button"
               // クリック時点の最新の行を渡す
@@ -313,7 +313,7 @@ function useColumnDefHelper<
               {header}
             </div>
           ),
-          getValueForRerender: row => [getIn(row, key)],
+          getValuesForRender: row => [getIn(row, key)],
           renderBody: ({ deps: [value] }) => (
             <div className="px-1 py-px truncate text-sm">
               {candidateValues.find(o => o.value === value)?.text ?? (value as string)}
@@ -343,7 +343,7 @@ function useColumnDefHelper<
             {header}
           </div>
         ),
-        getValueForRerender: row => [!!getIn(row, key)],
+        getValuesForRender: row => [!!getIn(row, key)],
         renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
           <label className={`self-start block h-full w-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
             <input

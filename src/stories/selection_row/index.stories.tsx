@@ -10,7 +10,7 @@ import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellE
 const TextEditor = createTextCellEditor(false)
 const StatusEditor = createSelectCellEditor(["出荷済", "未出荷"] satisfies TestRow["status"][])
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -84,7 +84,7 @@ function RowSelectionExample() {
     toText: row => row.name ?? "",
     fromText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
-    getValueForRerender: row => [row.name],
+    getValuesForRender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 128,
   }), col.leaf({
@@ -98,7 +98,7 @@ function RowSelectionExample() {
         : undefined
     },
     renderHeader: () => <CellText>状態</CellText>,
-    getValueForRerender: row => [row.status],
+    getValuesForRender: row => [row.status],
     renderBody: ({ deps: [status] }) => <CellText>{status}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -111,7 +111,7 @@ function RowSelectionExample() {
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     renderHeader: () => <CellText>数量</CellText>,
-    getValueForRerender: row => [row.quantity],
+    getValuesForRender: row => [row.quantity],
     renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 80,
   }), col.leaf({
@@ -120,7 +120,7 @@ function RowSelectionExample() {
     toText: row => row.note ?? "",
     fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    getValueForRerender: row => [row.note],
+    getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 240,
   })], [])

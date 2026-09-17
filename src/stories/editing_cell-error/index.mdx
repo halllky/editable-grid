@@ -69,14 +69,14 @@ import Link from "../Link"
 
 ## エラーを deps に含める
 
-セルは `getValueForRerender` の戻り値が変わったときだけ描画し直されます。
+セルは `getValuesForRender` の戻り値が変わったときだけ描画し直されます。
 **エラーメッセージも表示に使う値なので、この配列に含めてください。**
 含めないと、値は変わっていないのにエラーだけが変わった場合に、セルの表示が古いままになります。
 
 <Source language="tsx" code={`
   col.leaf({
     columnId: "name",
-    getValueForRerender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
+    getValuesForRender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
     renderBody: ({ deps: [name, error] }) => <CellText error={error}>{name}</CellText>,
     ...
   })
@@ -88,7 +88,7 @@ import Link from "../Link"
 エラーを React の外（独自ストアなど）に持つ場合はこの経路が無く、deps だけが頼りになります。
 どちらでも正しく動くよう、常に deps に含めておくことを推奨します。
 
-なお `getValueForRerender` は描画中のセルの数だけ呼ばれます。
+なお `getValuesForRender` は描画中のセルの数だけ呼ばれます。
 エラーの一覧を毎回線形探索すると行数×列数のコストがかかるため、
 上記デモのように「行のキー → 列ID → メッセージ」の形に索引を作っておいてください。
 
@@ -187,7 +187,7 @@ API がエラーの位置を配列のインデックスで返す形式（例: `r
 ## zod との組み合わせ
 
 `zod` などのスキーマ検証ライブラリを使う場合も、考え方は同じです。
-スキーマの検証結果を「列ID → メッセージ」の形に変換し、`getValueForRerender` から引くだけです。
+スキーマの検証結果を「列ID → メッセージ」の形に変換し、`getValuesForRender` から引くだけです。
 
 <Source language="ts" code={`
   const rowSchema = z.object({
@@ -212,7 +212,7 @@ API がエラーの位置を配列のインデックスで返す形式（例: `r
 
 上記デモのように検証結果を state に保持する場合、`validateRow` が呼ばれるのは
 検証のタイミング（画面初期表示時・セル編集時・送信時）だけなので、コストは問題になりません。
-一方、保持せず `getValueForRerender` の中で毎回検証する場合は `validateRow` がセルの数だけ呼ばれ、
+一方、保持せず `getValuesForRender` の中で毎回検証する場合は `validateRow` がセルの数だけ呼ばれ、
 行数の多いグリッドでは無視できないコストになります。
 その場合は列ごとに必要な部分だけを検証するか、行のキーごとに結果をキャッシュしてください。
 
@@ -256,6 +256,6 @@ React Hook Form の `resolver` にスキーマを渡している場合は、
 
 ただし、表示中のセルの数だけ購読が張られること、
 フックのルール通り呼び出し順が毎回同じでなければならないことに注意してください。
-`getValueForRerender` の deps で足りる場合はそちらの方が単純です。
+`getValuesForRender` の deps で足りる場合はそちらの方が単純です。
 
 セルの再描画の仕組みそのものについては <Link to="パフォーマンス">パフォーマンスと仮想スクロール</Link> を参照してください。

@@ -73,7 +73,7 @@ import Link from "../Link"
 引数 `isReadOnly` （グリッド全体・行単位・列単位をすべて考慮した判定結果）を使って明示的に無効化してください。上記デモの「至急」列がこの例です。
 
 <Source language="tsx" code={`
-  getValueForRerender: row => [row.urgent],
+  getValuesForRender: row => [row.urgent],
   renderBody: ({ deps: [urgent], isReadOnly }) => (
     <input
       type="checkbox"

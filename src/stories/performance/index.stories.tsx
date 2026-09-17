@@ -11,7 +11,7 @@ const ROW_COUNT = 10000
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<PerfRow>()
 
 /**
@@ -25,10 +25,10 @@ const col = EG2.createColumnHelper<PerfRow>()
  * - 行の追加と、行頭チェックボックスによる行削除ができる
  *
  * 速度の要点は「データを React の state に持たせないこと」と
- * 「描画し直すセルを getValueForRerender の比較で絞り込むこと」。
+ * 「描画し直すセルを getValuesForRender の比較で絞り込むこと」。
  * データは {@link PerfDataStore} が React の外側で保持し、
  * EditableGrid2 には rowKeys（行の並び）、getLatestRowObject（値の取得関数）、subscribe（変更通知）を渡す。
- * 値が変わるとグリッドは表示中のセルの getValueForRerender を呼び直し、戻り値が変わったセルだけを描画し直すため、
+ * 値が変わるとグリッドは表示中のセルの getValuesForRender を呼び直し、戻り値が変わったセルだけを描画し直すため、
  * 論理的に1万行が変化しても、実際に再レンダリングされるのは画面に見えている数百セルのうち値が変わったものだけになる。
  */
 function PerformanceExample() {
@@ -164,7 +164,7 @@ function PerformanceExample() {
     const fixedColumns: EG2.EditableGrid2Column<PerfRow>[] = [col.leaf({
       columnId: "no",
       renderHeader: () => <HeaderText>No.</HeaderText>,
-      // 行インデックスしか使わないので getValueForRerender は不要
+      // 行インデックスしか使わないので getValuesForRender は不要
       renderBody: ({ rowIndex }) => <CellText align="right">{rowIndex + 1}</CellText>,
       defaultWidth: 64,
       disableResizing: true,
@@ -173,7 +173,7 @@ function PerformanceExample() {
     }), col.leaf({
       columnId: "code",
       renderHeader: () => <HeaderText>品目コード</HeaderText>,
-      getValueForRerender: row => [row.code],
+      getValuesForRender: row => [row.code],
       renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
       toText: row => row.code, // コピーはできるが編集・貼り付けはできない列
       defaultWidth: 88,
@@ -184,7 +184,7 @@ function PerformanceExample() {
       editor: TextEditor,
       renderHeader: () => <HeaderText>品目名</HeaderText>,
       // 自分のセルの値だけに依存する。他の列が編集されてもこのセルは描画し直されない。
-      getValueForRerender: row => [row.name],
+      getValuesForRender: row => [row.name],
       renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
       toText: row => row.name,
       fromText: (row, text) => ({ ...row, name: text }),
@@ -197,7 +197,7 @@ function PerformanceExample() {
       columnId: "unitPrice",
       editor: TextEditor,
       renderHeader: () => <HeaderText>単価</HeaderText>,
-      getValueForRerender: row => [row.unitPrice],
+      getValuesForRender: row => [row.unitPrice],
       renderBody: ({ deps: [unitPrice] }) => <CellText align="right">{formatNumber(unitPrice)}</CellText>,
       toText: row => String(row.unitPrice),
       fromText: (row, text) => {
@@ -210,7 +210,7 @@ function PerformanceExample() {
       // 【同じ行の他の列への波及】12ヶ月の計画セルのいずれかが編集されると変化する。
       // 計算結果そのものを比較対象にするので、どのセルに依存するかを列挙する必要は無い。
       renderHeader: () => <HeaderText>年間計画</HeaderText>,
-      getValueForRerender: row => [store.getPlanTotal(row)],
+      getValuesForRender: row => [store.getPlanTotal(row)],
       renderBody: ({ deps: [planTotal] }) => <CellText align="right">{formatNumber(planTotal)}</CellText>,
       toText: row => String(store.getPlanTotal(row)),
       defaultWidth: 88,
@@ -219,7 +219,7 @@ function PerformanceExample() {
       columnId: "actualTotal",
       // 【同じ行の他の列への波及】12ヶ月の実績セルのいずれかが編集されると変化する
       renderHeader: () => <HeaderText>年間実績</HeaderText>,
-      getValueForRerender: row => [store.getActualTotal(row)],
+      getValuesForRender: row => [store.getActualTotal(row)],
       renderBody: ({ deps: [actualTotal] }) => <CellText align="right">{formatNumber(actualTotal)}</CellText>,
       toText: row => String(store.getActualTotal(row)),
       defaultWidth: 88,
@@ -228,7 +228,7 @@ function PerformanceExample() {
       columnId: "amount",
       // 【同じ行の他の列への波及】単価と12ヶ月の計画セルのいずれかが編集されると変化する
       renderHeader: () => <HeaderText>年間計画金額</HeaderText>,
-      getValueForRerender: row => [store.getAmount(row)],
+      getValuesForRender: row => [store.getAmount(row)],
       renderBody: ({ deps: [amount] }) => <CellText align="right">{formatNumber(amount)}</CellText>,
       toText: row => String(store.getAmount(row)),
       defaultWidth: 112,
@@ -240,7 +240,7 @@ function PerformanceExample() {
       // ただし1万行のうちの1セルぶんの影響なので、値の動きはごくわずか。
       // 表示する桁数に丸めた文字列を比較対象にすると、表示が変わらないセルは描画し直されない。
       renderHeader: () => <HeaderText>構成比</HeaderText>,
-      getValueForRerender: row => [store.getShare(row).toFixed(6)],
+      getValuesForRender: row => [store.getShare(row).toFixed(6)],
       renderBody: ({ deps: [share] }) => <CellText align="right">{share} %</CellText>,
       toText: row => store.getShare(row).toFixed(6),
       defaultWidth: 104,
@@ -251,7 +251,7 @@ function PerformanceExample() {
       // 編集した行より下のすべての行の分子が変わるため、
       // 1セルの編集でも他の行の値がはっきり動くのが目で見て分かる。
       renderHeader: () => <HeaderText>累計構成比</HeaderText>,
-      getValueForRerender: (_, rowIndex) => [store.getCumulativeShare(rowIndex).toFixed(3)],
+      getValuesForRender: (_, rowIndex) => [store.getCumulativeShare(rowIndex).toFixed(3)],
       renderBody: ({ deps: [cumulativeShare] }) => <CellText align="right">{cumulativeShare} %</CellText>,
       toText: (_, rowIndex) => store.getCumulativeShare(rowIndex).toFixed(3),
       defaultWidth: 104,
@@ -271,7 +271,7 @@ function PerformanceExample() {
           columnId: `plan-${month}`,
           editor: TextEditor,
           renderHeader: () => <HeaderText>計画</HeaderText>,
-          getValueForRerender: row => [row.plan[month]],
+          getValuesForRender: row => [row.plan[month]],
           renderBody: ({ deps: [plan] }) => <CellText align="right">{formatNumber(plan)}</CellText>,
           toText: row => String(row.plan[month]),
           fromText: (row, text) => {
@@ -286,7 +286,7 @@ function PerformanceExample() {
           columnId: `actual-${month}`,
           editor: TextEditor,
           renderHeader: () => <HeaderText>実績</HeaderText>,
-          getValueForRerender: row => [row.actual[month]],
+          getValuesForRender: row => [row.actual[month]],
           renderBody: ({ deps: [actual] }) => <CellText align="right">{formatNumber(actual)}</CellText>,
           toText: row => String(row.actual[month]),
           fromText: (row, text) => {
@@ -302,7 +302,7 @@ function PerformanceExample() {
           // 【同じ行の他の列への波及】同じ月の計画・実績のどちらが編集されても変化する。
           // マイナスのときだけ赤くすることで、値の波及を目で追いやすくしている。
           renderHeader: () => <HeaderText>差異</HeaderText>,
-          getValueForRerender: row => [store.getDiff(row, month)],
+          getValuesForRender: row => [store.getDiff(row, month)],
           renderBody: ({ deps: [diff] }) => (
             <CellText align="right" className={diff < 0 ? "text-rose-600" : undefined}>
               {formatNumber(diff)}

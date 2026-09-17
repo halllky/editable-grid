@@ -8,7 +8,7 @@ import { createTextCellEditor } from "../editing_cell-editor/createTextCellEdito
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -156,7 +156,7 @@ function CellErrorExample() {
     columnId: "rowId",
     isReadOnly: true,
     renderHeader: () => <CellText>行ID</CellText>,
-    getValueForRerender: row => [row.rowId],
+    getValuesForRender: row => [row.rowId],
     renderBody: ({ deps: [rowId] }) => <CellText>{rowId}</CellText>,
     defaultWidth: 60,
     isFixed: true,
@@ -170,7 +170,7 @@ function CellErrorExample() {
 
     // エラーメッセージも deps に含める。
     // 含めない場合、値が変わっていないのにエラーだけが変わったときにセルの表示が古いままになる。
-    getValueForRerender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
+    getValuesForRender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
 
     // セルの中身を描き分けるだけ。グリッド側の仕組みは何も使っていない。
     renderBody: ({ deps: [name, error] }) => <CellText error={error}>{name}</CellText>,
@@ -186,7 +186,7 @@ function CellErrorExample() {
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     renderHeader: () => <CellText>数量</CellText>,
-    getValueForRerender: (row, rowIndex) => [row.quantity, getCellError(row, rowIndex, "quantity")],
+    getValuesForRender: (row, rowIndex) => [row.quantity, getCellError(row, rowIndex, "quantity")],
     renderBody: ({ deps: [quantity, error] }) => <CellText error={error}>{quantity}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -199,7 +199,7 @@ function CellErrorExample() {
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
     renderHeader: () => <CellText>単価</CellText>,
-    getValueForRerender: (row, rowIndex) => [row.unitPrice, getCellError(row, rowIndex, "unitPrice")],
+    getValuesForRender: (row, rowIndex) => [row.unitPrice, getCellError(row, rowIndex, "unitPrice")],
     renderBody: ({ deps: [unitPrice, error] }) => <CellText error={error}>{unitPrice}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -208,7 +208,7 @@ function CellErrorExample() {
     toText: row => row.deliveryDate ?? "",
     fromText: (row, text) => ({ ...row, deliveryDate: text.trim() }),
     renderHeader: () => <CellText>納品日</CellText>,
-    getValueForRerender: (row, rowIndex) => [row.deliveryDate, getCellError(row, rowIndex, "deliveryDate")],
+    getValuesForRender: (row, rowIndex) => [row.deliveryDate, getCellError(row, rowIndex, "deliveryDate")],
     renderBody: ({ deps: [deliveryDate, error] }) => <CellText error={error}>{deliveryDate}</CellText>,
     defaultWidth: 116,
   }), col.leaf({
@@ -218,7 +218,7 @@ function CellErrorExample() {
     toText: row => row.note ?? "",
     fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    getValueForRerender: row => [row.note],
+    getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 180,
   })], [getCellError])

@@ -4,7 +4,7 @@ import { EditableGrid2Deps, EditableGrid2GroupColumn, EditableGrid2LeafColumn } 
  * 列定義の型推論を補助する関数を返す。
  *
  * 列定義の配列リテラルに直接書いた場合、renderBody の引数 deps の型は any になる。
- * この関数が返す leaf で包むと、getValueForRerender の戻り値の型（タプル）が deps に引き継がれる。
+ * この関数が返す leaf で包むと、getValuesForRender の戻り値の型（タプル）が deps に引き継がれる。
  * 実行時には引数をそのまま返すだけで、何もしない。
  *
  * @example
@@ -12,7 +12,7 @@ import { EditableGrid2Deps, EditableGrid2GroupColumn, EditableGrid2LeafColumn } 
  * const columns: EditableGrid2Column<Row>[] = [
  *   col.leaf({
  *     columnId: "status",
- *     getValueForRerender: row => [row.status],
+ *     getValuesForRender: row => [row.status],
  *     renderBody: ({ deps: [status] }) => <span>{status}</span>, // status は Row["status"] 型
  *     ...
  *   }),

@@ -8,7 +8,7 @@ import { createTextCellEditor } from "../editing_cell-editor/createTextCellEdito
 // その場で作らずモジュールスコープの定数として参照を安定させる。
 const TextEditor = createTextCellEditor(false)
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -66,7 +66,7 @@ function CellSelectionExample() {
     toText: row => row.name ?? "",
     fromText: (row, text) => ({ ...row, name: text }),
     renderHeader: () => <CellText>商品名</CellText>,
-    getValueForRerender: row => [row.name],
+    getValuesForRender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 128,
     isFixed: true,
@@ -76,7 +76,7 @@ function CellSelectionExample() {
     toText: row => row.category ?? "",
     fromText: (row, text) => ({ ...row, category: text }),
     renderHeader: () => <CellText>区分</CellText>,
-    getValueForRerender: row => [row.category],
+    getValuesForRender: row => [row.category],
     renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -89,7 +89,7 @@ function CellSelectionExample() {
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
     renderHeader: () => <CellText>単価</CellText>,
-    getValueForRerender: row => [row.unitPrice],
+    getValuesForRender: row => [row.unitPrice],
     renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -112,7 +112,7 @@ function CellSelectionExample() {
     },
     // 数量（キー操作のカスタマイズ） ここまで
     renderHeader: () => <CellText>数量（※1）</CellText>,
-    getValueForRerender: row => [row.quantity],
+    getValuesForRender: row => [row.quantity],
     renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -121,7 +121,7 @@ function CellSelectionExample() {
     toText: row => row.supplier ?? "",
     fromText: (row, text) => ({ ...row, supplier: text }),
     renderHeader: () => <CellText>仕入先</CellText>,
-    getValueForRerender: row => [row.supplier],
+    getValuesForRender: row => [row.supplier],
     renderBody: ({ deps: [supplier] }) => <CellText>{supplier}</CellText>,
     defaultWidth: 128,
   }), col.leaf({
@@ -130,7 +130,7 @@ function CellSelectionExample() {
     toText: row => row.location ?? "",
     fromText: (row, text) => ({ ...row, location: text }),
     renderHeader: () => <CellText>保管場所</CellText>,
-    getValueForRerender: row => [row.location],
+    getValuesForRender: row => [row.location],
     renderBody: ({ deps: [location] }) => <CellText>{location}</CellText>,
     defaultWidth: 112,
   }), col.leaf({
@@ -139,7 +139,7 @@ function CellSelectionExample() {
     toText: row => row.note ?? "",
     fromText: (row, text) => ({ ...row, note: text }),
     renderHeader: () => <CellText>備考</CellText>,
-    getValueForRerender: row => [row.note],
+    getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
     defaultWidth: 240,
   })], [setValue])

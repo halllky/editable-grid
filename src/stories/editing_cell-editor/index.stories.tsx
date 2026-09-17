@@ -13,7 +13,7 @@ const MultiLineEditor = createTextCellEditor(true)
 const OptionEditor = createSelectCellEditor(["円", "ドル", "ユーロ"] satisfies TestRow["option"][])
 const DateEditor = createDateCellEditor()
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -50,7 +50,7 @@ function CellEditorExample() {
     // 改行なしテキスト エディタ用設定 ここまで
 
     renderHeader: () => <CellText>改行なし</CellText>,
-    getValueForRerender: row => [row.singleLine],
+    getValuesForRender: row => [row.singleLine],
     renderBody: ({ deps: [singleLine] }) => <CellText>{singleLine}</CellText>,
     defaultWidth: 152,
   }), col.leaf({
@@ -62,7 +62,7 @@ function CellEditorExample() {
     // 改行ありテキスト エディタ用設定 ここまで
 
     renderHeader: () => <CellText>改行あり（※1）</CellText>,
-    getValueForRerender: row => [row.multiLine],
+    getValuesForRender: row => [row.multiLine],
     renderBody: ({ deps: [multiLine] }) => <CellText wrap>{multiLine}</CellText>,
     defaultWidth: 224,
   }), col.leaf({
@@ -82,7 +82,7 @@ function CellEditorExample() {
     // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
     renderHeader: () => <CellText>選択肢（※2）</CellText>,
-    getValueForRerender: row => [row.option],
+    getValuesForRender: row => [row.option],
     renderBody: ({ deps: [option] }) => <CellText>{option}</CellText>,
     defaultWidth: 120,
   }), col.leaf({
@@ -102,7 +102,7 @@ function CellEditorExample() {
     // 日付 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>日付（※2）</CellText>,
-    getValueForRerender: row => [row.date],
+    getValuesForRender: row => [row.date],
     renderBody: ({ deps: [date] }) => <CellText>{date}</CellText>,
     defaultWidth: 124,
   }), col.leaf({
@@ -121,7 +121,7 @@ function CellEditorExample() {
     // チェックボックス エディタ用設定 ここまで
 
     renderHeader: () => <CellText>チェックボックス（※3）</CellText>,
-    getValueForRerender: row => [!!row.checkbox],
+    getValuesForRender: row => [!!row.checkbox],
     renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
       <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
         <span>

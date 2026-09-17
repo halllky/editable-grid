@@ -5,7 +5,7 @@ import React from "react"
  *
  * 値が変わるたびにグリッド全体を再描画すると、表示中のセルの数だけ React 要素の生成と比較が走り重い。
  * そのため値の変化ではグリッド全体を再描画せず、各セルがこの通知を useSyncExternalStore で購読し、
- * 自分の描画に必要な値（getValueForRerender の戻り値など）が変わったときだけ描画し直す。
+ * 自分の描画に必要な値（getValuesForRender の戻り値など）が変わったときだけ描画し直す。
  */
 export type DataChangeNotifier = {
   subscribe: (listener: () => void) => () => void
@@ -77,7 +77,7 @@ export function useDataChangeSelector<T>(
 }
 
 /**
- * 配列は要素ごとに Object.is で比較し（getValueForRerender は毎回新しい配列を返すため）、それ以外は Object.is で比較する。
+ * 配列は要素ごとに Object.is で比較し（getValuesForRender は毎回新しい配列を返すため）、それ以外は Object.is で比較する。
  */
 function isShallowEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true

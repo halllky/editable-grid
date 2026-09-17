@@ -63,7 +63,7 @@ EditableGrid2 の利用時、各列の定義に以下3項目を定義します�
       {
         columnId: "name",
         renderHeader: () => <span>商品名</span>,
-        getValueForRerender: row => [row.name],
+        getValuesForRender: row => [row.name],
         renderBody: ({ deps: [name] }) => <span>{name}</span>,
 
         // エディタに必要な3項目

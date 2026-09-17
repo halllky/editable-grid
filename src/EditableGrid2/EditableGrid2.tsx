@@ -41,7 +41,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   rowDependentPropsRef.current = props
 
   // 行の値が変わったことを表示中のセル・行・フッターへ伝える。
-  // 値が変わってもグリッド全体は再描画せず、各セルが getValueForRerender の戻り値を比較して必要なものだけ描画し直す。
+  // 値が変わってもグリッド全体は再描画せず、各セルが getValuesForRender の戻り値を比較して必要なものだけ描画し直す。
   const dataChange = useDataChangeNotifier(props.subscribe, [
     props.getLatestRowObject,
     props.isReadOnly,
@@ -673,7 +673,7 @@ const MemorizedTD = React.memo<{
     const isReadOnly = checkIfCellReadOnly(cellMeta, rowIndex, rowDependentPropsRef.current.isReadOnly, row)
     return cellMeta.isRowCheckBox
       ? [isReadOnly, cell.row.getCanSelect()]
-      : [isReadOnly, ...(cellMeta.original?.getValueForRerender?.(row, rowIndex) ?? [])]
+      : [isReadOnly, ...(cellMeta.original?.getValuesForRender?.(row, rowIndex) ?? [])]
   })
   const isReadOnly = snapshot[0] as boolean
 
@@ -737,7 +737,7 @@ const MemorizedTD = React.memo<{
  */
 function BodyCellContent({ cellMeta, snapshot, rowIndex, rowKey, getRowObject, columnWidth, isReadOnly }: {
   cellMeta: ColumnMetadataInternal<any>
-  /** MemorizedTD が購読している値。先頭の読み取り専用フラグを除いたものが getValueForRerender の戻り値 */
+  /** MemorizedTD が購読している値。先頭の読み取り専用フラグを除いたものが getValuesForRender の戻り値 */
   snapshot: readonly unknown[]
   rowIndex: number
   rowKey: string

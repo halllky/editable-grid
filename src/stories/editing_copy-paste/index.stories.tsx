@@ -11,7 +11,7 @@ const NameEditor = createTextCellEditor(false)
 const NoteEditor = createTextCellEditor(true)
 const CategoryEditor = createSelectCellEditor(["食品", "日用品", "その他"] satisfies TestRow["category"][])
 
-// 列定義の型推論の補助（getValueForRerender の戻り値の型が renderBody の deps に引き継がれる）
+// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
@@ -55,7 +55,7 @@ function CopyPasteExample() {
     // 商品名 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>商品名</CellText>,
-    getValueForRerender: row => [row.name],
+    getValuesForRender: row => [row.name],
     renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
     defaultWidth: 160,
   }), col.leaf({
@@ -73,7 +73,7 @@ function CopyPasteExample() {
     // 単価 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>単価（※1）</CellText>,
-    getValueForRerender: row => [row.unitPrice],
+    getValuesForRender: row => [row.unitPrice],
     renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -89,7 +89,7 @@ function CopyPasteExample() {
     // 数量 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>数量（※1）</CellText>,
-    getValueForRerender: row => [row.quantity],
+    getValuesForRender: row => [row.quantity],
     renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -104,7 +104,7 @@ function CopyPasteExample() {
 
     renderHeader: () => <CellText>金額（※2）</CellText>,
     // 計算結果そのものを返すと、単価・数量のどちらが変わっても計算結果が変わったときだけ描画し直される
-    getValueForRerender: row => [(row.unitPrice ?? 0) * (row.quantity ?? 0)],
+    getValuesForRender: row => [(row.unitPrice ?? 0) * (row.quantity ?? 0)],
     renderBody: ({ deps: [amount] }) => <CellText>{amount}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -123,7 +123,7 @@ function CopyPasteExample() {
     // 区分 エディタ用設定 ここまで
 
     renderHeader: () => <CellText>区分（※3）</CellText>,
-    getValueForRerender: row => [row.category],
+    getValuesForRender: row => [row.category],
     renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
@@ -137,7 +137,7 @@ function CopyPasteExample() {
     // 備考（改行あり） エディタ用設定 ここまで
 
     renderHeader: () => <CellText>備考（※4）</CellText>,
-    getValueForRerender: row => [row.note],
+    getValuesForRender: row => [row.note],
     renderBody: ({ deps: [note] }) => <CellText wrap>{note}</CellText>,
     defaultWidth: 200,
   })], [])
