@@ -1,28 +1,21 @@
 import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
 import * as ColumnsStories from "./index.stories"
-import ColumnsStoriesTsx from "./index.stories.tsx?raw"
+import CellRenderingExampleTsx from "./CellRenderingExample.tsx?raw"
+import CellButtonExampleTsx from "./CellButtonExample.tsx?raw"
+import OuterValueExampleTsx from "./OuterValueExample.tsx?raw"
+import FixedColumnExampleTsx from "./FixedColumnExample.tsx?raw"
+import ColumnGroupExampleTsx from "./ColumnGroupExample.tsx?raw"
+import ColumnWidthExampleTsx from "./ColumnWidthExample.tsx?raw"
 import Link from "../Link"
 
 <Meta of={ColumnsStories} />
 
 # 列定義
 
-`columns` に渡す列定義の書き方です。
-各列の編集に関する項目（`editor` / `cellToText` / `textToCell`）は <Link to="編集/セルエディタ">セルエディタ</Link> を参照してください。
-
-以下の例では、「削除」列がセル内のボタン、「価格」がグループ列、「金額」列がグリッドの外側のチェックボックスに依存する列です。
-「削除」から「商品名」までが固定列です。
-
-<Canvas
-  of={ColumnsStories.列定義}
-  layout="fullscreen"
-  source={{ language: "tsx", code: ColumnsStoriesTsx }}
-/>
-
 ## ヘッダとセルの描画
 
 ヘッダは `renderHeader`、セルは `renderBody` で描画します。
-どちらも戻り値の React 要素がそのままヘッダ・セルの中身になり、余白や文字の省略表示などの見た目はグリッド側では付けません。
+どちらも戻り値の React 要素がそのままヘッダ・セルの中身になります。
 
 `renderBody` は行オブジェクトを受け取りません。
 セルの描画に使う値は `getValuesForRender` で配列として返し、`renderBody` の引数 `deps` で受け取ります。
@@ -42,15 +35,21 @@ import Link from "../Link"
   />
 `} />
 
+<Canvas
+  of={ColumnsStories.ヘッダとセルの描画}
+  layout="fullscreen"
+  source={{ language: "tsx", code: CellRenderingExampleTsx }}
+/>
+
 * グリッドは `getValuesForRender` の戻り値を前回と要素ごとに比較し、変わったセルだけを描画し直します。
   配列に含めていない値が変わっても、セルの表示は更新されません。
-* `createColumnHelper` の `col.leaf` で包むと、`getValuesForRender` の戻り値の型が `deps` に引き継がれます。
+* TypeScript の型推論のために `createColumnHelper` というヘルパー関数を提供しています。
+  この関数は処理自体は何も行いませんが、 `col.leaf` 経由で定義すると `getValuesForRender` の戻り値の型が `deps` に引き継がれます。
   包まずに列定義の配列に直接書くと、`deps` の型は `any` になります。
-* 引数の `getRow()` は、クリック時などイベントハンドラの中で最新の行を取得するためのものです。
-  描画中に呼んで表示に使うと、その値が変わっても表示が更新されません。
+  厳密な型推論の恩恵を受けたい場合は利用してください。
 * ヘッダの高さは1行分で固定されており、`renderHeader` の中身に合わせて伸びません。
 
-## セル内にボタンを置く
+### ボタンやチェックボックスを置く場合の注意点
 
 セル内のボタンなどでは、`mousedown` イベントの `stopPropagation` を呼んでください。
 呼ばない場合、ボタンを押したときにグリッドのセル選択の処理も動きます。
@@ -60,20 +59,25 @@ import Link from "../Link"
     <button
       type="button"
       onMouseDown={e => e.stopPropagation()}
-      onClick={() => deleteRow(rowKey)}
+      onClick={() => addQuantity(rowKey)}
     >
-      削除
+      ＋1
     </button>
   ),
 `} />
 
-## グリッドの外側の値を変えてもセルの表示が変わらない場合
+<Canvas
+  of={ColumnsStories.セル内のボタン}
+  layout="fullscreen"
+  source={{ language: "tsx", code: CellButtonExampleTsx }}
+/>
+
+### グリッドの外側の値を変えてもセルの表示が変わらない場合
 
 `columns` の参照が変わると、表示中のすべてのセルとヘッダが描画し直されます。
 逆に、`columns` の参照が変わらない限り、列定義の中で参照しているグリッドの外側の値（state や props）が変わっても、セルは描画し直されません。
 
 列定義を `useMemo` で包む場合は、列定義の中で参照している外側の値をすべて依存配列に含めてください。
-上記デモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
 
 <Source language="tsx" code={`
   const [includeTax, setIncludeTax] = React.useState(false)
@@ -88,11 +92,26 @@ import Link from "../Link"
   ], [includeTax]) // 列定義の中で参照している外側の値
 `} />
 
-## セルを編集するたびに全セルが描画し直される場合
+下のデモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
+
+<Canvas
+  of={ColumnsStories.外側の値への依存}
+  layout="fullscreen"
+  source={{ language: "tsx", code: OuterValueExampleTsx }}
+/>
+
+### セルを編集するたびに全セルが描画し直される場合
 
 行データを React の state で持つ場合など、セルを編集するたびにグリッドを含むコンポーネントが再レンダリングされる実装では、
 列定義を `useMemo` で包んでください。
 包まないと、再レンダリングのたびに `columns` の参照が変わり、1セルを編集しただけで表示中のすべてのセルが描画し直されます。
+
+## セルの編集、コピーペースト
+
+別ページに記載しています。
+
+* <Link to="編集/セルエディタ">セルエディタ</Link>
+* <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link>
 
 ## 列固定
 
@@ -100,9 +119,15 @@ import Link from "../Link"
 
 固定列は常に左端から連続します。
 左から `true`, `false`, `true` のように指定した場合、最後に `true` を指定した列より左の列はすべて固定されます。
-上記デモの「商品コード」列は `isFixed` を指定していませんが、右隣の「商品名」列が固定のため固定されています。
+下のデモの「商品コード」列は `isFixed` を指定していませんが、右隣の「商品名」列が固定のため固定されています。
 
 `showCheckBox` で表示される行選択のチェックボックス列は、`isFixed` の指定に関わらず常に固定されます。
+
+<Canvas
+  of={ColumnsStories.列固定}
+  layout="fullscreen"
+  source={{ language: "tsx", code: FixedColumnExampleTsx }}
+/>
 
 ## グルーピング
 
@@ -127,12 +152,24 @@ import Link from "../Link"
 グループに属さない列では、`renderHeader` の内容が上段に表示され、下段は空欄になります。
 下段に何か表示したい場合は `renderHeaderPlaceholder` を指定してください。
 
+<Canvas
+  of={ColumnsStories.グルーピング}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ColumnGroupExampleTsx }}
+/>
+
 ## 列幅
 
-`defaultWidth` で初期表示時の列幅を px で指定します。省略時は 128px です。
+`defaultWidth` で初期表示時の列幅を px で指定します。省略時は固定値が用いられます。
 
 ユーザーはヘッダの右端をドラッグして列幅を変更できます。
 変更させたくない列には `disableResizing: true` を指定してください。
 
 ユーザーが一度幅を変更した列では、その後 `defaultWidth` を変えても列幅は変わりません。
 ユーザーが変更した幅は `columnId` ごとにグリッド内部で保持され、グリッドがアンマウントされると失われます。
+
+<Canvas
+  of={ColumnsStories.列幅}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ColumnWidthExampleTsx }}
+/>
