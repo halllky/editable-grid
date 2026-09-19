@@ -4,6 +4,18 @@ import * as theming from 'storybook/theming';
 
 const preview: Preview = {
   parameters: {
+    // サイドメニューの並び順。ここに無いページは末尾に並ぶ
+    options: {
+      storySort: {
+        order: [
+          "はじめに",
+          "基本の使い方", ["最小限の実装", "列定義", "react-hook-form との統合"],
+          "選択",
+          "編集",
+        ],
+      },
+    },
+
     controls: {
       matchers: {
         color: /(background|color)$/i,

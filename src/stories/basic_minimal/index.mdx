@@ -1,0 +1,78 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as MinimalStories from "./index.stories"
+import MinimalStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={MinimalStories} />
+
+# 最小限の実装
+
+行データを React の state で持つ場合の、表示して編集できるようにするまでの最小限の実装です。
+React Hook Form で行データを管理する場合は <Link to="基本の使い方/react-hook-form との統合">react-hook-form との統合</Link> を参照してください。
+
+<Canvas
+  of={MinimalStories.最小限の実装}
+  layout="fullscreen"
+  source={{ language: "tsx", code: MinimalStoriesTsx }}
+/>
+
+## グリッドに渡すもの
+
+`EditableGrid2` は行データの配列を受け取りません。代わりに以下を渡します。
+
+| プロパティ | 内容 |
+| --- | --- |
+| `rowKeys` | 行を一意に識別する文字列の配列。この配列の長さがグリッドの行数になる。 |
+| `getLatestRowObject` | 行インデックスを受け取り、その行の値を返す関数。表示・編集・コピーに使う値はすべてこの関数から取得される。 |
+| `onRowsChange` | グリッドの操作（編集の確定・貼り付け・`Delete`）で値が変わった行を受け取る関数。 |
+| `columns` | 列定義。書き方は <Link to="基本の使い方/列定義">列定義</Link> を参照。 |
+
+グリッドは値を書き換えません。`onRowsChange` で受け取った行を利用側の state に反映しない限り、編集しても値は元に戻ります。
+
+<Source language="tsx" code={`
+  const [rows, setRows] = React.useState<Row[]>(...)
+
+  <EditableGrid2
+    rowKeys={rowKeys}
+    getLatestRowObject={getLatestRowObject}
+    onRowsChange={updates => setRows(prev => {
+      const next = [...prev]
+      for (const { rowIndex, row } of updates) next[rowIndex] = row
+      return next
+    })}
+    columns={columns}
+  />
+`} />
+
+`onRowsChange` は1回の操作につき1回だけ、値が変わった行をまとめて渡します。
+貼り付けで複数の行が一度に変わる場合も、1回の呼び出しで届きます。
+
+各列を編集できるようにするための `editor` / `cellToText` / `textToCell` については <Link to="編集/セルエディタ">セルエディタ</Link> を参照してください。
+
+## rowKeys には行が動いても変わらない値を渡す
+
+`rowKeys` には、行の追加・削除・並べ替えをしても同じ行に同じ値が付いたままになるもの（行のIDなど）を渡してください。
+グリッドは行のチェック状態などを `rowKeys` の値ごとに保持しているため、行インデックスを渡すと、行を削除したときなどにそれらが別の行へずれます。
+
+<Source language="tsx" code={`
+  const rowKeys = React.useMemo(() => rows.map(row => row.id), [rows])
+`} />
+
+同じ値を2回以上含めてはいけません。
+まだIDの無い新規行には、行を作るときに `crypto.randomUUID()` などで一時的なキーを割り当ててください。
+
+## 編集した値が表示に反映されない場合
+
+グリッドは、行の値が変わったことを次のいずれかで知ります。
+
+* `getLatestRowObject` の参照が変わる
+* `subscribe` に渡した購読関数が変更を通知する（React の state の外側に値を持つ場合に使います。<Link to="基本の使い方/react-hook-form との統合">react-hook-form との統合</Link> を参照）
+
+state で値を持つ場合は前者を使います。
+`getLatestRowObject` を `useCallback` で包むときは、依存配列に行データを含めてください。
+依存配列を空にしたり、`useRef` 経由で最新の行を読んだりして参照が変わらないようにすると、state を更新してもセルの表示は古いままになります。
+
+<Source language="tsx" code={`
+  // rows が変わるたびに参照が変わり、それを合図にグリッドが表示中のセルの値を取得し直す
+  const getLatestRowObject = React.useCallback((index: number) => rows[index], [rows])
+`} />
