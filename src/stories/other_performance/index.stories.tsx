@@ -468,7 +468,7 @@ function parseNumber(value: string): number | undefined {
 }
 
 const storybookSetting: Meta<typeof PerformanceExample> = {
-  title: "パフォーマンス",
+  title: "その他/パフォーマンス",
   component: PerformanceExample,
   tags: ["!dev"], // サイドメニューに表示させない
 }
