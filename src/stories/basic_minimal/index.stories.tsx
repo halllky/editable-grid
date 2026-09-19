@@ -11,34 +11,25 @@ const TextEditor = createTextCellEditor(false)
 const col = EG2.createColumnHelper<TestRow>()
 
 /**
- * 最小限の実装の実演画面。
- *
- * 行データを React の state で持ち、グリッドには以下を渡す。
- * - rowKeys: 行を一意に識別する文字列の配列
- * - getLatestRowObject: 行インデックスから行の値を返す関数
- * - onRowsChange: グリッドの操作による変更の反映先
- * - columns: 列定義
+ * 最小限の実装の実演画面
  */
 function MinimalExample() {
 
+  // 大元のデータ配列
   const [rows, setRows] = React.useState<TestRow[]>(getDefaultValues)
 
   // 行のキー。行インデックスではなく、行が動いても変わらない値を使う。
-  const rowKeys = React.useMemo(() => rows.map(row => row.id), [rows])
+  const rowKeys = React.useMemo(() => {
+    return rows.map(row => row.id)
+  }, [rows])
 
-  // rows が変わると参照が変わり、それを合図にグリッドが表示中のセルの値を取得し直す。
-  const getLatestRowObject = React.useCallback((index: number) => rows[index], [rows])
+  // 行のキーまたはインデックスを受け取り、その時点の最新の行データを返す。
+  const getLatestRowObject = React.useCallback((index: number) => {
+    return rows[index]
+  }, [rows])
 
-  // グリッドの操作（編集確定・貼り付け・Delete）による変更を state に反映する
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
-    setRows(prev => {
-      const next = [...prev]
-      for (const { rowIndex, row } of updates) next[rowIndex] = row
-      return next
-    })
-  }, [])
-
-  // 列定義。セルを編集するたびにこのコンポーネントが再レンダリングされるため、useMemo で参照を安定させる。
+  // 列定義。
+  // useMemo で参照を安定させる。
   const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
     columnId: "name",
     renderHeader: () => <CellText>商品名</CellText>,
@@ -60,6 +51,16 @@ function MinimalExample() {
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined // 数値でなければ書き込まない
     },
   })], [])
+
+  // セル編集やクリップボードからの貼り付けなどの入力の確定時処理。
+  // グリッドの操作による変更を state に反映する。
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+    setRows(prev => {
+      const next = [...prev]
+      for (const { rowIndex, row } of updates) next[rowIndex] = row
+      return next
+    })
+  }, [])
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -90,7 +91,11 @@ function getDefaultValues(): TestRow[] {
   ]
 }
 
-/** セルの基本的スタイルを施したもの */
+/**
+ * セルのレンダリングコンポーネント。
+ * ここでは Tailwind CSS を使っているが、必須ではない。
+ * 色や表示形式など自由に指定可能。
+ */
 function CellText(props: { children?: React.ReactNode }) {
   return (
     <span className="px-1 py-px border border-transparent text-sm truncate">

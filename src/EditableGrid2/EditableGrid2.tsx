@@ -94,7 +94,6 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
     defaultColumn: {
       size: DEFAULT_COLUMN_WIDTH,
       minSize: 8,
-      // 最大幅は制限しない（TanStack の既定の maxSize は Number.MAX_SAFE_INTEGER）
     },
   }, selectGridState)
   const columnSizing = table.state.columnSizing

@@ -12,7 +12,7 @@ import Link from "../Link"
 npm レジストリには公開していません。GitHub のリポジトリからタグを指定してインストールします。
 
 <Source language="bash" code={`
-  npm install "@halllky/react-editable-grid@git+ssh://git@github.com/halllky/react-editable-grid.git#vX.Y.Z"
+  npm install "@halllky/react-editable-grid@git+ssh://git@github.com/halllky/react-editable-grid.git#v0.2.0"
 `} />
 
 以下は peerDependencies のため、利用側のプロジェクトにインストールされている必要があります。
@@ -23,19 +23,10 @@ npm レジストリには公開していません。GitHub のリポジトリか
 | `@tanstack/react-table` | ^9.2 |
 | `@tanstack/react-virtual` | ^3.14 |
 
-`@tanstack/react-table` は v8 ではなく v9 です。v8 を使っているプロジェクトではそのままでは導入できません。
-
 ## 読み込み
 
 <Source language="tsx" code={`
   import { EditableGrid2 } from "@halllky/react-editable-grid"
 `} />
 
-スタイルは `EditableGrid2` を import するだけで適用されます。CSS ファイルを別途 import する必要はなく、利用側で Tailwind CSS を設定する必要もありません。
-グリッドが使う CSS クラス名にはすべて `halllky-eg2-` が付いているため、利用側の CSS とは衝突しません。
-
-## セルエディタは同梱されていない
-
-セルを編集するときに表示される入力欄（セルエディタ）は、パッケージに含まれていません。
-セルを編集できるようにするには、利用側でエディタを実装して列定義に渡す必要があります。
-実装例は <Link to="編集/セルエディタ">セルエディタ</Link> のページにあります。
+続いて <Link to="基本の使い方/最小限の実装">最小限の実装</Link> をご覧ください。
