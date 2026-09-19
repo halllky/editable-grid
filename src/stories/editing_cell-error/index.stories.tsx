@@ -22,8 +22,8 @@ const col = EG2.createColumnHelper<TestRow>()
  *   それでは行を追加した直後の未入力のセルがいきなりエラーになってしまうため、
  *   検証にかけるタイミング（画面初期表示時・セル編集時・送信時）を利用側で決められるようにしてある。
  * - サーバー検証: 行の値だけからは求まらないエラー（マスタ照合・在庫チェック等）。
- *   保持するとき何をキーに行と結び付けるかが、
- *   その後の行の挿入・入れ替えでエラーが正しい行に付いたままかどうかを左右する。
+ *   その後の行の挿入・入れ替えでエラーが正しい行に付いたままにするため、
+ *   エラーと紐づけるのは行インデックスではなく行のキーである必要がある。
  */
 function CellErrorExample() {
 
@@ -42,21 +42,15 @@ function CellErrorExample() {
     callback: onChange,
   }), [subscribe])
 
-  // クライアント検証の結果。行のIDをキーに保持する。
-  // 行の値から導出できるので描画のたびに計算することもできるが、それだと
-  // 行を追加した直後、まだ何も入力していないセルがいきなりエラーになってしまう。
+  // クライアント検証の結果
   const [clientErrors, setClientErrors] = React.useState<CellErrorIndex>(() => new Map())
 
-  // サーバー検証の結果。行の値からは導出できないエラーなので、利用側で保持する必要がある。
+  // サーバー検証の結果
   const [serverErrors, setServerErrors] = React.useState<ServerError[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  // サーバーエラーをどのキーで行に結び付けるか。
-  // 行番号（rowIndex）で結び付けると、行の挿入・入れ替えの後にエラーが別の行に付いたままになる。
-  const [errorKeyMode, setErrorKeyMode] = React.useState<ErrorKeyMode>("rowId")
-
-  // 画面初期表示時のクライアント検証。全行・全列にかける。
-  // すでに保存されている不正なデータは、利用者が触る前から見えていてほしいため。
+  // 画面初期表示時、グリッド全体にクライアント検証をかける。
+  // デモ画面の表示時に赤いセルが見えていた方が分かりやすいので
   React.useEffect(() => {
     setClientErrors(validateRows(getValues("rows")))
   }, [getValues])
@@ -66,53 +60,47 @@ function CellErrorExample() {
   const serverErrorIndex = React.useMemo((): CellErrorIndex => {
     const index = new Map<string, Partial<Record<ValidatedColumnId, string>>>()
     for (const error of serverErrors) {
-      const key = errorKeyMode === "rowId" ? error.rowId : String(error.rowIndex)
-      const errorsOfRow = index.get(key) ?? {}
+      const errorsOfRow = index.get(error.rowId) ?? {}
       errorsOfRow[error.columnId] = error.message
-      index.set(key, errorsOfRow)
+      index.set(error.rowId, errorsOfRow)
     }
     return index
-  }, [serverErrors, errorKeyMode])
+  }, [serverErrors])
 
   // そのセルに表示するエラーメッセージを返す関数。
   // クライアント検証を優先し、そちらが通っている場合だけサーバー検証の結果を見る。
-  const getCellError = React.useCallback((
-    row: TestRow,
-    rowIndex: number,
-    columnId: ValidatedColumnId,
-  ): string | undefined => {
-    const serverErrorKey = errorKeyMode === "rowId" ? row.rowId : String(rowIndex)
-    return clientErrors.get(row.rowId)?.[columnId] ?? serverErrorIndex.get(serverErrorKey)?.[columnId]
-  }, [clientErrors, serverErrorIndex, errorKeyMode])
+  const getCellError = React.useCallback((row: TestRow, columnId: ValidatedColumnId): string | undefined => {
+    return clientErrors.get(row.rowId)?.[columnId] ?? serverErrorIndex.get(row.rowId)?.[columnId]
+  }, [clientErrors, serverErrorIndex])
 
-  // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する。
-  // あわせて、値が変わったセルのエラーを付け直す。
+  // グリッドの操作（セルエディタ編集・クリップボード貼り付け・Delete）による変更確定時処理。
+  // 値の変更を React Hook Form に反映し、クライアント検証をかける。
   const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
 
-    // セル編集時のクライアント検証。
-    // textToCell がかかった列（changedColumnIds）だけを検証し直す。
-    // 行全体を検証してしまうと、編集していない隣の未入力のセルまでエラーになる。
-    // 検証の対象の列が1つも変わっていない場合は、
-    // 無駄な再描画を避けるために state を作り替えず prev をそのまま返す。
+    // セル編集時のクライアント検証
     setClientErrors(prev => {
       let next: Map<string, Partial<Record<ValidatedColumnId, string>>> | undefined
       for (const { row, changedColumnIds } of updates) {
+
+        // 編集していない隣の未入力のセルまでエラーになるのが嫌なので
+        // 行全体ではなく変更されたセルだけを検証し直す
         const columnIds = changedColumnIds.filter(isValidatedColumnId)
         if (columnIds.length === 0) continue
+
         next ??= new Map(prev)
         next.set(row.rowId, { ...next.get(row.rowId), ...validateRow(row, columnIds) })
       }
       return next ?? prev
     })
 
-    // 値が変わったセルに付いていたサーバーエラーを取り下げる。
+    // 値が変わったセルに付いていたサーバーエラーをクリアする。
     // サーバーエラーは「送信した時点の値」に対する指摘なので、値が変わった時点で古い情報になるため。
     setServerErrors(prev => prev.filter(error => !updates.some(update => (
-      (errorKeyMode === "rowId" ? update.row.rowId === error.rowId : update.rowIndex === error.rowIndex)
+      update.row.rowId === error.rowId
       && update.changedColumnIds.includes(error.columnId)
     ))))
-  }, [setValue, errorKeyMode])
+  }, [setValue])
 
   // 擬似的なサーバー送信。行のIDと送信時点の行番号の両方を控えたエラーが返ってくる。
   const handleSubmit = async () => {
@@ -130,14 +118,13 @@ function CellErrorExample() {
     }
   }
 
-  // 行の挿入。エラーが行に付いたままになるかどうかを確認するためのもの。
-  // 挿入された行はまだ検証にかけないため、未入力のセルがいきなりエラーになることはない。
+  // 行追加
   const nextRowId = React.useRef(100)
   const insertRow = () => {
     insert(0, { rowId: `R${nextRowId.current++}`, name: "", note: "" })
   }
 
-  // データを初期状態に戻す。画面初期表示時と同じく、全行・全列を検証し直す。
+  // データを初期状態に戻す
   const resetRows = () => {
     const rows = getDefaultValues()
     replace(rows)
@@ -170,7 +157,7 @@ function CellErrorExample() {
 
     // エラーメッセージも deps に含める。
     // 含めない場合、値が変わっていないのにエラーだけが変わったときにセルの表示が古いままになる。
-    getValuesForRender: (row, rowIndex) => [row.name, getCellError(row, rowIndex, "name")],
+    getValuesForRender: row => [row.name, getCellError(row, "name")],
 
     // セルの中身を描き分けるだけ。グリッド側の仕組みは何も使っていない。
     renderBody: ({ deps: [name, error] }) => <CellText error={error}>{name}</CellText>,
@@ -186,7 +173,7 @@ function CellErrorExample() {
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
     renderHeader: () => <CellText>数量</CellText>,
-    getValuesForRender: (row, rowIndex) => [row.quantity, getCellError(row, rowIndex, "quantity")],
+    getValuesForRender: row => [row.quantity, getCellError(row, "quantity")],
     renderBody: ({ deps: [quantity, error] }) => <CellText error={error}>{quantity}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -199,7 +186,7 @@ function CellErrorExample() {
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
     renderHeader: () => <CellText>単価</CellText>,
-    getValuesForRender: (row, rowIndex) => [row.unitPrice, getCellError(row, rowIndex, "unitPrice")],
+    getValuesForRender: row => [row.unitPrice, getCellError(row, "unitPrice")],
     renderBody: ({ deps: [unitPrice, error] }) => <CellText error={error}>{unitPrice}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
@@ -208,7 +195,7 @@ function CellErrorExample() {
     cellToText: row => row.deliveryDate ?? "",
     textToCell: (row, text) => ({ ...row, deliveryDate: text.trim() }),
     renderHeader: () => <CellText>納品日</CellText>,
-    getValuesForRender: (row, rowIndex) => [row.deliveryDate, getCellError(row, rowIndex, "deliveryDate")],
+    getValuesForRender: row => [row.deliveryDate, getCellError(row, "deliveryDate")],
     renderBody: ({ deps: [deliveryDate, error] }) => <CellText error={error}>{deliveryDate}</CellText>,
     defaultWidth: 116,
   }), col.leaf({
@@ -226,14 +213,6 @@ function CellErrorExample() {
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          className="px-2 border border-gray-500 bg-white cursor-pointer disabled:text-gray-400 disabled:cursor-default"
-        >
-          {isSubmitting ? "サーバーに送信中..." : "サーバーに送信して検証する"}
-        </button>
         <button
           type="button"
           onClick={insertRow}
@@ -264,30 +243,6 @@ function CellErrorExample() {
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span>サーバーエラーと行の結び付け方：</span>
-        <label className="flex items-center gap-1 cursor-pointer select-none">
-          <input
-            type="radio"
-            name="errorKeyMode"
-            checked={errorKeyMode === "rowId"}
-            onChange={() => setErrorKeyMode("rowId")}
-            className="cursor-pointer"
-          />
-          行ID（正しい）
-        </label>
-        <label className="flex items-center gap-1 cursor-pointer select-none">
-          <input
-            type="radio"
-            name="errorKeyMode"
-            checked={errorKeyMode === "rowIndex"}
-            onChange={() => setErrorKeyMode("rowIndex")}
-            className="cursor-pointer"
-          />
-          行番号（行の挿入・入れ替えで壊れる）
-        </label>
-      </div>
-
       <EG2.EditableGrid2
         ref={gridRef}
         rowKeys={rowKeys}
@@ -297,6 +252,15 @@ function CellErrorExample() {
         columns={columns}
         className="h-64 border border-gray-500 resize-y"
       />
+
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isSubmitting}
+        className="self-start px-2 text-white border border-gray-700 bg-gray-700 cursor-pointer disabled:bg-gray-400 disabled:cursor-default"
+      >
+        {isSubmitting ? "サーバーに送信中..." : "サーバーに送信して検証する"}
+      </button>
 
       <ErrorSummary
         control={control}
@@ -308,14 +272,7 @@ function CellErrorExample() {
 }
 
 /**
- * グリッドの外に出すエラーの一覧。
- *
- * メッセージは行ごとにまとめる。1件を1行にして並べると、
- * 未入力の行が1つあるだけで一覧が何行にも膨らみ、何行目に問題があるのかが読み取りにくくなるため。
- *
- * グリッド本体を巻き込んで再描画させないよう、行の値の購読はこのコンポーネントの中だけで行う。
- * 一覧は「現在の行」から組み立てるため、行が削除されればその行のエラーは自然に消える
- * （エラーを保持している state に残っていても、対応する行が無ければ一覧にも出てこない）。
+ * 画面上に表示するエラーメッセージ一覧
  */
 function ErrorSummary({ control, getCellError, onJump }: {
   control: ReactHookForm.Control<{ rows: TestRow[] }>
@@ -324,9 +281,10 @@ function ErrorSummary({ control, getCellError, onJump }: {
 }) {
   const rows = ReactHookForm.useWatch({ control, name: "rows" })
 
+  // エラーメッセージを行ごとにまとめる
   const errorsByRow = React.useMemo(() => rows.flatMap((row, rowIndex) => {
     const messages = VALIDATED_COLUMN_IDS
-      .map(columnId => getCellError(row, rowIndex, columnId))
+      .map(columnId => getCellError(row, columnId))
       .filter((message): message is string => message !== undefined)
     return messages.length === 0 ? [] : [{ rowIndex, rowId: row.rowId, messages }]
   }), [rows, getCellError])
@@ -387,10 +345,7 @@ type ServerError = {
 type CellErrorIndex = ReadonlyMap<string, Partial<Record<ValidatedColumnId, string>>>
 
 /** そのセルに表示するエラーメッセージを返す関数。エラーが無い場合は undefined */
-type CellErrorGetter = (row: TestRow, rowIndex: number, columnId: ValidatedColumnId) => string | undefined
-
-/** サーバーエラーを行に結び付けるキーの種類 */
-type ErrorKeyMode = "rowId" | "rowIndex"
+type CellErrorGetter = (row: TestRow, columnId: ValidatedColumnId) => string | undefined
 
 /**
  * クライアント側の検証。列ごとに、その行の値だけを見てエラーメッセージを返す。
@@ -491,7 +446,7 @@ function getDefaultValues(): TestRow[] {
 }
 
 /**
- * セルの基本的スタイルを施したもの。
+ * セル表示コンポーネント。
  *
  * エラーがある場合は枠線と背景色を変え、メッセージをツールチップで表示する。
  * エラーが無いときも透明な枠線を持たせておくことで、
@@ -505,7 +460,7 @@ function CellText({ children, error }: {
     <span
       title={error}
       className={`relative flex-1 min-w-0 px-1 py-px border text-sm truncate ${error
-        ? "border-rose-600 bg-rose-100 text-rose-900"
+        ? "border-rose-600 text-rose-600"
         : "border-transparent"}`}
     >
       {children}
