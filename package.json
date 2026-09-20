@@ -6,7 +6,8 @@
     "**/*.css"
   ],
   "files": [
-    "dist"
+    "dist",
+    "src/stories"
   ],
   "main": "./dist/index.js",
   "types": "./dist/types/index.d.ts",

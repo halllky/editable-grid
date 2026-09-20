@@ -38,6 +38,20 @@ CSS クラス名はすべて `halllky-eg2-` プレフィックスが付いてい
 `EditableGrid2` の `className` / `getRowClassName` プロパティは従来どおり任意のクラス文字列を
 受け付けます。利用側が Tailwind を使っている場合は、そのまま Tailwind クラスを渡せます。
 
+## ドキュメント（AI 向け）
+
+パッケージには Storybook のドキュメント一式（`.mdx`）とデモの実装（`.stories.tsx`）が同梱されています。
+
+```
+node_modules/@halllky/react-editable-grid/src/stories/**/index.mdx          … 解説
+node_modules/@halllky/react-editable-grid/src/stories/**/*.stories.tsx      … 実装例
+```
+
+コーディングエージェントに使い方を調べさせる場合は上記を読ませてください。
+なお同梱ファイルはビルド対象ではなく、閲覧用のソースです。TypeScript としてコンパイルされることは想定していません。
+デモ内の `import { ... } from "../../EditableGrid2"` は、利用側では
+`import { ... } from "@halllky/react-editable-grid"` に読み替えてください。
+
 ## Develop
 
 ```
