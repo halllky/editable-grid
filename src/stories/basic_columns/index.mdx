@@ -17,18 +17,25 @@ import Link from "../Link"
 ヘッダは `renderHeader`、セルは `renderBody` で描画します。
 どちらも戻り値の React 要素がそのままヘッダ・セルの中身になります。
 
-`renderBody` は行オブジェクトを受け取りません。
-セルの描画に使う値は `getValuesForRender` で配列として返し、`renderBody` の引数 `deps` で受け取ります。
-
 <Source language="tsx" code={`
+  // TypeScript の型推論のためのヘルパー関数。利用は任意。
+  // getValuesForRender の戻り値の型は通常は any だが col.leaf 経由で定義するときちんと型推論されるようになる。
   const col = createColumnHelper<Row>()
 
   <EditableGrid2
     columns={[
       col.leaf({
         columnId: "name",
+
+        // ヘッダの描画。
+        // 高さは1行分で固定されており、縦幅が自由に伸縮したりはしない。
         renderHeader: () => <span>商品名</span>,
+
+        // セルの再レンダリング判定、兼、ボディセルの描画に使う値の抽出
         getValuesForRender: row => [row.name],
+
+        // ボディセルの描画。
+        // getValuesForRender で返された値のみ参照可能。
         renderBody: ({ deps: [name] }) => <span>{name}</span>,
       }),
     ]}
@@ -41,15 +48,59 @@ import Link from "../Link"
   source={{ language: "tsx", code: CellRenderingExampleTsx }}
 />
 
-* グリッドは `getValuesForRender` の戻り値を前回と要素ごとに比較し、変わったセルだけを描画し直します。
-  配列に含めていない値が変わっても、セルの表示は更新されません。
-* TypeScript の型推論のために `createColumnHelper` というヘルパー関数を提供しています。
-  この関数は処理自体は何も行いませんが、 `col.leaf` 経由で定義すると `getValuesForRender` の戻り値の型が `deps` に引き継がれます。
-  包まずに列定義の配列に直接書くと、`deps` の型は `any` になります。
-  厳密な型推論の恩恵を受けたい場合は利用してください。
-* ヘッダの高さは1行分で固定されており、`renderHeader` の中身に合わせて伸びません。
+### セルが描画し直される条件
 
-### ボタンやチェックボックスを置く場合の注意点
+パフォーマンスの最適化のため、再レンダリングの条件は厳密に管理されています。
+
+| 変化 | 描画し直される範囲 |
+| --- | --- |
+| `subscribe` で通知する | `getValuesForRender` の戻り値が変わったセルと、フッタ全体 |
+| `getLatestRowObject` / `isReadOnly` / `showCheckBox` / `getRowClassName` の参照が変わる | 同上 |
+| `rowKeys` の要素の値か並び順が変わる | 同上に加えて、並びが変わった位置から下の行のセル |
+| `columns` の参照が変わる | ヘッダ・セル・フッタのすべて |
+| それ以外の props の参照が変わる（`onRowsChange` など） | なし |
+
+行と列は仮想化されているため、この表のヘッダ・セル・フッタは描画範囲内に含まれるものだけを指します。
+画面外の行や列はそもそも描画されていないため、行数や列数が多くても描画し直される量は画面に映る範囲までです。
+仮想化については <Link to="その他/パフォーマンス">パフォーマンス</Link> を参照してください。
+
+グリッドは行データの配列を受け取らず、`getLatestRowObject` で必要なときに値を取りに行きます。
+そのため、セルの値が変わったこと自体はグリッドには伝わりません。
+`subscribe` の通知や関数の参照の変化をきっかけに、描画中のセルがそれぞれ `getValuesForRender` を呼び直して前回の戻り値と要素ごとに比べ、戻り値が変わったセルだけを描画し直します。
+
+セルの描画に使う値は、すべて `getValuesForRender` の戻り値に含めてください。
+`renderBody` が行オブジェクトを受け取らないのはこのためです。
+含め忘れた値が変わっても、セルの表示は古いままになります。
+
+列定義の中で参照しているグリッドの外側の値（state や props）はセルの値ではないため、この比較には乗りません。
+外側の値の変化がセルに伝わる経路は、`columns` の参照が変わることだけです。
+そのため列定義は `useMemo` で包み、列定義の中で参照している外側の値をすべて依存配列に含めてください。
+含め忘れると、外側の値を変えてもセルの表示が変わりません。
+逆に `useMemo` で包まないと、グリッドを含むコンポーネントが再レンダリングされるたびに `columns` の参照が変わるため、1セルを編集しただけで描画中の全セルが描画し直されます。
+
+<Source language="tsx" code={`
+  const [includeTax, setIncludeTax] = React.useState(false)
+
+  const columns = React.useMemo(() => [
+    col.leaf({
+      columnId: "amount",
+      getValuesForRender: row => [calcAmount(row, includeTax)],
+      renderBody: ({ deps: [amount] }) => <span>{amount}</span>,
+      ...
+    }),
+  ], [includeTax]) // 列定義の中で参照している外側の値
+`} />
+
+下のデモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
+ヘッダと金額の両方が切り替わるのは、`columns` の参照が変わって両方が描画し直されているからです。
+
+<Canvas
+  of={ColumnsStories.外側の値への依存}
+  layout="fullscreen"
+  source={{ language: "tsx", code: OuterValueExampleTsx }}
+/>
+
+## ボタンやチェックボックスを置く場合の注意点
 
 セル内のボタンなどでは、`mousedown` イベントの `stopPropagation` を呼んでください。
 呼ばない場合、ボタンを押したときにグリッドのセル選択の処理も動きます。
@@ -71,47 +122,6 @@ import Link from "../Link"
   layout="fullscreen"
   source={{ language: "tsx", code: CellButtonExampleTsx }}
 />
-
-### グリッドの外側の値を変えてもセルの表示が変わらない場合
-
-`columns` の参照が変わると、表示中のすべてのセルとヘッダが描画し直されます。
-逆に、`columns` の参照が変わらない限り、列定義の中で参照しているグリッドの外側の値（state や props）が変わっても、セルは描画し直されません。
-
-列定義を `useMemo` で包む場合は、列定義の中で参照している外側の値をすべて依存配列に含めてください。
-
-<Source language="tsx" code={`
-  const [includeTax, setIncludeTax] = React.useState(false)
-
-  const columns = React.useMemo(() => [
-    col.leaf({
-      columnId: "amount",
-      getValuesForRender: row => [calcAmount(row, includeTax)],
-      renderBody: ({ deps: [amount] }) => <span>{amount}</span>,
-      ...
-    }),
-  ], [includeTax]) // 列定義の中で参照している外側の値
-`} />
-
-下のデモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
-
-<Canvas
-  of={ColumnsStories.外側の値への依存}
-  layout="fullscreen"
-  source={{ language: "tsx", code: OuterValueExampleTsx }}
-/>
-
-### セルを編集するたびに全セルが描画し直される場合
-
-行データを React の state で持つ場合など、セルを編集するたびにグリッドを含むコンポーネントが再レンダリングされる実装では、
-列定義を `useMemo` で包んでください。
-包まないと、再レンダリングのたびに `columns` の参照が変わり、1セルを編集しただけで表示中のすべてのセルが描画し直されます。
-
-## セルの編集、コピーペースト
-
-別ページに記載しています。
-
-* <Link to="編集/セルエディタ">セルエディタ</Link>
-* <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link>
 
 ## 列固定
 
@@ -173,3 +183,10 @@ import Link from "../Link"
   layout="fullscreen"
   source={{ language: "tsx", code: ColumnWidthExampleTsx }}
 />
+
+## セルの編集、コピーペースト
+
+別ページに記載しています。
+
+* <Link to="編集/セルエディタ">セルエディタ</Link>
+* <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link>

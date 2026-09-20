@@ -38,7 +38,7 @@ export function CellRenderingExample() {
   }), col.leaf({
     // 1つのセルの描画に行の複数の値を使う場合、その値をすべて getValuesForRender で返す（※1）
     columnId: "amount",
-    renderHeader: () => <CellText>金額</CellText>,
+    renderHeader: () => <CellText>金額（※1）</CellText>,
     getValuesForRender: row => [row.unitPrice, row.quantity],
     renderBody: ({ deps: [unitPrice, quantity] }) => (
       <CellText align="right">{(unitPrice * quantity).toLocaleString()}</CellText>
