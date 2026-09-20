@@ -1,0 +1,50 @@
+import { Meta, Source } from "@storybook/addon-docs/blocks"
+import Link from "../Link"
+
+<Meta title="レイアウト/スタイルのカスタマイズ" />
+
+# スタイルのカスタマイズ
+
+## 配色を変える
+
+配色は `.halllky-eg2-root` に定義された CSS 変数を上書きして変更します。以下は既定値です。
+
+<Source language="css" code={`
+  .halllky-eg2-root {
+    --halllky-eg2-color-grid-bg: #e5e7eb;
+    --halllky-eg2-color-cell-bg: #ffffff;
+    --halllky-eg2-color-cell-bg-striped: #f9fafb;
+    --halllky-eg2-color-header-bg: #f3f4f6;
+    --halllky-eg2-color-border: #d1d5db;
+    --halllky-eg2-color-resize-handle-hover: #9ca3af;
+    --halllky-eg2-color-empty-text: #6b7280;
+    --halllky-eg2-color-selection-border: #0ea5e9;
+    --halllky-eg2-color-selection-fill: #bae6fd;
+  }
+`} />
+
+## 独自のクラスを当てる
+
+`className`（グリッド全体）と `getRowClassName`（行単位）には任意のクラス文字列を渡せます。
+利用側が Tailwind CSS を使っている場合は、そのまま Tailwind のクラスを渡せます。
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    className="border border-gray-400"
+    getRowClassName={getRowClassName}
+  />
+`} />
+
+`getRowClassName` の戻り値は行（`tr`）に付きますが、背景色はセルが自前で持っているため、
+行に背景色のクラスを当てても隠れて見えません。行ごとの色分けには文字色を使ってください。
+行の背景色を変えたい場合は上記の CSS 変数で、グリッド全体の配色として指定します。
+
+`getRowClassName` の参照は `useCallback` 等で安定させてください。
+理由は <Link to="その他/パフォーマンス">パフォーマンス</Link> を参照してください。
+
+## 利用側の CSS と衝突しないか
+
+CSS クラス名にはすべて `halllky-eg2-` プレフィックスが付いているため、利用側のクラス名と衝突しません。
+
+また、このコンポーネントの CSS セレクタはすべて単一クラス（詳細度 0,1,0）で書かれており、
+`className` / `getRowClassName` で渡したクラスが詳細度で負けることはありません。
