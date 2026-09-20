@@ -1,0 +1,64 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as ReactHookFormStories from "./index.stories"
+import ReactHookFormStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={ReactHookFormStories} />
+
+# react-hook-form との統合
+
+React Hook Form の `useFieldArray` で行データを管理する場合の繋ぎ方です。
+グリッド側に React Hook Form 専用の仕組みはありません。
+<Link to="基本の使い方/最小限の実装">最小限の実装</Link> で挙げているグリッドの属性に、React Hook Form の API を対応づけるだけです。
+
+<Canvas
+  of={ReactHookFormStories.ReactHookFormとの統合}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ReactHookFormStoriesTsx }}
+/>
+
+## 属性の対応
+
+<Source language="tsx" code={`
+  const { control, getValues, setValue, subscribe } = useForm<{ rows: Row[] }>({ ... })
+  const { fields } = useFieldArray({ name: "rows", control })
+
+  <EditableGrid2
+    // useFieldArray が行ごとに振る id は、行の追加・削除・並べ替えをしても同じ行に付いたまま残る
+    rowKeys={React.useMemo(() => fields.map(f => f.id), [fields])}
+
+    // 行の最新の値は getValues から取得する（fields ではない。下記参照）
+    getLatestRowObject={React.useCallback(index => getValues(\`rows.\${index}\`), [getValues])}
+
+    // React Hook Form の値が変わったことをグリッドに通知する
+    subscribe={React.useCallback(onChange => subscribe({
+      name: "rows",
+      formState: { values: true },
+      callback: onChange,
+    }), [subscribe])}
+
+    // グリッドの操作による変更を React Hook Form に反映する
+    onRowsChange={React.useCallback(updates => {
+      for (const { rowIndex, row } of updates) setValue(\`rows.\${rowIndex}\`, row)
+    }, [setValue])}
+  />
+`} />
+
+`setValue` は1回ごとにフォーム全体を複製するため、セル単位ではなく行単位で呼んでください。
+`onRowsChange` には、クリップボードからの貼り付けのように複数セルが一度に変わる操作でも変更がまとめて渡ります
+（<Link to="編集/コピー＆ペースト">コピー＆ペースト</Link> 参照）。
+
+## セルの値を編集しても表示が変わらない
+
+`getLatestRowObject` で `fields[index]` を返している場合に起こります。
+`fields` は行の追加・削除・並べ替えのときにしか作り直されず、セルを編集しても中身は変わりません。
+最新の値は `getValues` から取得してください。
+
+## グリッドの外から値を変えても表示が変わらない
+
+`subscribe` を渡していない場合に起こります。
+グリッドは行データの配列を受け取らないため、値が変わったこと自体はグリッドには伝わりません
+（<Link to="基本の使い方/セルの描画">セルの描画</Link> の「セルが描画し直される条件」参照）。
+
+上記のとおり `subscribe` を渡してあれば、グリッドの外からの `setValue` も、
+`renderBody` の中に置いたチェックボックスなどからの `setValue` も、`onRowsChange` を経由せずそのままセルに反映されます。
