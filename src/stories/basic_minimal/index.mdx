@@ -10,15 +10,9 @@ import Link from "../Link"
 行データを React の state で持つ場合の、表示して編集できるようにするまでの最小限の実装です。
 React Hook Form で行データを管理する場合は <Link to="基本の使い方/react-hook-form との統合">react-hook-form との統合</Link> を参照してください。
 
-<Canvas
-  of={MinimalStories.最小限の実装}
-  layout="fullscreen"
-  source={{ language: "tsx", code: MinimalStoriesTsx }}
-/>
-
 ## すべてのグリッドで必須
 
-`EditableGrid2` は行データの配列を受け取りません。代わりに以下を渡します。
+`EditableGrid2` を使う場合は以下の属性を指定する必要があります。
 
 * `rowKeys`
   * 行を一意に識別する文字列の配列。この配列の長さがグリッドの行数になります。
@@ -30,13 +24,7 @@ React Hook Form で行データを管理する場合は <Link to="基本の使�
   * 行インデックスと rowKey を受け取り、その行の値を返す関数。
   * 表示・編集・コピーに使う値はすべてこの関数から取得されます。
 * `columns`
-  * 列定義。多くのプロパティがあるので <Link to="基本の使い方/列定義">列定義</Link> を参照してください。
-
-`rowKeys` の実装例
-
-<Source language="tsx" code={`
-  const rowKeys = React.useMemo(() => rows.map(row => row.id), [rows])
-`} />
+  * 列定義。多くのプロパティがあるので各種説明ページを参照してください。
 
 ## 編集可能なグリッドの場合は必須
 
@@ -49,19 +37,13 @@ React Hook Form で行データを管理する場合は <Link to="基本の使�
   * 上記入力が確定したときに、その変更をグリッド呼び出し側の state などに反映する処理。
   * クリップボードからの貼り付けの場合、1セルごとではなく変更範囲全体がまとめて渡ります。
 
-`onRowsChange` の実装例
+## 最小の実装例
 
-<Source language="tsx" code={`
-  const [rows, setRows] = React.useState<Row[]>(...)
+セル編集可能な最小の実装例です。
 
-  <EditableGrid2
-    rowKeys={rowKeys}
-    getLatestRowObject={getLatestRowObject}
-    onRowsChange={updates => setRows(prev => {
-      const next = [...prev]
-      for (const { rowIndex, row } of updates) next[rowIndex] = row
-      return next
-    })}
-    columns={columns}
-  />
-`} />
+<Canvas
+  of={MinimalStories.最小限の実装}
+  layout="fullscreen"
+  source={{ language: "tsx", code: MinimalStoriesTsx }}
+  sourceState="shown"
+/>

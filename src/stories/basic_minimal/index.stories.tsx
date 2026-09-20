@@ -3,12 +3,21 @@ import * as EG2 from "../../EditableGrid2"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
-// editor が別のコンポーネント型にならないよう、
-// その場で作らずモジュールスコープの定数として参照を安定させる。
-const TextEditor = createTextCellEditor(false)
+/** データ1行分のデータ構造 */
+type TestRow = {
+  id: string
+  name: string
+  quantity?: number
+}
 
-// 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
-const col = EG2.createColumnHelper<TestRow>()
+/** この画面のデフォルトデータ */
+function getDefaultValues(): TestRow[] {
+  return [
+    { id: "1", name: "りんご", quantity: 3 },
+    { id: "2", name: "みかん", quantity: 12 },
+    { id: "3", name: "ぶどう", quantity: 2 },
+  ]
+}
 
 /**
  * 最小限の実装の実演画面
@@ -30,27 +39,36 @@ function MinimalExample() {
 
   // 列定義。
   // useMemo で参照を安定させる。
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
-    columnId: "name",
-    renderHeader: () => <CellText>商品名</CellText>,
-    getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
-    editor: TextEditor,
-    cellToText: row => row.name,
-    textToCell: (row, text) => ({ ...row, name: text }),
-  }), col.leaf({
-    columnId: "quantity",
-    renderHeader: () => <CellText>数量</CellText>,
-    getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
-    editor: TextEditor,
-    cellToText: row => String(row.quantity ?? ""),
-    textToCell: (row, text) => {
-      if (text.trim() === "") return { ...row, quantity: undefined }
-      const parsed = Number(text)
-      return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined // 数値でなければ書き込まない
-    },
-  })], [])
+  // 指定が必要な属性が多いので、実際のアプリケーション開発時は
+  // 「文字列用列定義ベース」「数値用列定義ベース」など種類ごとにベースとなる設定を用意しておき
+  // それを各画面で使いまわすと開発がやりやすくなる。
+  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [
+    // 商品名の列
+    col.leaf({
+      columnId: "name",
+      renderHeader: () => <CellText>商品名</CellText>,
+      getValuesForRender: row => [row.name],
+      renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+      editor: TextEditor,
+      cellToText: row => row.name,
+      textToCell: (row, text) => ({ ...row, name: text }),
+    }),
+
+    // 数量の列
+    col.leaf({
+      columnId: "quantity",
+      renderHeader: () => <CellText>数量</CellText>,
+      getValuesForRender: row => [row.quantity],
+      renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+      editor: TextEditor,
+      cellToText: row => String(row.quantity ?? ""),
+      textToCell: (row, text) => {
+        if (text.trim() === "") return { ...row, quantity: undefined }
+        const parsed = Number(text)
+        return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined // 数値でなければ書き込まない
+      },
+    }),
+  ], [])
 
   // セル編集やクリップボードからの貼り付けなどの入力の確定時処理。
   // グリッドの操作による変更を state に反映する。
@@ -63,6 +81,7 @@ function MinimalExample() {
   }, [])
 
   return (
+    // このデモでは Tailwind CSS を使っているが、必須ではない
     <div className="flex flex-col gap-2 p-2">
       <EG2.EditableGrid2
         rowKeys={rowKeys}
@@ -75,21 +94,14 @@ function MinimalExample() {
   )
 }
 
-/** データ1行分 */
-type TestRow = {
-  id: string
-  name: string
-  quantity?: number
-}
+// セル編集時に使われるエディタ。
+// セル編集のページで詳しく解説しているのでそちらを参照
+const TextEditor = createTextCellEditor(false)
 
-/** この画面のデフォルトデータ */
-function getDefaultValues(): TestRow[] {
-  return [
-    { id: "1", name: "りんご", quantity: 3 },
-    { id: "2", name: "みかん", quantity: 12 },
-    { id: "3", name: "ぶどう", quantity: 2 },
-  ]
-}
+// TypeScript の型推論の補助。
+// 内部で何か処理をしているわけではなく、引数をそのまま返すだけの関数。
+// 利用は必須ではない。
+const col = EG2.createColumnHelper<TestRow>()
 
 /**
  * セルのレンダリングコンポーネント。
@@ -103,6 +115,9 @@ function CellText(props: { children?: React.ReactNode }) {
     </span>
   )
 }
+
+// --------------------------------------------
+// 以降はデモ用の設定。グリッドとは無関係
 
 const storybookSetting: Meta<typeof MinimalExample> = {
   title: "基本の使い方/最小限の実装",
