@@ -74,29 +74,6 @@ import Link from "../Link"
   source={{ language: "tsx", code: RowOperationStoriesTsx }}
 />
 
-## 行のキーの決め方
-
-`rowKeys` の要素は、その行を識別する値です。行インデックスを使ってはいけません。
-
-* 追加した行には、既存のどの行とも重複しない新しいキーを割り当ててください。
-  重複したキーがあると、グリッドはそれらを同じ行として扱います。
-* 並べ替えや削除では、残る行のキーを作り直さないでください。
-  キーが変わると、グリッドはその行を「元の行が消えて別の行が増えた」ものとして扱うため、
-  セルの選択状態や行頭のチェック状態がその行から外れます。
-
-行オブジェクトの入れ替えではなく移動として実装すれば、この条件は自然に満たされます。
-
-<Source language="tsx" code={`
-  // 選択範囲の行を1行分だけ上または下へ動かす
-  const next = [...prev]
-  const movedRows = next.splice(start, count)
-  next.splice(start + offset, 0, ...movedRows)
-`} />
-
-React Hook Form の `useFieldArray` を使う場合は、`fields` の `id` をそのままキーにできます。
-`append` / `remove` / `move` で行を操作すれば、`id` は行に付いたまま動きます。
-詳細は <Link to="その他/react-hook-form との統合">react-hook-form との統合</Link> を参照してください。
-
 ## 追加・削除した行を選択する
 
 行を追加しても、選択は動きません。追加した行から入力を始められるようにするには、`selectRow()` で選択します。
