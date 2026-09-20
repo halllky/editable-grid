@@ -4,7 +4,7 @@
 基本の使い方
 ├ 最小限（RHFなし）
 ├ 列定義 ... 以下の内容を全部1ページで説明する。
-│ ├ 列定義 ... renderHeader / renderBody の書き方、セル内にボタンを置く際の mouseDown の stopPropagation 注意、
+│ ├ セルの描画 ... renderHeader / renderBody の書き方、セル内にボタンを置く際の mouseDown の stopPropagation 注意、
 │ │           columns の参照が変わると表示中のセルが再レンダリングされる（外側の state への依存が追従する）こと、
 │ │           セル編集のたびに親が再レンダリングされる実装では useMemo で包むこと
 │ ├ 列固定 ... true, false, true と指定したら最後の true より左が全部固定

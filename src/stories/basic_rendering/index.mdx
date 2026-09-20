@@ -1,48 +1,59 @@
 import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
 import * as ColumnsStories from "./index.stories"
-import CellRenderingExampleTsx from "./CellRenderingExample.tsx?raw"
 import CellButtonExampleTsx from "./CellButtonExample.tsx?raw"
-import OuterValueExampleTsx from "./OuterValueExample.tsx?raw"
+import RenderingExampleTsx from "./RenderingExample.tsx?raw"
 import Link from "../Link"
 
 <Meta of={ColumnsStories} />
 
-# 列定義
+# セルの描画
 
-## ヘッダとセルの描画
-
-ヘッダは `renderHeader`、セルは `renderBody` で描画します。
-どちらも戻り値の React 要素がそのままヘッダ・セルの中身になります。
+ヘッダは `renderHeader`、セルは `renderBody`、フッタは `renderFooter` で描画します。
+いずれも戻り値の React 要素がそのまま中身になります。
 
 <Source language="tsx" code={`
+  const [rows, setRows] = React.useState<Row[]>(...)
+
   // TypeScript の型推論のためのヘルパー関数。利用は任意。
   // getValuesForRender の戻り値の型は通常は any だが col.leaf 経由で定義するときちんと型推論されるようになる。
   const col = createColumnHelper<Row>()
 
+  // フッタのレンダリング用
+  const rowsRef = React.useRef(rows)
+  rowsRef.current = rows
+
+  const columns = React.useMemo(() => [
+    col.leaf({
+      columnId: "quantity",
+
+      // ヘッダの描画。
+      // 高さは1行分で固定されており、縦幅が自由に伸縮したりはしない。
+      renderHeader: () => <span>数量</span>,
+
+      // ボディセルの描画。
+      // getValuesForRender でセルの再レンダリング判定、兼、ボディセルの描画に使う値の抽出を行い、
+      // renderBody では getValuesForRender が返した値を使ってレンダリングする。
+      getValuesForRender: row => [row.quantity],
+      renderBody: ({ deps: [quantity] }) => <span>{quantity}</span>,
+
+      // フッタセルの描画。
+      // 配列を渡すと上から1段ずつ描画される。段が足りない列のフッタは空のセルになる。
+      renderFooter: [
+        () => <span>{sum(rowsRef.current, row => row.quantity)}</span>,
+        () => <span>{average(rowsRef.current, row => row.quantity)}</span>,
+      ],
+    }),
+  ], [rowsRef])
+
   <EditableGrid2
-    columns={[
-      col.leaf({
-        columnId: "name",
-
-        // ヘッダの描画。
-        // 高さは1行分で固定されており、縦幅が自由に伸縮したりはしない。
-        renderHeader: () => <span>商品名</span>,
-
-        // セルの再レンダリング判定、兼、ボディセルの描画に使う値の抽出
-        getValuesForRender: row => [row.name],
-
-        // ボディセルの描画。
-        // getValuesForRender で返された値のみ参照可能。
-        renderBody: ({ deps: [name] }) => <span>{name}</span>,
-      }),
-    ]}
+    columns={columns}
   />
 `} />
 
 <Canvas
-  of={ColumnsStories.ヘッダとセルの描画}
+  of={ColumnsStories.セルの描画}
   layout="fullscreen"
-  source={{ language: "tsx", code: CellRenderingExampleTsx }}
+  source={{ language: "tsx", code: RenderingExampleTsx }}
 />
 
 ### セルが描画し直される条件
@@ -88,14 +99,8 @@ import Link from "../Link"
   ], [includeTax]) // 列定義の中で参照している外側の値
 `} />
 
-下のデモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
+上のデモの「金額」列は、グリッドの外側のチェックボックスの state `includeTax` に依存しています。
 ヘッダと金額の両方が切り替わるのは、`columns` の参照が変わって両方が描画し直されているからです。
-
-<Canvas
-  of={ColumnsStories.外側の値への依存}
-  layout="fullscreen"
-  source={{ language: "tsx", code: OuterValueExampleTsx }}
-/>
 
 ## ボタンやチェックボックスを置く場合の注意点
 
