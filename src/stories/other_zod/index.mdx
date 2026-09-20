@@ -1,0 +1,78 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as ZodStories from "./index.stories"
+import ZodStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={ZodStories} />
+
+# zod との統合
+
+`zod` などのスキーマ検証ライブラリを使う場合も、グリッド側に専用の仕組みはありません。
+スキーマの検証結果を「列ID → メッセージ」の形に変換し、`getValuesForRender` の戻り値に含めるだけです。
+エラーをセルまで届けて表示する方法そのものは <Link to="編集/セル単位のエラー表示">セル単位のエラー表示</Link> を参照してください。
+
+<Canvas
+  of={ZodStories.zodとの統合}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ZodStoriesTsx }}
+/>
+
+## 検証結果を列に振り分ける
+
+スキーマのプロパティ名を列IDと一致させておくと、`issue.path[0]` がそのまま列IDになります。
+
+<Source language="ts" code={`
+  const rowSchema = z.object({
+    name: z.string().min(1, "商品名を入力してください。"),
+    quantity: z.number("数量を入力してください。").int().positive("数量は1以上で入力してください。"),
+  })
+
+  function validateRow(row: Row): Partial<Record<string, string>> {
+    const result = rowSchema.safeParse(row)
+    if (result.success) return {}
+
+    const errors: Partial<Record<string, string>> = {}
+    for (const issue of result.error.issues) {
+      const columnId = String(issue.path[0])
+      errors[columnId] ??= issue.message // 同じ項目に複数の指摘がある場合は先頭だけ表示する
+    }
+    return errors
+  }
+`} />
+
+セルエディタとクリップボードから `textToCell` に渡ってくるのは常に文字列です。
+`textToCell` の中で行の型に合わせて変換しておけば、スキーマは行オブジェクトをそのまま検証できます。
+
+## 編集していないセルまでエラーになる場合
+
+zod はオブジェクト単位で検証するため、セルを1つ編集するたびに行全体を `safeParse` すると、
+まだ触っていない未入力のセルにもエラーが付きます。
+`onRowsChange` の `changedColumnIds` で変わった列を絞り、`shape` から列のスキーマだけを取り出して検証してください。
+
+<Source language="ts" code={`
+  const result = rowSchema.shape[columnId].safeParse(row[columnId])
+  const message = result.success ? undefined : result.error.issues[0].message
+`} />
+
+行全体にかけるのは、画面初期表示時や送信時など、未入力のセルにもエラーを付けたいタイミングだけにします。
+
+## 検証がセルの数だけ実行されてしまう場合
+
+`getValuesForRender` は描画中のセルの数だけ呼ばれるため、その中で `safeParse` すると
+1回の再描画で行数×列数回の検証が走ります。
+上記デモのように検証結果を state に保持するか、行オブジェクトをキーにしてキャッシュしてください。
+
+<Source language="ts" code={`
+  // textToCell が行のディープクローンを返す（＝値が変わると別のオブジェクトになる）ことを利用して、
+  // 値が変わっていない行の検証結果を使い回す。
+  const cache = new WeakMap<Row, Partial<Record<string, string>>>()
+
+  function validateRowCached(row: Row) {
+    let result = cache.get(row)
+    if (!result) {
+      result = validateRow(row)
+      cache.set(row, result)
+    }
+    return result
+  }
+`} />

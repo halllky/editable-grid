@@ -62,3 +62,20 @@ React Hook Form の `useFieldArray` で行データを管理する場合の繋�
 
 上記のとおり `subscribe` を渡してあれば、グリッドの外からの `setValue` も、
 `renderBody` の中に置いたチェックボックスなどからの `setValue` も、`onRowsChange` を経由せずそのままセルに反映されます。
+
+## バリデーションエラーが変わっても表示が変わらない場合
+
+`formState: { values: true }` は値の変化だけを通知します。
+`resolver` や `register` による検証結果（`formState.errors`）は値ではないため、
+エラーが付いたり消えたりしてもグリッドには通知されず、エラーを表示しているセルが古いままになります。
+同じ `subscribe` の `formState` に `errors: true` を足してください。
+
+<Source language="tsx" code={`
+  subscribe({
+    name: "rows",
+    formState: { values: true, errors: true },
+    callback: onChange,
+  })
+`} />
+
+エラーをセルに表示する方法は <Link to="編集/セル単位のエラー表示">セル単位のエラー表示</Link> を参照してください。
