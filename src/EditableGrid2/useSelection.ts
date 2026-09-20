@@ -1,7 +1,7 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import { GridCell, GridColumn, GridTable } from "./types-internal"
-import { EditableGrid2Props } from "./types-public"
+import { EditableGrid2Props, EditableGrid2SelectRowOptions } from "./types-public"
 import { ScrollToCellFunction } from "./useScrollToCell"
 
 /**
@@ -239,10 +239,16 @@ export function useSelection<TRow>(
   const selectRowRef = React.useRef(selectRange)
   selectRowRef.current = selectRange
 
-  const selectRow = React.useCallback((startRow: number, endRow: number) => {
+  const scrollToFocusedCellRef = React.useRef(scrollToFocusedCell)
+  scrollToFocusedCellRef.current = scrollToFocusedCell
+
+  const selectRow = React.useCallback((startRow: number, endRow: number, options?: EditableGrid2SelectRowOptions) => {
     selectRowRef.current(
       { rowIndex: endRow, colIndex: Number.MAX_SAFE_INTEGER },
       { rowIndex: startRow, colIndex: 0 })
+
+    // 選択した行が見えるようスクロールする（選択範囲の始点の側のセルに合わせる）
+    if (!options?.preventScroll) scrollToFocusedCellRef.current()
   }, [])
 
   const setSelectionRange = React.useCallback((range: CellSelectionRange) => {

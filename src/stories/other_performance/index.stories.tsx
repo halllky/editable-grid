@@ -44,10 +44,6 @@ function PerformanceExample() {
 
   const gridRef = React.useRef<EG2.EditableGrid2Ref<PerfRow>>(null)
 
-  // 行追加時に末尾へスクロールするために、グリッドのスクロールコンテナを引くための ref。
-  // display: contents のラッパなので、レイアウトには影響しない。
-  const gridContainerRef = React.useRef<HTMLDivElement>(null)
-
   //#region 所要時間の計測
 
   const [lastOperation, setLastOperation] = React.useState<{ label: string, ms: number }>()
@@ -127,15 +123,9 @@ function PerformanceExample() {
     setRowKeys(store.getRowKeys())
 
     // 行数が増えたことがグリッドに反映された後でないと選択位置がクランプされてしまうため、
-    // 次のフレームで選択する。
+    // 次のフレームで選択する。選択と同時に、追加した行が見えるところまでスクロールされる。
     requestAnimationFrame(() => {
       gridRef.current?.selectRow(addedRowIndex, addedRowIndex)
-
-      // ref API の selectRow() は選択セルを変えるだけでスクロールは行わない
-      // （自動スクロールはキー操作によるセル移動のときだけ働く）ため、
-      // 追加した行が見えるよう、スクロール位置は自前で末尾へ動かす。
-      const scrollContainer = gridContainerRef.current?.querySelector(".halllky-eg2-root")
-      scrollContainer?.scrollTo({ top: scrollContainer.scrollHeight })
     })
   })
 
@@ -386,19 +376,17 @@ function PerformanceExample() {
         </span>
       </div>
 
-      <div ref={gridContainerRef} className="contents">
-        <EG2.EditableGrid2
-          ref={gridRef}
-          rowKeys={rowKeys}
-          getLatestRowObject={getLatestRowObject}
-          subscribe={store.subscribe}
-          onRowsChange={handleRowsChange}
-          columns={columns}
-          showCheckBox
-          striped
-          className="h-[32rem] border border-gray-500 resize-y"
-        />
-      </div>
+      <EG2.EditableGrid2
+        ref={gridRef}
+        rowKeys={rowKeys}
+        getLatestRowObject={getLatestRowObject}
+        subscribe={store.subscribe}
+        onRowsChange={handleRowsChange}
+        columns={columns}
+        showCheckBox
+        striped
+        className="h-[32rem] border border-gray-500 resize-y"
+      />
     </div>
   )
 }

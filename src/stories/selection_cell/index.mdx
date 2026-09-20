@@ -108,8 +108,9 @@ EditableGrid2 は、Excel のようなマウス・キーボードによるセル
 * `getSelectedRows()`
   * 選択範囲に含まれる行を `{ row, rowIndex }` の配列で返します。何も選択されていなければ空配列です。
   * 行頭のチェックボックスで選択された行ではない点に注意してください（そちらは `getCheckedRows()` で取得します）。
-* `selectRow(startRowIndex, endRowIndex)`
+* `selectRow(startRowIndex, endRowIndex, options?)`
   * 指定した範囲の行を、全列にわたって選択します。
+  * 選択した行が表示範囲の外にあればスクロールして表示します。`options` に `{ preventScroll: true }` を渡すとスクロールしません。
 * `isEditing`
   * セル編集中かどうか。
 

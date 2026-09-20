@@ -156,8 +156,19 @@ export type EditableGrid2Ref<TRow> = {
   getSelectedRows: () => { row: TRow, rowIndex: number }[]
   /** 行頭のチェックボックスで選択されている行を取得する。チェックボックスが表示されていない行は含まれない。 */
   getCheckedRows: () => { row: TRow, rowIndex: number }[]
-  /** 指定した範囲の行を選択する */
-  selectRow: (startRowIndex: number, endRowIndex: number) => void
+  /**
+   * 指定した範囲の行を選択する。
+   * 選択した行が表示範囲の外にある場合は、その行が見えるようスクロールする。
+   */
+  selectRow: (startRowIndex: number, endRowIndex: number, options?: EditableGrid2SelectRowOptions) => void
+}
+
+/**
+ * EditableGrid2Ref.selectRow のオプション
+ */
+export type EditableGrid2SelectRowOptions = {
+  /** true の場合、選択した行を見えるようにするためのスクロールを行わない。 */
+  preventScroll?: boolean
 }
 
 //#endregion グリッド
