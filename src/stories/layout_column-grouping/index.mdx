@@ -1,0 +1,34 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as ColumnGroupStories from "./index.stories"
+import ColumnGroupExampleTsx from "./ColumnGroupExample.tsx?raw"
+
+<Meta of={ColumnGroupStories} />
+
+# 多段列ヘッダ
+
+`col.group` で複数の列をまとめ、上段に共通の見出しを付けられます。グループの中にグループを入れることはできません。
+
+<Source language="tsx" code={`
+  <EditableGrid2
+    columns={[
+      col.group({
+        columnId: "price", // グループ列のIDも、他のグループ列・通常の列のIDと重複してはいけない
+        renderHeader: () => <span>価格</span>,
+        columns: [
+          col.leaf({ columnId: "unitPrice", ... }),
+          col.leaf({ columnId: "quantity", ... }),
+        ],
+      }),
+    ]}
+  />
+`} />
+
+グループ列が1つでもあると、ヘッダは2段になります。
+グループに属さない列では、`renderHeader` の内容が上段に表示され、下段は空欄になります。
+下段に何か表示したい場合は `renderHeaderPlaceholder` を指定してください。
+
+<Canvas
+  of={ColumnGroupStories.多段列ヘッダ}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ColumnGroupExampleTsx }}
+/>

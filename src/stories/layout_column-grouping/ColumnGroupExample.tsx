@@ -5,7 +5,7 @@ import * as EG2 from "../../EditableGrid2"
 const col = EG2.createColumnHelper<Row>()
 
 /**
- * グルーピングの実演画面。
+ * 多段列ヘッダの実演画面。
  */
 export function ColumnGroupExample() {
 

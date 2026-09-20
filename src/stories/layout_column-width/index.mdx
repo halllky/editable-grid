@@ -1,0 +1,21 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks"
+import * as ColumnWidthStories from "./index.stories"
+import ColumnWidthExampleTsx from "./ColumnWidthExample.tsx?raw"
+
+<Meta of={ColumnWidthStories} />
+
+# 列幅
+
+`defaultWidth` で初期表示時の列幅を px で指定します。省略時は固定値が用いられます。
+
+ユーザーはヘッダの右端をドラッグして列幅を変更できます。
+変更させたくない列には `disableResizing: true` を指定してください。
+
+ユーザーが一度幅を変更した列では、その後 `defaultWidth` を変えても列幅は変わりません。
+ユーザーが変更した幅は `columnId` ごとにグリッド内部で保持され、グリッドがアンマウントされると失われます。
+
+<Canvas
+  of={ColumnWidthStories.列幅}
+  layout="fullscreen"
+  source={{ language: "tsx", code: ColumnWidthExampleTsx }}
+/>

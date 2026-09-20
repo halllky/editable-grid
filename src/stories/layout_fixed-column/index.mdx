@@ -1,0 +1,21 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks"
+import * as FixedColumnStories from "./index.stories"
+import FixedColumnExampleTsx from "./FixedColumnExample.tsx?raw"
+
+<Meta of={FixedColumnStories} />
+
+# 列固定
+
+`isFixed: true` を指定した列は、横スクロールしても左端に固定されます。
+
+固定列は常に左端から連続します。
+左から `true`, `false`, `true` のように指定した場合、最後に `true` を指定した列より左の列はすべて固定されます。
+下のデモの「商品コード」列は `isFixed` を指定していませんが、右隣の「商品名」列が固定のため固定されています。
+
+`showCheckBox` で表示される行選択のチェックボックス列は、`isFixed` の指定に関わらず常に固定されます。
+
+<Canvas
+  of={FixedColumnStories.列固定}
+  layout="fullscreen"
+  source={{ language: "tsx", code: FixedColumnExampleTsx }}
+/>

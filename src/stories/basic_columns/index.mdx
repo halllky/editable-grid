@@ -3,9 +3,6 @@ import * as ColumnsStories from "./index.stories"
 import CellRenderingExampleTsx from "./CellRenderingExample.tsx?raw"
 import CellButtonExampleTsx from "./CellButtonExample.tsx?raw"
 import OuterValueExampleTsx from "./OuterValueExample.tsx?raw"
-import FixedColumnExampleTsx from "./FixedColumnExample.tsx?raw"
-import ColumnGroupExampleTsx from "./ColumnGroupExample.tsx?raw"
-import ColumnWidthExampleTsx from "./ColumnWidthExample.tsx?raw"
 import Link from "../Link"
 
 <Meta of={ColumnsStories} />
@@ -122,71 +119,3 @@ import Link from "../Link"
   layout="fullscreen"
   source={{ language: "tsx", code: CellButtonExampleTsx }}
 />
-
-## 列固定
-
-`isFixed: true` を指定した列は、横スクロールしても左端に固定されます。
-
-固定列は常に左端から連続します。
-左から `true`, `false`, `true` のように指定した場合、最後に `true` を指定した列より左の列はすべて固定されます。
-下のデモの「商品コード」列は `isFixed` を指定していませんが、右隣の「商品名」列が固定のため固定されています。
-
-`showCheckBox` で表示される行選択のチェックボックス列は、`isFixed` の指定に関わらず常に固定されます。
-
-<Canvas
-  of={ColumnsStories.列固定}
-  layout="fullscreen"
-  source={{ language: "tsx", code: FixedColumnExampleTsx }}
-/>
-
-## グルーピング
-
-`col.group` で複数の列をまとめ、上段に共通の見出しを付けられます。グループの中にグループを入れることはできません。
-
-<Source language="tsx" code={`
-  <EditableGrid2
-    columns={[
-      col.group({
-        columnId: "price", // グループ列のIDも、他のグループ列・通常の列のIDと重複してはいけない
-        renderHeader: () => <span>価格</span>,
-        columns: [
-          col.leaf({ columnId: "unitPrice", ... }),
-          col.leaf({ columnId: "quantity", ... }),
-        ],
-      }),
-    ]}
-  />
-`} />
-
-グループ列が1つでもあると、ヘッダは2段になります。
-グループに属さない列では、`renderHeader` の内容が上段に表示され、下段は空欄になります。
-下段に何か表示したい場合は `renderHeaderPlaceholder` を指定してください。
-
-<Canvas
-  of={ColumnsStories.グルーピング}
-  layout="fullscreen"
-  source={{ language: "tsx", code: ColumnGroupExampleTsx }}
-/>
-
-## 列幅
-
-`defaultWidth` で初期表示時の列幅を px で指定します。省略時は固定値が用いられます。
-
-ユーザーはヘッダの右端をドラッグして列幅を変更できます。
-変更させたくない列には `disableResizing: true` を指定してください。
-
-ユーザーが一度幅を変更した列では、その後 `defaultWidth` を変えても列幅は変わりません。
-ユーザーが変更した幅は `columnId` ごとにグリッド内部で保持され、グリッドがアンマウントされると失われます。
-
-<Canvas
-  of={ColumnsStories.列幅}
-  layout="fullscreen"
-  source={{ language: "tsx", code: ColumnWidthExampleTsx }}
-/>
-
-## セルの編集、コピーペースト
-
-別ページに記載しています。
-
-* <Link to="編集/セルエディタ">セルエディタ</Link>
-* <Link to="編集/コピー＆ペースト">コピー＆ペースト</Link>

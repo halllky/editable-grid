@@ -2,9 +2,6 @@ import { Meta, StoryObj } from "@storybook/react-vite"
 import { CellRenderingExample } from "./CellRenderingExample"
 import { CellButtonExample } from "./CellButtonExample"
 import { OuterValueExample } from "./OuterValueExample"
-import { FixedColumnExample } from "./FixedColumnExample"
-import { ColumnGroupExample } from "./ColumnGroupExample"
-import { ColumnWidthExample } from "./ColumnWidthExample"
 
 const storybookSetting: Meta = {
   title: "基本の使い方/列定義",
@@ -16,6 +13,3 @@ export default storybookSetting
 export const ヘッダとセルの描画: StoryObj = { render: () => <CellRenderingExample /> }
 export const セル内のボタン: StoryObj = { render: () => <CellButtonExample /> }
 export const 外側の値への依存: StoryObj = { render: () => <OuterValueExample /> }
-export const 列固定: StoryObj = { render: () => <FixedColumnExample /> }
-export const グルーピング: StoryObj = { render: () => <ColumnGroupExample /> }
-export const 列幅: StoryObj = { render: () => <ColumnWidthExample /> }
