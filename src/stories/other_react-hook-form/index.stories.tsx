@@ -24,9 +24,10 @@ function getDefaultValues(): TestRow[] {
  */
 function ReactHookFormExample() {
 
-  const { control, setValue, getValues, subscribe } = ReactHookForm.useForm<{ rows: TestRow[] }>({
+  const useFormReturn = ReactHookForm.useForm<{ rows: TestRow[] }>({
     defaultValues: { rows: getDefaultValues() },
   })
+  const { control, setValue, getValues, subscribe } = useFormReturn
   const { fields, append } = ReactHookForm.useFieldArray({ name: "rows", control })
 
   // 行のキー。useFieldArray が行ごとに振る id は行が動いても変わらないため、そのまま使える。
@@ -72,35 +73,68 @@ function ReactHookFormExample() {
   })], [])
 
   return (
-    <div className="flex flex-col items-start gap-2 p-2">
-      <div className="flex gap-2">
-        <button type="button"
-          onClick={() => append({ name: "", quantity: undefined })}
-          className="px-2 py-1 text-sm border border-gray-500 cursor-pointer"
-        >
-          行を追加する
-        </button>
-        <button type="button"
-          onClick={() => setValue("rows.0.quantity", (getValues("rows.0.quantity") ?? 0) + 1)}
-          className="px-2 py-1 text-sm border border-gray-500 cursor-pointer"
-        >
-          1行目の数量を1つ増やす（※1）
-        </button>
+    // グリッドの値変更を別のコンポーネントでリアルタイムで検知できることを
+    // 確認するため FormProvider で値を受け渡しする
+    <ReactHookForm.FormProvider {...useFormReturn}>
+      <div className="flex flex-wrap gap-2">
+
+        {/* グリッド */}
+        <div className="max-w-96 flex flex-col items-start gap-2 p-2">
+          <div className="flex gap-2">
+            <button type="button"
+              onClick={() => append({ name: "", quantity: undefined })}
+              className="px-2 py-1 text-sm border border-gray-500 cursor-pointer"
+            >
+              行を追加する
+            </button>
+            <button type="button"
+              onClick={() => setValue("rows.0.quantity", (getValues("rows.0.quantity") ?? 0) + 1)}
+              className="px-2 py-1 text-sm border border-gray-500 cursor-pointer"
+            >
+              1行目の数量を1つ増やす（※1）
+            </button>
+          </div>
+
+          <ul className="text-sm mb-2">
+            <li>※1 グリッドの外からの setValue が subscribe 経由でセルに反映されることの確認</li>
+          </ul>
+
+          <EG2.EditableGrid2
+            rowKeys={rowKeys}
+            getLatestRowObject={getLatestRowObject}
+            subscribe={subscribeRows}
+            onRowsChange={handleRowsChange}
+            columns={columns}
+            className="border border-gray-500"
+          />
+        </div>
+
+        {/* プレビュー欄 */}
+        <div className="flex flex-col w-md">
+          <span className="text-sm">
+            この欄は (UseFormReturn).watch で最新の値を監視しています。
+            グリッドを編集するとその変更が useForm の状態経由でリアルタイムに反映されます。
+          </span>
+          <WatchPreview />
+        </div>
       </div>
+    </ReactHookForm.FormProvider>
+  )
+}
 
-      <EG2.EditableGrid2
-        rowKeys={rowKeys}
-        getLatestRowObject={getLatestRowObject}
-        subscribe={subscribeRows}
-        onRowsChange={handleRowsChange}
-        columns={columns}
-        className="border border-gray-500"
-      />
+// グリッドの編集がリアルタイムで watch で検出できることの確認用
+function WatchPreview() {
+  const { watch } = ReactHookForm.useFormContext()
+  const currentValues = watch()
 
-      <ul className="text-sm list-disc ps-5">
-        <li>※1 グリッドの外からの setValue が subscribe 経由でセルに反映されることを示しています。</li>
-      </ul>
-    </div>
+  console.log("WatchPreview の再レンダリングが発生しました。")
+
+  return (
+    <textarea
+      value={JSON.stringify(currentValues, undefined, "  ")}
+      readOnly
+      className="h-96 resize-none border border-gray-500 outline-none text-xs font-mono"
+    ></textarea>
   )
 }
 
