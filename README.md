@@ -63,7 +63,66 @@ npm run tsc       # 型チェックのみ
 
 ## Release
 
-1. `src/` を修正
-2. `package.json` の version を上げる
-3. commit / tag (`git tag vX.Y.Z`) / push (`git push && git push --tags`)
-4. 利用側の package.json の依存を `#vX.Y.Z` に更新して `npm install`
+リリースは人間が手作業で行う。以下の手順で実施すること。
+
+### 1. リリース前の確認
+
+作業ブランチで以下がすべて通ることを確認する。
+
+```
+npm run tsc             # 型チェック
+npm run build           # dist が生成できること
+npm run build-storybook # Storybook がビルドできること
+```
+
+破壊的変更がある場合は、`src/stories/**/index.mdx` のドキュメントと
+`*.stories.tsx` のデモが新しい API に追従しているかを確認する。
+
+### 2. バージョンを上げる
+
+`package.json` の `version` を更新する（semver）。
+[ドキュメントのインストール手順](./src/stories/introduction/index.mdx) の番号も更新する。
+
+- パッチ: 後方互換のバグ修正
+- マイナー: 後方互換の機能追加
+- メジャー: 破壊的変更
+
+### 3. main へマージ
+
+作業ブランチを `main` にマージする。
+`main` への push をトリガーに Storybook が GitHub Pages へ自動デプロイされる
+(`.github/workflows/deploy-storybook.yml`)。
+
+### 4. タグを打って push
+
+```
+git tag vX.Y.Z
+git push && git push --tags
+```
+
+このリポジトリは npm レジストリに publish せず、Git のタグを参照して
+インストールする運用のため、**タグが実質的なリリース成果物**となる。
+タグを打ち忘れると利用側がそのバージョンを取得できない。
+
+### 5. デプロイ結果の確認
+
+- GitHub の Actions タブで `Deploy Storybook to GitHub Pages` が成功していること
+- https://halllky.github.io/react-editable-grid/ が更新されていること
+
+### 6. 利用側の更新
+
+利用側の `package.json` の依存を `#vX.Y.Z` に更新して `npm install`。
+
+## Storybook の公開
+
+`main` ブランチへの push で Storybook が GitHub Pages に自動デプロイされる。
+
+- 公開 URL: https://halllky.github.io/react-editable-grid/
+- ワークフロー: `.github/workflows/deploy-storybook.yml`
+- 手動実行したい場合は Actions タブから `Run workflow`
+
+初回のみリポジトリ側の設定が必要:
+Settings > Pages > Build and deployment > Source を **GitHub Actions** に変更する。
+
+なお `src/stories_only-dev/` 配下（開発時だけの実験用ページ）は
+`storybook build` の対象外のため、公開される Storybook には含まれない。

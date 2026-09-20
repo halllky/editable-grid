@@ -1,0 +1,56 @@
+# Storybook をビルドして GitHub Pages に公開する。
+# リポジトリの Settings > Pages > Build and deployment > Source を
+# "GitHub Actions" に設定しておくこと。
+name: Deploy Storybook to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  # 手動実行も可能にしておく
+  workflow_dispatch:
+
+# GITHUB_TOKEN に Pages へのデプロイ権限を与える
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行は1つに絞る。実行中のデプロイはキャンセルしない。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall(prepare)で dist のビルドも走る
+      - run: npm ci
+
+      - run: npm run tsc
+
+      - run: npm run build-storybook
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: storybook-static
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
