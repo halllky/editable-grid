@@ -1,0 +1,121 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as RowOperationStories from "./index.stories"
+import RowOperationStoriesTsx from "./index.stories.tsx?raw"
+import Link from "../Link"
+
+<Meta of={RowOperationStories} />
+
+# 行の追加・削除・並べ替え
+
+行を追加・削除・並べ替えのための専用機能はなく、基本的な機能を組み合わせて実装します。
+行データの配列を持っているのは利用側であるため、配列の操作も利用側で行い、結果を `rowKeys` に反映してください。
+
+## 対象の行を決める
+
+* セル選択範囲に含まれる行を対象とする場合は `ref` の `getSelectedRows()` で範囲をとれるのでこれを使ってください。
+* 行頭のチェックボックスでの選択を使う場合は `ref` の `getCheckedRows()` を使ってください。
+
+<Source language="tsx" code={`
+  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+
+  const removeSelectedRows = () => {
+    const selectedRows = gridRef.current?.getSelectedRows() ?? []
+    const removedRowIndexes = new Set(selectedRows.map(({ rowIndex }) => rowIndex))
+    setRows(prev => prev.filter((_, rowIndex) => !removedRowIndexes.has(rowIndex)))
+  }
+`} />
+
+`clearSelectionOnBlur` を指定している場合、グリッドの外のボタンを押した時点で選択が解除されるため、
+`getSelectedRows()` は空配列を返します。ボタンから行を操作する画面ではこの指定を避けてください。
+
+## ボタンから操作する
+
+以下のデモでは、選択している行の下に1行追加し、選択範囲の行を削除・移動します。
+
+<Canvas
+  of={RowOperationStories.ボタンで操作する}
+  layout="fullscreen"
+  source={{ language: "tsx", code: RowOperationStoriesTsx }}
+/>
+
+## キーボードから操作する
+
+列定義の `onCellKeyDown` でキー入力を受け取れます。
+セル編集中は呼ばれないため、編集中のキー入力を妨げることはありません。
+詳細は <Link to="選択/セル選択">セル選択</Link> を参照してください。
+
+`onCellKeyDown` は列ごとの指定です。
+どの列を選択していても同じキーで操作できるようにするには、同じハンドラをすべての列に渡してください。
+
+<Source language="tsx" code={`
+  const handleCellKeyDown = React.useCallback(({ event }) => {
+    const ctrl = event.ctrlKey || event.metaKey
+    if (ctrl && event.key === "Enter") {
+      addRow()
+      event.preventDefault()
+    } else if (ctrl && event.key === "Delete") {
+      removeSelectedRows()
+      event.preventDefault() // 呼ばないと、削除に加えてセルのクリアも実行される
+    }
+  }, [addRow, removeSelectedRows])
+
+  const columns = React.useMemo(() => [
+    col.leaf({ columnId: "name", onCellKeyDown, ... }),
+    col.leaf({ columnId: "quantity", onCellKeyDown, ... }),
+  ], [onCellKeyDown])
+`} />
+
+`Delete` にはセルのクリア、矢印キーにはセルの移動という既定の動作があります。
+これらのキーに行の操作を割り当てる場合は `event.preventDefault()` を呼んで、既定の動作を止めてください。
+
+<Canvas
+  of={RowOperationStories.キーボードで操作する}
+  layout="fullscreen"
+  source={{ language: "tsx", code: RowOperationStoriesTsx }}
+/>
+
+## 行のキーの決め方
+
+`rowKeys` の要素は、その行を識別する値です。行インデックスを使ってはいけません。
+
+* 追加した行には、既存のどの行とも重複しない新しいキーを割り当ててください。
+  重複したキーがあると、グリッドはそれらを同じ行として扱います。
+* 並べ替えや削除では、残る行のキーを作り直さないでください。
+  キーが変わると、グリッドはその行を「元の行が消えて別の行が増えた」ものとして扱うため、
+  セルの選択状態や行頭のチェック状態がその行から外れます。
+
+行オブジェクトの入れ替えではなく移動として実装すれば、この条件は自然に満たされます。
+
+<Source language="tsx" code={`
+  // 選択範囲の行を1行分だけ上または下へ動かす
+  const next = [...prev]
+  const movedRows = next.splice(start, count)
+  next.splice(start + offset, 0, ...movedRows)
+`} />
+
+React Hook Form の `useFieldArray` を使う場合は、`fields` の `id` をそのままキーにできます。
+`append` / `remove` / `move` で行を操作すれば、`id` は行に付いたまま動きます。
+詳細は <Link to="その他/react-hook-form との統合">react-hook-form との統合</Link> を参照してください。
+
+## 追加・削除した行を選択する
+
+行を追加しても、選択は動きません。追加した行から入力を始められるようにするには、`selectRow()` で選択します。
+
+このとき、`selectRow()` は `rowKeys` が新しくなった後に呼んでください。
+配列を更新した直後に呼んでも、グリッドはまだ古い `rowKeys` のままで、範囲外の行インデックスは既存の行の位置に丸められます。
+
+<Source language="tsx" code={`
+  // 選択したい行インデックスを予約しておき、rowKeys に反映された後で選択する
+  const [rowIndexToSelect, setRowIndexToSelect] = React.useState<number>()
+  React.useEffect(() => {
+    if (rowIndexToSelect === undefined) return
+    gridRef.current?.selectRow(rowIndexToSelect, rowIndexToSelect)
+    setRowIndexToSelect(undefined)
+  }, [rowIndexToSelect, rows])
+`} />
+
+削除した行は選択できないため、削除後は、その位置に繰り上がってきた行を選択してください。
+選択していた行が無くなったままだと、次に矢印キーを押したときに先頭のセルから選択が始まります。
+
+`selectRow()` はスクロールを伴いません。
+表示範囲の外にある行を選択した場合、その行は選択されますが画面には映りません。
