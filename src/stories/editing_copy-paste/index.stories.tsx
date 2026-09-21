@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, EditableGridRowUpdate, createColumnHelper } from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellEditor"
@@ -12,7 +12,7 @@ const NoteEditor = createTextCellEditor(true)
 const CategoryEditor = createSelectCellEditor(["食品", "日用品", "その他"] satisfies TestRow["category"][])
 
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
-const col = EG2.createColumnHelper<TestRow>()
+const col = createColumnHelper<TestRow>()
 
 /**
  * コピー＆ペースト実演画面。
@@ -39,11 +39,11 @@ function CopyPasteExample() {
 
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する。
   // 何セル貼り付けても、1回の貼り付けにつき1回、変更のあった行だけがまとめて渡される。
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
-  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "name",
     // 商品名 エディタ用設定 ここから
     // もっとも基本的なコピペ対象列。
@@ -144,7 +144,7 @@ function CopyPasteExample() {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <EG2.EditableGrid
+      <EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         subscribe={subscribeRows}

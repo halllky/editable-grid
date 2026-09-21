@@ -1,5 +1,5 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, EditableGridLeafColumn, EditableGridRef, EditableGridRowUpdate, createColumnHelper } from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -17,7 +17,7 @@ type TestRow = {
  */
 function ButtonExample() {
 
-  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
+  const gridRef = React.useRef<EditableGridRef<TestRow>>(null)
   const { rowKeys, getLatestRowObject, handleRowsChange, addRow, removeSelectedRows, moveSelectedRows } = useRowOperations(gridRef)
   const columns = useColumns()
 
@@ -38,7 +38,7 @@ function ButtonExample() {
         </button>
       </div>
 
-      <EG2.EditableGrid
+      <EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
@@ -56,10 +56,10 @@ function ButtonExample() {
  */
 function KeyboardExample() {
 
-  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
+  const gridRef = React.useRef<EditableGridRef<TestRow>>(null)
   const { rowKeys, getLatestRowObject, handleRowsChange, addRow, removeSelectedRows, moveSelectedRows } = useRowOperations(gridRef)
 
-  const handleCellKeyDown = React.useCallback<NonNullable<EG2.EditableGridLeafColumn<TestRow>["onCellKeyDown"]>>(({ event }) => {
+  const handleCellKeyDown = React.useCallback<NonNullable<EditableGridLeafColumn<TestRow>["onCellKeyDown"]>>(({ event }) => {
     const ctrl = event.ctrlKey || event.metaKey
 
     if (ctrl && event.key === "Enter") {
@@ -84,7 +84,7 @@ function KeyboardExample() {
         Ctrl + Enter で行を追加、Ctrl + Delete で選択行を削除、Alt + ↑ / Alt + ↓ で選択行を移動します。
       </span>
 
-      <EG2.EditableGrid
+      <EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
@@ -100,7 +100,7 @@ function KeyboardExample() {
  * 行の追加・削除・並べ替えの実装。このページの2つのデモで共有している。
  * グリッドは操作の対象になる行を答えるだけで、行の増減・並べ替えは行データの持ち主の側で行う。
  */
-function useRowOperations(gridRef: React.RefObject<EG2.EditableGridRef<TestRow> | null>) {
+function useRowOperations(gridRef: React.RefObject<EditableGridRef<TestRow> | null>) {
 
   // 大元のデータ配列
   const [rows, setRows] = React.useState<TestRow[]>(getDefaultValues)
@@ -115,7 +115,7 @@ function useRowOperations(gridRef: React.RefObject<EG2.EditableGridRef<TestRow> 
   const rowsRef = React.useRef(rows)
   rowsRef.current = rows
 
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EditableGridRowUpdate<TestRow>[]) => {
     setRows(prev => {
       const next = [...prev]
       for (const { rowIndex, row } of updates) next[rowIndex] = row
@@ -185,8 +185,8 @@ function useRowOperations(gridRef: React.RefObject<EG2.EditableGridRef<TestRow> 
  * 列定義。このページの2つのデモで共有している。
  * キー操作は列ごとに指定するため、引数のハンドラを全列に渡している。
  */
-function useColumns(onCellKeyDown?: EG2.EditableGridLeafColumn<TestRow>["onCellKeyDown"]) {
-  return React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [
+function useColumns(onCellKeyDown?: EditableGridLeafColumn<TestRow>["onCellKeyDown"]) {
+  return React.useMemo((): EditableGridColumn<TestRow>[] => [
     col.leaf({
       columnId: "id",
       isReadOnly: true,
@@ -251,7 +251,7 @@ function getDefaultValues(): TestRow[] {
 const TextEditor = createTextCellEditor(false)
 
 // 列定義の型推論の補助
-const col = EG2.createColumnHelper<TestRow>()
+const col = createColumnHelper<TestRow>()
 
 /** セルの基本的スタイルを施したもの */
 function CellText(props: { children?: React.ReactNode }) {

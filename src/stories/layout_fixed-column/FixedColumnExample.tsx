@@ -1,8 +1,8 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, createColumnHelper } from "../../EditableGrid"
 
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
-const col = EG2.createColumnHelper<Row>()
+const col = createColumnHelper<Row>()
 
 /**
  * 列固定の実演画面。
@@ -17,7 +17,7 @@ export function FixedColumnExample() {
   const rowKeys = React.useMemo(() => rows.map(row => row.id), [rows])
   const getLatestRowObject = React.useCallback((index: number) => rows[index], [rows])
 
-  const columns = React.useMemo((): EG2.EditableGridColumn<Row>[] => [col.leaf({
+  const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     // isFixed を指定していないが、右隣の商品名列が固定のため固定される（※1）
     columnId: "code",
     renderHeader: () => <CellText>商品コード（※1）</CellText>,
@@ -53,7 +53,7 @@ export function FixedColumnExample() {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <EG2.EditableGrid
+      <EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         columns={columns}

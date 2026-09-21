@@ -1,5 +1,5 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, EditableGridGroupColumn, EditableGridRef, EditableGridRowUpdate, createColumnHelper } from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 import { createInitialRows, MONTH_COUNT, PerfDataStore, PerfRow } from "./perfDataStore"
@@ -12,7 +12,7 @@ const ROW_COUNT = 10000
 const TextEditor = createTextCellEditor(false)
 
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
-const col = EG2.createColumnHelper<PerfRow>()
+const col = createColumnHelper<PerfRow>()
 
 /**
  * パフォーマンス実演画面。
@@ -42,7 +42,7 @@ function PerformanceExample() {
 
   const getLatestRowObject = React.useCallback((index: number) => store.getRowAt(index), [store])
 
-  const gridRef = React.useRef<EG2.EditableGridRef<PerfRow>>(null)
+  const gridRef = React.useRef<EditableGridRef<PerfRow>>(null)
 
   //#region 所要時間の計測
 
@@ -109,7 +109,7 @@ function PerformanceExample() {
    * セル編集・貼り付け・Delete による変更。1回の操作につき1回、変更のあった行がまとめて渡される。
    * （所要時間の表示はしない。表示のための state 更新でこの画面全体が再描画されてしまうため）
    */
-  const handleRowsChange = (updates: EG2.EditableGridRowUpdate<PerfRow>[]) => {
+  const handleRowsChange = (updates: EditableGridRowUpdate<PerfRow>[]) => {
     store.applyRowUpdates(updates)
   }
 
@@ -148,10 +148,10 @@ function PerformanceExample() {
 
   // 列定義の参照を安定させるため useMemo で包む。
   // 中で参照している外側の値は store だけ（store の参照は変わらない）。
-  const columns = React.useMemo((): EG2.EditableGridColumn<PerfRow>[] => {
+  const columns = React.useMemo((): EditableGridColumn<PerfRow>[] => {
 
     /** 左端に固定される列 */
-    const fixedColumns: EG2.EditableGridColumn<PerfRow>[] = [col.leaf({
+    const fixedColumns: EditableGridColumn<PerfRow>[] = [col.leaf({
       columnId: "no",
       renderHeader: () => <HeaderText>No.</HeaderText>,
       // 行インデックスしか使わないので getValuesForRender は不要
@@ -183,7 +183,7 @@ function PerformanceExample() {
     })]
 
     /** 集計列。いずれも他のセルの編集結果が波及してくる計算列。 */
-    const summaryColumns: EG2.EditableGridColumn<PerfRow>[] = [col.leaf({
+    const summaryColumns: EditableGridColumn<PerfRow>[] = [col.leaf({
       columnId: "unitPrice",
       editor: TextEditor,
       renderHeader: () => <HeaderText>単価</HeaderText>,
@@ -252,9 +252,9 @@ function PerformanceExample() {
      * 1月から12月までの月別列。1ヶ月あたり3列（計画・実績・差異）で、合計36列。
      * 列定義をベタ書きせずループで生成することで、列数が多くても定義が膨らまないようにしている。
      */
-    const monthColumns: EG2.EditableGridGroupColumn<PerfRow>[] = Array.from(
+    const monthColumns: EditableGridGroupColumn<PerfRow>[] = Array.from(
       { length: MONTH_COUNT },
-      (_, month): EG2.EditableGridGroupColumn<PerfRow> => ({
+      (_, month): EditableGridGroupColumn<PerfRow> => ({
         columnId: `month-${month}`,
         renderHeader: () => <HeaderText>{month + 1}月</HeaderText>,
         columns: [col.leaf({
@@ -376,7 +376,7 @@ function PerformanceExample() {
         </span>
       </div>
 
-      <EG2.EditableGrid
+      <EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}

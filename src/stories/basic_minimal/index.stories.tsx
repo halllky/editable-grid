@@ -1,5 +1,5 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, EditableGridRowUpdate, createColumnHelper } from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -42,7 +42,7 @@ function MinimalExample() {
   // 指定が必要な属性が多いので、実際のアプリケーション開発時は
   // 「文字列用列定義ベース」「数値用列定義ベース」など種類ごとにベースとなる設定を用意しておき
   // それを各画面で使いまわすと開発がやりやすくなる。
-  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [
+  const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [
     // 商品名の列
     col.leaf({
       columnId: "name",
@@ -72,7 +72,7 @@ function MinimalExample() {
 
   // セル編集やクリップボードからの貼り付けなどの入力の確定時処理。
   // グリッドの操作による変更を state に反映する。
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EditableGridRowUpdate<TestRow>[]) => {
     setRows(prev => {
       const next = [...prev]
       for (const { rowIndex, row } of updates) next[rowIndex] = row
@@ -83,7 +83,7 @@ function MinimalExample() {
   return (
     // このデモでは Tailwind CSS を使っているが、必須ではない
     <div className="flex flex-col gap-2 p-2">
-      <EG2.EditableGrid
+      <EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         onRowsChange={handleRowsChange}
@@ -101,7 +101,7 @@ const TextEditor = createTextCellEditor(false)
 // TypeScript の型推論の補助。
 // 内部で何か処理をしているわけではなく、引数をそのまま返すだけの関数。
 // 利用は必須ではない。
-const col = EG2.createColumnHelper<TestRow>()
+const col = createColumnHelper<TestRow>()
 
 /**
  * セルのレンダリングコンポーネント。

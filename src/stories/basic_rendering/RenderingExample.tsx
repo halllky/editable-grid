@@ -1,8 +1,8 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid"
+import { EditableGrid, EditableGridColumn, createColumnHelper } from "../../EditableGrid"
 
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
-const col = EG2.createColumnHelper<Row>()
+const col = createColumnHelper<Row>()
 
 /**
  * ヘッダ・セル・フッタの描画の実演画面。
@@ -32,7 +32,7 @@ export function RenderingExample() {
   const rowsRef = React.useRef(rows)
   rowsRef.current = rows
 
-  const columns = React.useMemo((): EG2.EditableGridColumn<Row>[] => [col.leaf({
+  const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     columnId: "name",
     renderHeader: () => <CellText>商品名</CellText>,
     getValuesForRender: row => [row.name],
@@ -103,7 +103,7 @@ export function RenderingExample() {
         金額を税込で表示する
       </label>
 
-      <EG2.EditableGrid
+      <EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         columns={columns}
