@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -46,11 +46,11 @@ function ReactHookFormExample() {
 
   // グリッドの操作（編集確定・貼り付け・Delete）による変更を React Hook Form に反映する。
   // setValue は1回ごとにフォーム全体を複製するため、セル単位ではなく行単位で呼ぶ。
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "name",
     renderHeader: () => <CellText>商品名</CellText>,
     getValuesForRender: row => [row.name],
@@ -99,7 +99,7 @@ function ReactHookFormExample() {
             <li>※1 グリッドの外からの setValue が subscribe 経由でセルに反映されることの確認</li>
           </ul>
 
-          <EG2.EditableGrid2
+          <EG2.EditableGrid
             rowKeys={rowKeys}
             getLatestRowObject={getLatestRowObject}
             subscribe={subscribeRows}

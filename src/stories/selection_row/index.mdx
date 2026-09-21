@@ -24,7 +24,7 @@ import Link from "../Link"
 ### すべての行に表示する
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     showCheckBox // すべての行にチェックボックスを表示する
     {...}
   />
@@ -36,7 +36,7 @@ import Link from "../Link"
 `false` を返した行は、チェックボックス列のセルが空欄になります（列そのものは表示されたままです）。
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     showCheckBox={(row, rowIndex) => row.status !== "出荷済"} // 出荷済の行はチェックさせない
     {...}
   />
@@ -61,7 +61,7 @@ import Link from "../Link"
 （上記デモで、出荷済の行をチェックしてから「出荷済の行には表示しない」に切り替えた場合など）。
 
 <Source language="tsx" code={`
-  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+  const gridRef = React.useRef<EditableGridRef<Row>>(null)
 
   // チェックした行を削除する（React Hook Form の useFieldArray の remove を使う例）
   const removeCheckedRows = () => {
@@ -69,7 +69,7 @@ import Link from "../Link"
     remove(rowIndexes)
   }
 
-  <EditableGrid2 ref={gridRef} showCheckBox {...} />
+  <EditableGrid ref={gridRef} showCheckBox {...} />
 `} />
 
 チェック状態が変わったことを通知するイベントはありません。
@@ -93,7 +93,7 @@ import Link from "../Link"
 <Source language="tsx" code={`
   const isLocked = (row: Row) => row.status === "確定"
 
-  <EditableGrid2
+  <EditableGrid
     isReadOnly={isLocked}
     showCheckBox={row => !isLocked(row)} // 読み取り専用の行はチェックさせない
     {...}

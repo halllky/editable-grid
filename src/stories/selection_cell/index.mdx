@@ -7,7 +7,7 @@ import Link from "../Link"
 
 # セル選択
 
-EditableGrid2 は、Excel のようなマウス・キーボードによるセル選択と範囲選択の機能を標準で備えています。
+EditableGrid は、Excel のようなマウス・キーボードによるセル選択と範囲選択の機能を標準で備えています。
 有効にするための専用のプロパティは無く、グリッドを配置するだけで使えます。
 
 以下の例では、グリッドをクリックしてフォーカスした状態で、矢印キーやドラッグで選択範囲を動かせます。
@@ -95,7 +95,7 @@ EditableGrid2 は、Excel のようなマウス・キーボードによるセル
 （キーボードで再びフォーカスしたときは、解除前の選択範囲が復元されます）。
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     clearSelectionOnBlur // フォーカスが外れたら選択を解除する
     {...}
   />
@@ -115,7 +115,7 @@ EditableGrid2 は、Excel のようなマウス・キーボードによるセル
   * セル編集中かどうか。
 
 <Source language="tsx" code={`
-  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+  const gridRef = React.useRef<EditableGridRef<Row>>(null)
 
   // 選択範囲に含まれる行を取得
   const rows = gridRef.current?.getSelectedRows() ?? []
@@ -123,5 +123,5 @@ EditableGrid2 は、Excel のようなマウス・キーボードによるセル
   // 3～5行目を選択（行インデックスは0始まり）
   gridRef.current?.selectRow(2, 4)
 
-  <EditableGrid2 ref={gridRef} {...} />
+  <EditableGrid ref={gridRef} {...} />
 `} />

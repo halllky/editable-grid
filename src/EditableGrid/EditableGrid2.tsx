@@ -1,7 +1,7 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import * as TanStackVirtual from "@tanstack/react-virtual"
-import { EditableGrid2BodyRenderer, EditableGrid2FooterCellRenderer, EditableGrid2Props, EditableGrid2Ref } from "./types-public"
+import { EditableGridBodyRenderer, EditableGridFooterCellRenderer, EditableGridProps, EditableGridRef } from "./types-public"
 import { useTanstackColumns } from "./useTanstackColumns"
 import { ColumnMetadataInternal, DEFAULT_COLUMN_WIDTH, ESTIMATED_ROW_HEIGHT, GridCell, GridColumn, GridHeader, GridRow, checkIfCellReadOnly, gridFeatures, normalizeFooterRenderers, selectGridState } from "./types-internal"
 import { useGetPixel } from "./useGetPixel"
@@ -22,14 +22,14 @@ import "./styles.css"
  * 行の値に依存する判定関数。
  * props の参照が変わっても memo 化されたセル・行を描画し直さずに最新の関数を参照できるよう、ref 経由で渡す。
  */
-type RowDependentProps<TRow> = Pick<EditableGrid2Props<TRow>, 'isReadOnly' | 'getRowClassName'>
+type RowDependentProps<TRow> = Pick<EditableGridProps<TRow>, 'isReadOnly' | 'getRowClassName'>
 
 /**
- * EditableGrid2 コンポーネント
+ * EditableGrid コンポーネント
  */
-const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
-  props: EditableGrid2Props<TRow>,
-  ref: React.ForwardedRef<EditableGrid2Ref<TRow>>
+const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
+  props: EditableGridProps<TRow>,
+  ref: React.ForwardedRef<EditableGridRef<TRow>>
 ) {
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
@@ -518,7 +518,7 @@ const EditableGrid2 = React.forwardRef(function EditableGrid2<TRow,>(
   //#endregion レンダリング
 })
 
-export default EditableGrid2 as (<TRow>(props: EditableGrid2Props<TRow> & { ref?: React.ForwardedRef<EditableGrid2Ref<TRow>> }) => React.ReactNode);
+export default EditableGrid as (<TRow>(props: EditableGridProps<TRow> & { ref?: React.ForwardedRef<EditableGridRef<TRow>> }) => React.ReactNode);
 
 /**
  * memo の比較関数を作る。
@@ -746,7 +746,7 @@ function BodyCellContent({ cellMeta, snapshot, rowIndex, rowKey, getRowObject, c
 }) {
   const deps = snapshot.slice(1)
 
-  const render: EditableGrid2BodyRenderer<any, any> | undefined = cellMeta.original?.renderBody
+  const render: EditableGridBodyRenderer<any, any> | undefined = cellMeta.original?.renderBody
   if (!render) return null
 
   return <>{render({
@@ -805,7 +805,7 @@ const MemorizedTF = React.memo<{
  * レンダリング関数内で呼ばれたフックが MemorizedTF 自身のフックと混ざらないよう分離している。
  */
 function FooterCellContent({ render, columnWidth }: {
-  render: EditableGrid2FooterCellRenderer
+  render: EditableGridFooterCellRenderer
   columnWidth: number
 }) {
   return <>{render({ columnWidth })}</>

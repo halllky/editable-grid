@@ -1,4 +1,4 @@
-import { EditableGrid2CellRange, EditableGrid2PastePlanner } from "./types-public"
+import { EditableGridCellRange, EditableGridPastePlanner } from "./types-public"
 
 /**
  * 既定のペースト処理
@@ -10,7 +10,7 @@ import { EditableGrid2CellRange, EditableGrid2PastePlanner } from "./types-publi
  *
  * グリッドの大きさによる切り詰めはここでは行わない（グリッド側が実行時に吸収する）。
  */
-export const defaultPastePlanner: EditableGrid2PastePlanner = ({ values, selectedRange }) => {
+export const defaultPastePlanner: EditableGridPastePlanner = ({ values, selectedRange }) => {
   // ペーストデータのうち長さ0の配列部分は長さ1の配列と読み替える
   const normalizedValues = values.length === 0
     ? [['']]
@@ -21,7 +21,7 @@ export const defaultPastePlanner: EditableGrid2PastePlanner = ({ values, selecte
 
   let endRow: number
   let endCol: number
-  let nextSelectedRange: EditableGrid2CellRange | undefined
+  let nextSelectedRange: EditableGridCellRange | undefined
 
   // 範囲選択していない場合、ペースト完了後の選択範囲は
   // クリップボードに入っていたテキストの範囲まで拡張する

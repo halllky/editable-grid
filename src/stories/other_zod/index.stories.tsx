@@ -1,6 +1,6 @@
 import React from "react"
 import * as z from "zod"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -86,7 +86,7 @@ function ZodExample() {
   }, [errors])
 
   // グリッドの操作（編集確定・貼り付け・Delete）による変更を state に反映し、変更された列だけ検証し直す。
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     setRows(prev => {
       const next = [...prev]
       for (const { rowIndex, row } of updates) next[rowIndex] = row
@@ -115,7 +115,7 @@ function ZodExample() {
     setRows(prev => [...prev, { id: `R${nextRowId.current++}`, name: "" }])
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "name",
     renderHeader: () => <CellText>商品名</CellText>,
     // エラーメッセージも deps に含める。含めない場合、
@@ -165,7 +165,7 @@ function ZodExample() {
         </li>
       </ul>
 
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         onRowsChange={handleRowsChange}

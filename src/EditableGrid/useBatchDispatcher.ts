@@ -1,4 +1,4 @@
-import { EditableGrid2Props, EditableGrid2RowUpdate } from "./types-public"
+import { EditableGridProps, EditableGridRowUpdate } from "./types-public"
 import { checkIfCellReadOnly, GridColumn } from "./types-internal"
 import { RowAccessor } from "./useRowAccessor"
 
@@ -28,7 +28,7 @@ export const useBatchDispatcher = <TRow,>(
   visibleLeafColumns: GridColumn[],
   rowKeys: string[],
   getRowObject: RowAccessor<TRow>,
-  props: EditableGrid2Props<TRow>,
+  props: EditableGridProps<TRow>,
 ) => {
 
   /**
@@ -73,7 +73,7 @@ export const useBatchDispatcher = <TRow,>(
 
     if (changedRows.size === 0) return
 
-    const updates: EditableGrid2RowUpdate<TRow>[] = Array.from(changedRows, ([rowIndex, { row, changedColumnIds }]) => ({
+    const updates: EditableGridRowUpdate<TRow>[] = Array.from(changedRows, ([rowIndex, { row, changedColumnIds }]) => ({
       rowIndex,
       rowKey: rowKeys[rowIndex],
       row,

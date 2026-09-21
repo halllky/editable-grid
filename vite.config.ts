@@ -36,7 +36,7 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/EditableGrid2/index.ts'),
+      entry: path.resolve(__dirname, 'src/EditableGrid/index.ts'),
       formats: ['es'],
       fileName: 'index',
       cssFileName: 'index'

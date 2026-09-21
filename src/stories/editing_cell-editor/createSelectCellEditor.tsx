@@ -1,10 +1,10 @@
 import React from "react"
-import { EditableGridCellEditor } from "../../EditableGrid2"
+import { EditableGridCellEditor } from "../../EditableGrid"
 
 /**
  * 選択肢（ドロップダウン）セルエディタを作成する。
  *
- * EditableGrid2 はセルエディタを標準搭載していないため、
+ * EditableGrid はセルエディタを標準搭載していないため、
  * <select> による選択式編集の実装例としてここに置いている。
  * 利用側のプロジェクトにこのファイルをコピーして使うか、
  * これを参考に EditableGridCellEditor の契約を満たす自前のエディタを実装してください。

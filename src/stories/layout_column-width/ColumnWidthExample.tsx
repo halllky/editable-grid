@@ -1,5 +1,5 @@
 import React from "react"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = EG2.createColumnHelper<Row>()
@@ -15,7 +15,7 @@ export function ColumnWidthExample() {
   const rowKeys = React.useMemo(() => rows.map(row => row.id), [rows])
   const getLatestRowObject = React.useCallback((index: number) => rows[index], [rows])
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<Row>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<Row>[] => [col.leaf({
     // defaultWidth を指定していない列。128px になる（※1）
     columnId: "code",
     renderHeader: () => <CellText>コード（※1）</CellText>,
@@ -38,7 +38,7 @@ export function ColumnWidthExample() {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         columns={columns}

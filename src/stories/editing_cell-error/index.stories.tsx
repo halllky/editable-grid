@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -32,7 +32,7 @@ function CellErrorExample() {
   })
   const { fields, insert, swap, remove, replace } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
-  const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
   const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
@@ -75,7 +75,7 @@ function CellErrorExample() {
 
   // グリッドの操作（セルエディタ編集・クリップボード貼り付け・Delete）による変更確定時処理。
   // 値の変更を React Hook Form に反映し、クライアント検証をかける。
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
 
     // セル編集時のクライアント検証
@@ -132,7 +132,7 @@ function CellErrorExample() {
     setServerErrors([])
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "no",
     renderHeader: () => <CellText>No.</CellText>,
     renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
@@ -243,7 +243,7 @@ function CellErrorExample() {
         </button>
       </div>
 
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}

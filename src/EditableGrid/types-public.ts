@@ -3,12 +3,12 @@ import React from "react"
 //#region グリッド
 
 /**
- * EditableGrid2 のプロパティ
+ * EditableGrid のプロパティ
  */
-export type EditableGrid2Props<TRow> = {
+export type EditableGridProps<TRow> = {
   /**
    * 行を一意に識別する文字列の配列。
-   * 行に表示される値そのものは、この配列ではなく {@link EditableGrid2Props.getLatestRowObject} で取得される。
+   * 行に表示される値そのものは、この配列ではなく {@link EditableGridProps.getLatestRowObject} で取得される。
    *
    * - 配列の長さがそのままグリッドの行数になります。
    * - 各要素がその行のIDとして使われます。重複する値を含めてはいけません。
@@ -27,7 +27,7 @@ export type EditableGrid2Props<TRow> = {
    * この関数の参照が変わると、表示中の全セルが値を取得し直して前回の値と比較するため、 `useCallback` 等で参照を安定させてください。
    *
    * @param index 行インデックス
-   * @param rowKey 行のキー（{@link EditableGrid2Props.rowKeys} の index 番目の要素）。
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の index 番目の要素）。
    * 行の値をキーで管理している場合に使います。
    */
   getLatestRowObject: (index: number, rowKey: string) => TRow
@@ -58,7 +58,7 @@ export type EditableGrid2Props<TRow> = {
    * }
    * 
    * // サブスクライブ関数を渡す
-   * <EditableGrid2 subscribe={subscribe} />
+   * <EditableGrid subscribe={subscribe} />
    */
   subscribe?: (onChange: () => void) => () => void
 
@@ -71,7 +71,7 @@ export type EditableGrid2Props<TRow> = {
    *   各行の値は列定義の textToCell を適用済みの新しい行オブジェクトです。
    * - 未指定の場合、グリッドの操作による値の変更はどこにも反映されません。
    */
-  onRowsChange?: (updates: EditableGrid2RowUpdate<TRow>[]) => void
+  onRowsChange?: (updates: EditableGridRowUpdate<TRow>[]) => void
 
   /**
    * 列定義。
@@ -81,7 +81,7 @@ export type EditableGrid2Props<TRow> = {
    * その場合、 useMemo の一般的なルール通り、列定義内の関数（renderBody 等）が参照する外側の値は依存配列に含めること。
    * 含めない場合、その値が変わっても列定義内の関数は古い値を参照したままになる。
    */
-  columns: EditableGrid2Column<TRow>[]
+  columns: EditableGridColumn<TRow>[]
   /**
    * 行ヘッダのチェックボックスを表示するかどうか。
    * 関数を渡す場合は `useCallback` 等で参照を安定させること。
@@ -120,19 +120,19 @@ export type EditableGrid2Props<TRow> = {
    * クリップボードとの文字列変換方法。
    * 未指定の場合は defaultCopyPasteFormat（TSV。Excel等との相互コピペを想定した仕様）が使われる。
    */
-  clipboardFormat?: EditableGrid2ClipboardFormat
+  clipboardFormat?: EditableGridClipboardFormat
   /**
    * 貼り付け（Ctrl+V）・クリア（Delete）で「どのセルに何を書き込むか」を決める関数。
    * 未指定の場合は defaultPastePlanner が使われる
    * （1セル選択時は選択範囲を拡張、複数セル選択時は剰余で敷き詰める）。
    */
-  planPaste?: EditableGrid2PastePlanner
+  planPaste?: EditableGridPastePlanner
 }
 
 /**
  * グリッドの操作によって値が変わった1行
  */
-export type EditableGrid2RowUpdate<TRow> = {
+export type EditableGridRowUpdate<TRow> = {
   /** 行インデックス */
   rowIndex: number
   /** 行のキー */
@@ -147,9 +147,9 @@ export type EditableGrid2RowUpdate<TRow> = {
 }
 
 /**
- * EditableGrid2 の参照オブジェクト
+ * EditableGrid の参照オブジェクト
  */
-export type EditableGrid2Ref<TRow> = {
+export type EditableGridRef<TRow> = {
   /** セルエディタによる編集が行われているかどうか */
   isEditing: boolean
   /** 選択されている行の取得 */
@@ -160,13 +160,13 @@ export type EditableGrid2Ref<TRow> = {
    * 指定した範囲の行を選択する。
    * 選択した行が表示範囲の外にある場合は、その行が見えるようスクロールする。
    */
-  selectRow: (startRowIndex: number, endRowIndex: number, options?: EditableGrid2SelectRowOptions) => void
+  selectRow: (startRowIndex: number, endRowIndex: number, options?: EditableGridSelectRowOptions) => void
 }
 
 /**
- * EditableGrid2Ref.selectRow のオプション
+ * EditableGridRef.selectRow のオプション
  */
-export type EditableGrid2SelectRowOptions = {
+export type EditableGridSelectRowOptions = {
   /** true の場合、選択した行を見えるようにするためのスクロールを行わない。 */
   preventScroll?: boolean
 }
@@ -176,23 +176,23 @@ export type EditableGrid2SelectRowOptions = {
 //#region 列
 
 /**
- * EditableGrid2 の列定義
+ * EditableGrid の列定義
  */
-export type EditableGrid2Column<TRow> =
-  | EditableGrid2GroupColumn<TRow>
+export type EditableGridColumn<TRow> =
+  | EditableGridGroupColumn<TRow>
   // deps の型が列ごとに異なる列を1つの配列に混在させるため any とする
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | EditableGrid2LeafColumn<TRow, any>
+  | EditableGridLeafColumn<TRow, any>
 
 /**
- * EditableGrid2 の列定義（グループ化された列）
+ * EditableGrid の列定義（グループ化された列）
  */
-export type EditableGrid2GroupColumn<TRow> = {
+export type EditableGridGroupColumn<TRow> = {
   /** グループヘッダ列のレンダリング */
-  renderHeader: EditableGrid2HeaderRenderer
+  renderHeader: EditableGridHeaderRenderer
   /** グループ化する子列の定義 */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  columns: EditableGrid2LeafColumn<TRow, any>[]
+  columns: EditableGridLeafColumn<TRow, any>[]
   /**
    * グループ列のID。グリッド内で（他のグループ・リーフ列を含めて）重複してはいけない。
    * 列の増減・並べ替えの検知に使われるため必須。
@@ -204,18 +204,18 @@ export type EditableGrid2GroupColumn<TRow> = {
  * セルの値。そのセルを再描画するかどうかの判定前に列定義指定の方法で抽出され、レンダリング処理の引数になる。
  * 配列なのは1つのセルの描画にその行の複数のプロパティが必要な場合にも対応できるようにするため。
  */
-export type EditableGrid2Deps = readonly unknown[]
+export type EditableGridDeps = readonly unknown[]
 
 /**
- * EditableGrid2 の列定義（グループ化されていない列）
+ * EditableGrid の列定義（グループ化されていない列）
  *
  * @template TDeps セルの値の型。そのセルを再描画するかどうかの判定前に列定義指定の方法で抽出され、レンダリング処理の引数になる。
  */
-export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = EditableGrid2Deps> = {
+export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = EditableGridDeps> = {
   /** 列のヘッダーのレンダリング処理をカスタマイズする関数。 */
-  renderHeader: EditableGrid2HeaderRenderer
+  renderHeader: EditableGridHeaderRenderer
   /** 列のヘッダーのうち、グルーピングが発生している場合のグループ化されない列の下段のレンダリング処理をカスタマイズする関数。 */
-  renderHeaderPlaceholder?: EditableGrid2HeaderRenderer
+  renderHeaderPlaceholder?: EditableGridHeaderRenderer
   /**
    * 列のフッターのレンダリング処理。配列を指定した場合は上から順に1段ずつ描画される。
    *
@@ -228,13 +228,13 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
    * - 表示専用を想定している。グリッドがアクティブな間はセルエディタが常にフォーカスを保持するため、
    *   入力要素を配置することは想定していない。
    */
-  renderFooter?: EditableGrid2FooterRenderer
+  renderFooter?: EditableGridFooterRenderer
   /**
    * セルの描画に必要な値だけを配列で返す関数。
    * 
    * パフォーマンス高速化のためには再レンダリングは最小限である必要があるが、
    * かといってレンダリングしなさすぎるとデータが変わったのにセルの外観が変わらないことになってしまう。
-   * そこで {@link EditableGrid2LeafColumn.renderBody} ではこの関数で取得した値だけが利用可能という形でバランスをとっている。
+   * そこで {@link EditableGridLeafColumn.renderBody} ではこの関数で取得した値だけが利用可能という形でバランスをとっている。
    *
    * - グリッドはこの配列を前回の描画時のものと要素ごとに Object.is で比較し、
    *   1つでも異なる場合だけセルを描画し直す。
@@ -254,12 +254,12 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
    * 
    * パフォーマンス高速化のためには再レンダリングは最小限である必要があるが、
    * かといってレンダリングしなさすぎるとデータが変わったのにセルの外観が変わらないことになってしまう。
-   * そこでここでは {@link EditableGrid2LeafColumn.getValuesForRender} で取得した値だけが利用可能という形でバランスをとっている。
+   * そこでここでは {@link EditableGridLeafColumn.getValuesForRender} で取得した値だけが利用可能という形でバランスをとっている。
    * 
    * セルの中にボタンを配置するなど、セル選択を防ぎたい要素がある場合、
    * mouseDown イベントの stopPropagation を呼び出し、イベントの伝播を防ぐこと。
    */
-  renderBody: EditableGrid2BodyRenderer<TRow, TDeps>
+  renderBody: EditableGridBodyRenderer<TRow, TDeps>
   /**
    * 列のID。グリッド内で（他のリーフ・グループ列を含めて）重複してはいけない。
    * 列幅の保持・復元や、列の増減・並べ替えの検知に使われるため必須。
@@ -316,7 +316,7 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
   /**
    * セル上でキーが押されたときのイベントハンドラ。
    * preventDefault が呼ばれた場合、キーによるセル移動やセル編集開始といった
-   * EditableGrid2 の既定の動作がキャンセルされます。
+   * EditableGrid の既定の動作がキャンセルされます。
    */
   onCellKeyDown?: (args: {
     /** キーが押された時点での行の最新の値 */
@@ -329,32 +329,32 @@ export type EditableGrid2LeafColumn<TRow, TDeps extends EditableGrid2Deps = Edit
 }
 
 /** 列ヘッダセルのレンダリング処理 */
-export type EditableGrid2HeaderRenderer = (args: {
+export type EditableGridHeaderRenderer = (args: {
   /** この列の現在の幅（px） */
   columnWidth: number
 }) => React.ReactNode
 
 /** フッターセル1段分のレンダリング処理 */
-export type EditableGrid2FooterCellRenderer = (args: {
+export type EditableGridFooterCellRenderer = (args: {
   /** この列の現在の幅（px） */
   columnWidth: number
 }) => React.ReactNode
 
 /** 列フッターのレンダリング処理。配列の場合は上から順に1段ずつ描画される */
-export type EditableGrid2FooterRenderer =
-  | EditableGrid2FooterCellRenderer
-  | EditableGrid2FooterCellRenderer[]
+export type EditableGridFooterRenderer =
+  | EditableGridFooterCellRenderer
+  | EditableGridFooterCellRenderer[]
 
 /** ボディセルのレンダリング処理 */
-export type EditableGrid2BodyRenderer<TRow, TDeps extends EditableGrid2Deps = EditableGrid2Deps> = (args: {
-  /** 列定義の {@link EditableGrid2LeafColumn.getValuesForRender} で定義した値だけがここで使える。未定義の列では空配列。 */
+export type EditableGridBodyRenderer<TRow, TDeps extends EditableGridDeps = EditableGridDeps> = (args: {
+  /** 列定義の {@link EditableGridLeafColumn.getValuesForRender} で定義した値だけがここで使える。未定義の列では空配列。 */
   deps: TDeps
   /** 行インデックス。画面表示範囲外も含めたデータ全体内での配列内の位置。 */
   rowIndex: number
   /** 行のキー。ダイアログを開くなど、非同期処理の後で行を特定し直すときに使う。 */
   rowKey: string
   /**
-   * 行の最新の値を取得する関数。 {@link EditableGrid2Props.getLatestRowObject} を呼び出す。
+   * 行の最新の値を取得する関数。 {@link EditableGridProps.getLatestRowObject} を呼び出す。
    * ボタンのクリック時などイベントハンドラの中で使うためのもの。
    * 描画中に呼び出して表示に使うと、その値が変わっても表示が更新されないため、表示に使う値は deps 経由で受け取ること。
    */
@@ -373,7 +373,7 @@ export type EditableGrid2BodyRenderer<TRow, TDeps extends EditableGrid2Deps = Ed
  * セル範囲。両端を含む。
  * 列インデックスは可視データ列を左から0始まりで数えたもの（行チェックボックス列は含まない）。
  */
-export type EditableGrid2CellRange = {
+export type EditableGridCellRange = {
   startRow: number
   startCol: number
   endRow: number
@@ -384,7 +384,7 @@ export type EditableGrid2CellRange = {
  * クリップボードとの文字列変換。
  * 往復（コピーしてペースト）した際に内容が保たれるよう、stringify と parse は対で指定すること。
  */
-export type EditableGrid2ClipboardFormat = {
+export type EditableGridClipboardFormat = {
   /** コピー時、選択範囲のセルの値（2次元配列）をクリップボードへ書き込む文字列に変換する。 */
   stringify: (values: string[][]) => string
   /** ペースト時、クリップボードから読み取った文字列をセルの値の2次元配列に変換する。 */
@@ -392,23 +392,23 @@ export type EditableGrid2ClipboardFormat = {
 }
 
 /** 貼り付け先のセルと値の組。 */
-export type EditableGrid2CellWrite = {
+export type EditableGridCellWrite = {
   rowIndex: number
   colIndex: number
   value: string
 }
 
-/** 貼り付け計画。EditableGrid2PastePlanner の戻り値。 */
-export type EditableGrid2PastePlan = {
+/** 貼り付け計画。EditableGridPastePlanner の戻り値。 */
+export type EditableGridPastePlan = {
   /** 書き込むセルと値。同じセルが複数回現れた場合は後に指定した方が採用される。 */
-  writes: EditableGrid2CellWrite[]
+  writes: EditableGridCellWrite[]
   /** 貼り付け後の選択範囲。undefined の場合は選択範囲を変更しない。 */
-  nextSelectedRange?: EditableGrid2CellRange
+  nextSelectedRange?: EditableGridCellRange
 }
 
 /**
  * 貼り付け内容と選択状態から、どのセルに何を書き込むかを決める関数。
- * `EditableGrid2Props.planPaste` として渡す。
+ * `EditableGridProps.planPaste` として渡す。
  *
  * グリッドの状態を直接変更しない純粋関数として実装すること
  * （実際の書き込み・選択範囲の更新はグリッド側が行う）。
@@ -419,13 +419,13 @@ export type EditableGrid2PastePlan = {
  * 制御する必要はない（スキップ以外の挙動、例えば「1つでも含まれていたら全体を中止する」
  * といった方針を取りたい場合にのみ isCellWritable を参照すればよい）。
  */
-export type EditableGrid2PastePlanner = (args: {
-  /** クリップボードの内容（EditableGrid2ClipboardFormat.parse 済み）。Delete キーによる場合は [['']]。 */
+export type EditableGridPastePlanner = (args: {
+  /** クリップボードの内容（EditableGridClipboardFormat.parse 済み）。Delete キーによる場合は [['']]。 */
   values: string[][]
   /** この計画が貼り付け（Ctrl+V）とクリア（Delete）のどちらによるものか。 */
   trigger: 'paste' | 'delete'
   /** 現在の選択範囲。1セルだけ選択している場合は start と end が同じ値になる。 */
-  selectedRange: EditableGrid2CellRange
+  selectedRange: EditableGridCellRange
   /** 可視データ列の columnId。colIndex の並び順と一致する。 */
   columnIds: string[]
   /**
@@ -434,7 +434,7 @@ export type EditableGrid2PastePlanner = (args: {
    * 考慮した結果が返る。範囲外の rowIndex / colIndex に対しては false を返す。
    */
   isCellWritable: (rowIndex: number, colIndex: number) => boolean
-}) => EditableGrid2PastePlan
+}) => EditableGridPastePlan
 
 //#endregion コピー＆ペースト
 
@@ -442,7 +442,7 @@ export type EditableGrid2PastePlanner = (args: {
 
 /**
  * セル編集エディタのコンポーネント。
- * EditableGrid2Props.editor または列定義の editor として渡す。
+ * EditableGridProps.editor または列定義の editor として渡す。
  *
  * このコンポーネントは編集対象セルが存在する限り、編集中かどうかに関わらず常にDOM上にマウントされ続け、
  * かつグリッドがアクティブな間は常にフォーカスを保持する（キーボード入力・IME変換を横取りするため）。

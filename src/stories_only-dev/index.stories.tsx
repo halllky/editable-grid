@@ -4,8 +4,8 @@ import * as TanStackVirtual from "@tanstack/react-virtual"
 import { Meta, StoryObj } from "@storybook/react-vite"
 
 /**
- * この画面は EditableGrid2 とは無関係の、TanStack Table v9 そのものの
- * 速度を測るための実験用ページ。EditableGrid2 の実装は一切経由しない。
+ * この画面は EditableGrid とは無関係の、TanStack Table v9 そのものの
+ * 速度を測るための実験用ページ。EditableGrid の実装は一切経由しない。
  *
  * 測りたいのは「data の参照を差し替えたときにコア行モデル（getRowModel）の
  * 作り直しにどれだけ時間がかかるか」と、「そのあとの React の再レンダリング・

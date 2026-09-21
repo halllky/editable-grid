@@ -137,7 +137,7 @@ Excelやスプレッドシートソフトとの間でもそのまま貼り付け
 1セル選択時の範囲拡張はそのまま使い、拡張後の選択範囲だけ変えたくない場合。
 
 ```ts
-const planPaste: EditableGrid2PastePlanner = args => {
+const planPaste: EditableGridPastePlanner = args => {
   const plan = defaultPastePlanner(args)
   return { ...plan, nextSelectedRange: undefined }
 }
@@ -148,7 +148,7 @@ const planPaste: EditableGrid2PastePlanner = args => {
 「一部でも書き込めないなら失敗として扱いたい」というケースもあります。
 
 ```ts
-const planPaste: EditableGrid2PastePlanner = args => {
+const planPaste: EditableGridPastePlanner = args => {
   const { selectedRange, isCellWritable } = args
   for (let r = selectedRange.startRow; r <= selectedRange.endRow; r++) {
     for (let c = selectedRange.startCol; c <= selectedRange.endCol; c++) {

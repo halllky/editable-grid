@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 import { createSelectCellEditor } from "../editing_cell-editor/createSelectCellEditor"
@@ -27,7 +27,7 @@ function RowSelectionExample() {
   })
   const { fields, remove, replace } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
-  const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
   const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
@@ -38,7 +38,7 @@ function RowSelectionExample() {
   }), [subscribe])
 
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
@@ -47,7 +47,7 @@ function RowSelectionExample() {
 
   // 行ごとに判定する場合: 出荷済の行にはチェックボックスを表示しない。
   // 状態を「出荷済」に変更すると、その行のチェックボックスはすぐに消える。
-  const showCheckBox = React.useMemo<EG2.EditableGrid2Props<TestRow>["showCheckBox"]>(() => {
+  const showCheckBox = React.useMemo<EG2.EditableGridProps<TestRow>["showCheckBox"]>(() => {
     return showCheckBoxMode === "all"
       ? true
       : row => row.status !== "出荷済"
@@ -72,7 +72,7 @@ function RowSelectionExample() {
     remove(rowIndexes)
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "no",
     renderHeader: () => <CellText>No.</CellText>,
     renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
@@ -173,7 +173,7 @@ function RowSelectionExample() {
         </button>
       </div>
 
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}

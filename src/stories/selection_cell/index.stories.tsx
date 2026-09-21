@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -14,7 +14,7 @@ const col = EG2.createColumnHelper<TestRow>()
 /**
  * セル選択の実演画面。
  *
- * セル選択・範囲選択・キーボード操作は EditableGrid2 に組み込まれており、
+ * セル選択・範囲選択・キーボード操作は EditableGrid に組み込まれており、
  * 有効にするための専用のプロパティは無い。
  * この画面では、Ctrl + 矢印キーでの端までの移動や自動スクロールを試せるよう
  * 行数・列数を多めにとり、グリッドの高さを固定している。
@@ -26,7 +26,7 @@ function CellSelectionExample() {
   })
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
-  const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
   const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
@@ -37,7 +37,7 @@ function CellSelectionExample() {
   }), [subscribe])
 
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
@@ -53,7 +53,7 @@ function CellSelectionExample() {
     )
   }
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "no",
     renderHeader: () => <CellText>No.</CellText>,
     renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
@@ -172,7 +172,7 @@ function CellSelectionExample() {
         </button>
       </div>
 
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}

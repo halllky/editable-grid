@@ -26,7 +26,7 @@ import Link from "../Link"
 ### グリッド全体
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     isReadOnly // グリッド全体を読み取り専用にする
     {...}
   />
@@ -35,7 +35,7 @@ import Link from "../Link"
 ### 行単位
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     isReadOnly={(row, rowIndex) => row.status === "確定"} // 確定済みの行は編集させない
     {...}
   />
@@ -44,7 +44,7 @@ import Link from "../Link"
 ### 列単位
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     columns={[{
       columnId: "unitPrice",
       isReadOnly: true, // 列全体
@@ -56,7 +56,7 @@ import Link from "../Link"
 ### セル単位
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     columns={[{
       columnId: "discountRate",
       isReadOnly: (row, rowIndex) => (row.quantity ?? 0) < 10, // 数量10以上の行でのみ入力可

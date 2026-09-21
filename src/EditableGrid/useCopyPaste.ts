@@ -1,5 +1,5 @@
 import React from "react";
-import { EditableGrid2CellRange, EditableGrid2Props } from "./types-public";
+import { EditableGridCellRange, EditableGridProps } from "./types-public";
 import { CellSelectionRange } from "./useSelection";
 import { GridTable } from "./types-internal";
 import { RowAccessor } from "./useRowAccessor";
@@ -17,7 +17,7 @@ interface UseCopyPasteParams<TRow> {
   isEditing: boolean;
   getRowObject: RowAccessor<TRow>;
   batchDispatcher: BatchDispatcher;
-  props: EditableGrid2Props<TRow>;
+  props: EditableGridProps<TRow>;
 }
 
 export const useCopyPaste = <TRow,>({
@@ -119,7 +119,7 @@ export const useCopyPaste = <TRow,>({
 
     const { dataColumns, offset } = getDataColumns();
 
-    const planSelectedRange: EditableGrid2CellRange = {
+    const planSelectedRange: EditableGridCellRange = {
       startRow: selectedRange.startRow,
       startCol: selectedRange.startCol - offset,
       endRow: selectedRange.endRow,

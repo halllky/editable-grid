@@ -1,5 +1,5 @@
 import * as TanStack from "@tanstack/react-table"
-import { EditableGrid2FooterCellRenderer, EditableGrid2FooterRenderer, EditableGrid2LeafColumn } from "./types-public"
+import { EditableGridFooterCellRenderer, EditableGridFooterRenderer, EditableGridLeafColumn } from "./types-public"
 
 /** このフォルダ内部でのみ使用。外部から使われる想定はない */
 export type ColumnMetadataInternal<TRow> = {
@@ -11,7 +11,7 @@ export type ColumnMetadataInternal<TRow> = {
    * 元の列定義。呼び出し側の columns が再評価されるたびに最新の内容を返す
    * （列そのものが消えた場合は null）。行チェックボックス列・グループ列の場合は null。
    */
-  readonly original: EditableGrid2LeafColumn<TRow> | null
+  readonly original: EditableGridLeafColumn<TRow> | null
   /** 呼び出し側の columns が再評価されるたびに最新の値を返す。 */
   readonly isReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean)
   isGroupedColumn: boolean
@@ -19,7 +19,7 @@ export type ColumnMetadataInternal<TRow> = {
 }
 
 /**
- * EditableGrid2 が TanStack Table に登録する機能。
+ * EditableGrid が TanStack Table に登録する機能。
  * 固定列は columnPinning、範囲選択は cellSelection で管理する。
  */
 export const gridFeatures = TanStack.tableFeatures({
@@ -76,8 +76,8 @@ export const DEFAULT_COLUMN_WIDTH = 128
 
 /** 列定義の renderFooter を段ごとのレンダリング関数の配列に揃える */
 export function normalizeFooterRenderers(
-  renderFooter: EditableGrid2FooterRenderer | undefined
-): EditableGrid2FooterCellRenderer[] {
+  renderFooter: EditableGridFooterRenderer | undefined
+): EditableGridFooterCellRenderer[] {
   if (renderFooter === undefined) return []
   return Array.isArray(renderFooter) ? renderFooter : [renderFooter]
 }

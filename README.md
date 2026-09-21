@@ -1,4 +1,4 @@
-# @halllky/react-editable-grid
+# @halllky/editable-grid
 
 React + TanStack Table ベースの編集可能グリッドコンポーネント。
 
@@ -6,21 +6,21 @@ React + TanStack Table ベースの編集可能グリッドコンポーネント
 
 インストール方法と使い方は Storybook のドキュメントを参照してください。
 
-https://halllky.github.io/react-editable-grid/
+https://halllky.github.io/editable-grid/
 
 ## ドキュメント（AI 向け）
 
 パッケージには Storybook のドキュメント一式（`.mdx`）とデモの実装（`.stories.tsx`）が同梱されています。
 
 ```
-node_modules/@halllky/react-editable-grid/src/stories/**/index.mdx          … 解説
-node_modules/@halllky/react-editable-grid/src/stories/**/*.stories.tsx      … 実装例
+node_modules/@halllky/editable-grid/src/stories/**/index.mdx          … 解説
+node_modules/@halllky/editable-grid/src/stories/**/*.stories.tsx      … 実装例
 ```
 
 コーディングエージェントに使い方を調べさせる場合は上記を読ませてください。
 なお同梱ファイルはビルド対象ではなく、閲覧用のソースです。TypeScript としてコンパイルされることは想定していません。
-デモ内の `import { ... } from "../../EditableGrid2"` は、利用側では
-`import { ... } from "@halllky/react-editable-grid"` に読み替えてください。
+デモ内の `import { ... } from "../../EditableGrid"` は、利用側では
+`import { ... } from "@halllky/editable-grid"` に読み替えてください。
 
 ## Develop
 
@@ -77,7 +77,7 @@ git push && git push --tags
 ### 5. デプロイ結果の確認
 
 - GitHub の Actions タブで `Deploy Storybook to GitHub Pages` が成功していること
-- https://halllky.github.io/react-editable-grid/ が更新されていること
+- https://halllky.github.io/editable-grid/ が更新されていること
 
 ### 6. 利用側の更新
 

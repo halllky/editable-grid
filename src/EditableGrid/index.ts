@@ -1,5 +1,5 @@
-import EditableGrid2 from "./EditableGrid2"
-export { EditableGrid2 }
+import EditableGrid from "./EditableGrid"
+export { EditableGrid }
 
 export * from "./types-public"
 

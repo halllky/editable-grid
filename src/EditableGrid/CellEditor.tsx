@@ -28,7 +28,7 @@ export type CellEditorProps<TRow> = {
 
 export type CellEditorRef = {
   /**
-   * EditableGrid2 側でトリガーしてセルエディタに編集開始を要求するために使用
+   * EditableGrid 側でトリガーしてセルエディタに編集開始を要求するために使用
    *
    * @param inputChar クイック編集で最初に入力された文字。nullの場合は通常の編集開始。
    */

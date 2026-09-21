@@ -23,7 +23,7 @@ React Hook Form の `useFieldArray` で行データを管理する場合の繋�
   const { control, getValues, setValue, subscribe } = useForm<{ rows: Row[] }>({ ... })
   const { fields } = useFieldArray({ name: "rows", control })
 
-  <EditableGrid2
+  <EditableGrid
     // useFieldArray が行ごとに振る id は、行の追加・削除・並べ替えをしても同じ行に付いたまま残る
     rowKeys={React.useMemo(() => fields.map(f => f.id), [fields])}
 

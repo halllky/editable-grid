@@ -36,7 +36,7 @@ import createDateCellEditorTsx from "./createDateCellEditor.tsx?raw"
 
 ## 組み込み方
 
-EditableGrid2 のプロパティ `onRowsChange` を定義します。
+EditableGrid のプロパティ `onRowsChange` を定義します。
 
 続いて、各列の定義に以下3項目を定義します。
 `editor`（列定義かグリッド全体のどちらか）と `textToCell` が無い列は、編集不可の列として扱われます。
@@ -50,7 +50,7 @@ EditableGrid2 のプロパティ `onRowsChange` を定義します。
 文字列を解釈できない場合は `undefined` を返すと、そのセルへの書き込みはスキップされます。
 
 <Source language="tsx" code={`
-  <EditableGrid2
+  <EditableGrid
     rowKeys={rows.map(r => r.id)}
     getLatestRowObject={index => rows[index]}
 
@@ -95,8 +95,8 @@ EditableGrid2 のプロパティ `onRowsChange` を定義します。
 
 前述の editer に渡すコンポーネントの例。
 必ず EditableGridCellEditor 型にすること。
-props は EditableGrid2 側から渡される各種情報、
-ref はこのコンポーネントから EditableGrid2 に情報を返すのに使う。
+props は EditableGrid 側から渡される各種情報、
+ref はこのコンポーネントから EditableGrid に情報を返すのに使う。
 
 <Source language="tsx" code={`
   export const SimpleTextCellEditor: EditableGridCellEditor = React.forwardRef((props, ref) => {
@@ -144,7 +144,7 @@ ref はこのコンポーネントから EditableGrid2 に情報を返すのに�
     }
 
     // エディタの外観は自由に決めることができる。
-    // ただし、エディタの位置などは EditableGrid2 側で計算しているため、
+    // ただし、エディタの位置などは EditableGrid 側で計算しているため、
     // その計算結果が入っている props.style をエディタ側のルートDOM要素に設定すること。
     return (
       <textarea

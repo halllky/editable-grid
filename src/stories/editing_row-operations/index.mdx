@@ -16,7 +16,7 @@ import Link from "../Link"
 * 行頭のチェックボックスでの選択を使う場合は `ref` の `getCheckedRows()` を使ってください。
 
 <Source language="tsx" code={`
-  const gridRef = React.useRef<EditableGrid2Ref<Row>>(null)
+  const gridRef = React.useRef<EditableGridRef<Row>>(null)
 
   const removeSelectedRows = () => {
     const selectedRows = gridRef.current?.getSelectedRows() ?? []

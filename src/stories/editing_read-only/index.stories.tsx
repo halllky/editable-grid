@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "../editing_cell-editor/createTextCellEditor"
 
@@ -15,8 +15,8 @@ const col = EG2.createColumnHelper<TestRow>()
  * 読み取り専用の実演画面。
  *
  * 読み取り専用は以下の3階層で指定でき、いずれか1つでも該当すればそのセルは読み取り専用になる。
- * - グリッド全体: EditableGrid2 の isReadOnly に true
- * - 行単位: EditableGrid2 の isReadOnly に関数
+ * - グリッド全体: EditableGrid の isReadOnly に true
+ * - 行単位: EditableGrid の isReadOnly に関数
  * - 列単位: 列定義の isReadOnly に true
  * - セル単位: 列定義の isReadOnly に関数
  */
@@ -27,7 +27,7 @@ function ReadOnlyExample() {
   })
   const { fields } = ReactHookForm.useFieldArray({ name: "rows", control })
   const rowKeys = React.useMemo(() => fields.map(f => f.id), [fields])
-  const gridRef = React.useRef<EG2.EditableGrid2Ref<TestRow>>(null)
+  const gridRef = React.useRef<EG2.EditableGridRef<TestRow>>(null)
   const getLatestRowObject = React.useCallback((index: number) => getValues(`rows.${index}`), [getValues])
 
   // React Hook Form の値が変わったことをグリッドに通知する
@@ -38,7 +38,7 @@ function ReadOnlyExample() {
   }), [subscribe])
 
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
@@ -63,7 +63,7 @@ function ReadOnlyExample() {
     () => isGridReadOnly ? true : (row: TestRow) => lockedRowIds.has(row.rowId),
     [isGridReadOnly, lockedRowIds])
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     // 行ロック切り替えボタン ここから
     // セル内のボタンは読み取り専用とは無関係にクリックできるため、
     // グリッド全体が読み取り専用のときだけ明示的に disabled にしている。
@@ -198,7 +198,7 @@ function ReadOnlyExample() {
         グリッド全体を読み取り専用にする
       </label>
 
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         ref={gridRef}
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}

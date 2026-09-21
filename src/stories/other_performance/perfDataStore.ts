@@ -2,14 +2,14 @@
  * パフォーマンス実演画面のデータストア。
  *
  * 1万行 × 45列（= 45万セル）のデータを React の state ではなく
- * ただの配列として保持し、値が変わったことだけを購読者（EditableGrid2）へ通知する。
+ * ただの配列として保持し、値が変わったことだけを購読者（EditableGrid）へ通知する。
  *
- * EditableGrid2 は行の値を自身では保持せず、描画のたびに
+ * EditableGrid は行の値を自身では保持せず、描画のたびに
  * getLatestRowObject で最新の値を取りにくる。
  * 通知を受けたグリッドは、表示中のセルごとに列定義の getValuesForRender の戻り値を前回と比較し、
  * 変わったセルだけを描画し直す。そのため、このストアは「どのセルが変わったか」を管理する必要が無い。
  *
- * これは EditableGrid2 ライブラリ本体の一部ではなく、実装例（Storybook 用）です。
+ * これは EditableGrid ライブラリ本体の一部ではなく、実装例（Storybook 用）です。
  */
 
 /** 月の数。1月から12月まで。 */
@@ -58,7 +58,7 @@ export class PerfDataStore {
   //#region 購読
 
   /**
-   * 値の変更を購読する。EditableGrid2 の subscribe にそのまま渡せるよう、参照が変わらないアロー関数で定義している。
+   * 値の変更を購読する。EditableGrid の subscribe にそのまま渡せるよう、参照が変わらないアロー関数で定義している。
    */
   subscribe = (listener: Listener): (() => void) => {
     this.#listeners.add(listener)
@@ -78,12 +78,12 @@ export class PerfDataStore {
     return this.#rows.length
   }
 
-  /** EditableGrid2 の getLatestRowObject に渡す。 */
+  /** EditableGrid の getLatestRowObject に渡す。 */
   getRowAt(rowIndex: number): PerfRow {
     return this.#rows[rowIndex]
   }
 
-  /** EditableGrid2 の rowKeys に渡す配列を作る。行が増減したときだけ作り直す。 */
+  /** EditableGrid の rowKeys に渡す配列を作る。行が増減したときだけ作り直す。 */
   getRowKeys(): string[] {
     return this.#rows.map(row => row.rowId)
   }
@@ -150,7 +150,7 @@ export class PerfDataStore {
   //#region グリッドの操作による更新
 
   /**
-   * EditableGrid2 の onRowsChange から渡された行で置き換える。
+   * EditableGrid の onRowsChange から渡された行で置き換える。
    * 1回のセル編集・貼り付けにつき1回だけ呼ばれ、通知も1回だけ行う。
    */
   applyRowUpdates(updates: { rowIndex: number, row: PerfRow }[]): void {

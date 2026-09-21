@@ -1,7 +1,7 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
 import { GridCell, GridColumn, GridTable } from "./types-internal"
-import { EditableGrid2Props, EditableGrid2SelectRowOptions } from "./types-public"
+import { EditableGridProps, EditableGridSelectRowOptions } from "./types-public"
 import { ScrollToCellFunction } from "./useScrollToCell"
 
 /**
@@ -49,7 +49,7 @@ const ARROW_KEY_DIRECTIONS: Partial<Record<string, TanStack.CellSelectionDirecti
  */
 export function useSelection<TRow>(
   table: GridTable,
-  props: EditableGrid2Props<TRow>,
+  props: EditableGridProps<TRow>,
   visibleLeafColumns: GridColumn[],
   scrollToCell: ScrollToCellFunction,
 ) {
@@ -133,7 +133,7 @@ export function useSelection<TRow>(
 
   /** マウスイベントの対象のボディセル。フッター等、ボディセル以外の td は対象外 */
   const getCellFromMouseEvent = (e: React.MouseEvent): GridCell | undefined => {
-    // 属性名は EditableGrid2.tsx で設定しているものと一致させる必要がある
+    // 属性名は EditableGrid.tsx で設定しているものと一致させる必要がある
     const td = (e.target as HTMLElement).closest('td[data-eg2-row-index]')
     if (!td) return undefined
 
@@ -242,7 +242,7 @@ export function useSelection<TRow>(
   const scrollToFocusedCellRef = React.useRef(scrollToFocusedCell)
   scrollToFocusedCellRef.current = scrollToFocusedCell
 
-  const selectRow = React.useCallback((startRow: number, endRow: number, options?: EditableGrid2SelectRowOptions) => {
+  const selectRow = React.useCallback((startRow: number, endRow: number, options?: EditableGridSelectRowOptions) => {
     selectRowRef.current(
       { rowIndex: endRow, colIndex: Number.MAX_SAFE_INTEGER },
       { rowIndex: startRow, colIndex: 0 })

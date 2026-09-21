@@ -1,4 +1,4 @@
-import { EditableGrid2ClipboardFormat } from "./types-public"
+import { EditableGridClipboardFormat } from "./types-public"
 
 /**
  * 既定のクリップボード文字列変換。TSV（タブ区切りテキスト）形式。
@@ -6,7 +6,7 @@ import { EditableGrid2ClipboardFormat } from "./types-public"
  * 行区切りはCRLF、セル内の `"` や改行はダブルクォート囲み＋二重化でエスケープする。
  * 詳細は toTsvString / fromTsvString を参照。
  */
-export const defaultCopyPasteFormat: EditableGrid2ClipboardFormat = {
+export const defaultCopyPasteFormat: EditableGridClipboardFormat = {
 
   /**
    * コピー

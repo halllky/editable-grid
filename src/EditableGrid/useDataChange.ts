@@ -15,7 +15,7 @@ export type DataChangeNotifier = {
 
 /**
  * DataChangeNotifier を作り、以下のタイミングで通知する。
- * - 引数の subscribe（EditableGrid2Props.subscribe）による外部ストアの変更通知
+ * - 引数の subscribe（EditableGridProps.subscribe）による外部ストアの変更通知
  * - triggers のいずれかが変わったとき（React の state で値を持っている場合の更新や、判定関数の差し替えなど）
  */
 export function useDataChangeNotifier(

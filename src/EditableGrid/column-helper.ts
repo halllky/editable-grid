@@ -1,4 +1,4 @@
-import { EditableGrid2Deps, EditableGrid2GroupColumn, EditableGrid2LeafColumn } from "./types-public"
+import { EditableGridDeps, EditableGridGroupColumn, EditableGridLeafColumn } from "./types-public"
 
 /**
  * 列定義の型推論を補助する関数を返す。
@@ -9,7 +9,7 @@ import { EditableGrid2Deps, EditableGrid2GroupColumn, EditableGrid2LeafColumn } 
  *
  * @example
  * const col = createColumnHelper<Row>()
- * const columns: EditableGrid2Column<Row>[] = [
+ * const columns: EditableGridColumn<Row>[] = [
  *   col.leaf({
  *     columnId: "status",
  *     getValuesForRender: row => [row.status],
@@ -21,12 +21,12 @@ import { EditableGrid2Deps, EditableGrid2GroupColumn, EditableGrid2LeafColumn } 
 export function createColumnHelper<TRow>() {
   return {
     /** グループ化されていない列 */
-    leaf: <const TDeps extends EditableGrid2Deps = []>(
-      column: EditableGrid2LeafColumn<TRow, TDeps>
-    ): EditableGrid2LeafColumn<TRow, TDeps> => column,
+    leaf: <const TDeps extends EditableGridDeps = []>(
+      column: EditableGridLeafColumn<TRow, TDeps>
+    ): EditableGridLeafColumn<TRow, TDeps> => column,
     /** グループ化された列 */
     group: (
-      column: EditableGrid2GroupColumn<TRow>
-    ): EditableGrid2GroupColumn<TRow> => column,
+      column: EditableGridGroupColumn<TRow>
+    ): EditableGridGroupColumn<TRow> => column,
   }
 }

@@ -1,6 +1,6 @@
 import React from "react"
 import * as ReactHookForm from "react-hook-form"
-import * as EG2 from "../../EditableGrid2"
+import * as EG2 from "../../EditableGrid"
 import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "./createTextCellEditor"
 import { createSelectCellEditor } from "./createSelectCellEditor"
@@ -36,11 +36,11 @@ function CellEditorExample() {
   }), [subscribe])
 
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
-  const handleRowsChange = React.useCallback((updates: EG2.EditableGrid2RowUpdate<TestRow>[]) => {
+  const handleRowsChange = React.useCallback((updates: EG2.EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
   }, [setValue])
 
-  const columns = React.useMemo((): EG2.EditableGrid2Column<TestRow>[] => [col.leaf({
+  const columns = React.useMemo((): EG2.EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "singleLine",
     // 改行なしテキスト エディタ用設定 ここから
     editor: SingleLineEditor,
@@ -141,7 +141,7 @@ function CellEditorExample() {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <EG2.EditableGrid2
+      <EG2.EditableGrid
         rowKeys={rowKeys}
         getLatestRowObject={getLatestRowObject}
         subscribe={subscribeRows}

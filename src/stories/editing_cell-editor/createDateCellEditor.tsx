@@ -1,10 +1,10 @@
 import React from "react"
-import { EditableGridCellEditor } from "../../EditableGrid2"
+import { EditableGridCellEditor } from "../../EditableGrid"
 
 /**
  * 日付セルエディタを作成する。
  *
- * EditableGrid2 はセルエディタを標準搭載していないため、
+ * EditableGrid はセルエディタを標準搭載していないため、
  * html標準の <input type="date"> による日付編集の実装例としてここに置いている。
  * 利用側のプロジェクトにこのファイルをコピーして使うか、
  * これを参考に EditableGridCellEditor の契約を満たす自前のエディタを実装してください。
