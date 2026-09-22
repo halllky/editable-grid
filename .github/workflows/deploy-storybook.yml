@@ -32,7 +32,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      # postinstall(prepare)で dist のビルドも走る
       - run: npm ci
 
       - run: npm run tsc

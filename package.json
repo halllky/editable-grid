@@ -1,7 +1,28 @@
 {
   "name": "@halllky/editable-grid",
   "version": "0.9.0",
+  "description": "React のデータグリッドコンポーネント",
+  "keywords": [
+    "react",
+    "grid",
+    "data-grid",
+    "editable",
+    "spreadsheet",
+    "tanstack-table"
+  ],
   "license": "MIT",
+  "author": "halllky",
+  "homepage": "https://halllky.github.io/editable-grid/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halllky/editable-grid.git"
+  },
+  "bugs": {
+    "url": "https://github.com/halllky/editable-grid/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "sideEffects": [
     "**/*.css"
@@ -21,7 +42,7 @@
   },
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run tsc && npm run build",
     "tsc": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

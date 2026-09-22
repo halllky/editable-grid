@@ -2,6 +2,10 @@
 
 React + TanStack Table ベースの編集可能グリッドコンポーネント。
 
+```
+npm install @halllky/editable-grid
+```
+
 ## ドキュメント
 
 インストール方法と使い方は Storybook のドキュメントを参照してください。
@@ -43,6 +47,7 @@ npm run tsc       # 型チェックのみ
 npm run tsc             # 型チェック
 npm run build           # dist が生成できること
 npm run build-storybook # Storybook がビルドできること
+npm pack --dry-run      # 公開されるファイルの一覧を確認
 ```
 
 破壊的変更がある場合は、`src/stories/**/index.mdx` のドキュメントと
@@ -51,7 +56,7 @@ npm run build-storybook # Storybook がビルドできること
 ### 2. バージョンを上げる
 
 `package.json` の `version` を更新する（semver）。
-[ドキュメントのインストール手順](./src/stories/introduction/index.mdx) の番号も更新する。
+npm に同じバージョンは二度と公開できないため、公開のたびに必ず上げること。
 
 - パッチ: 後方互換のバグ修正
 - マイナー: 後方互換の機能追加
@@ -63,25 +68,34 @@ npm run build-storybook # Storybook がビルドできること
 `main` への push をトリガーに Storybook が GitHub Pages へ自動デプロイされる
 (`.github/workflows/deploy-storybook.yml`)。
 
-### 4. タグを打って push
+### 4. npm に公開
+
+`main` の最新をチェックアウトした状態で実行する。
+`prepublishOnly` で型チェックと `dist` のビルドが自動で走る。
+
+```
+npm login   # 初回のみ
+npm publish
+```
+
+### 5. タグを打って push
 
 ```
 git tag vX.Y.Z
 git push && git push --tags
 ```
 
-このリポジトリは npm レジストリに publish せず、Git のタグを参照して
-インストールする運用のため、**タグが実質的なリリース成果物**となる。
-タグを打ち忘れると利用側がそのバージョンを取得できない。
+### 6. デプロイ結果の確認
 
-### 5. デプロイ結果の確認
-
+- https://www.npmjs.com/package/@halllky/editable-grid に新しいバージョンが表示されていること
 - GitHub の Actions タブで `Deploy Storybook to GitHub Pages` が成功していること
 - https://halllky.github.io/editable-grid/ が更新されていること
 
-### 6. 利用側の更新
+### 7. 利用側の更新
 
-利用側の `package.json` の依存を `#vX.Y.Z` に更新して `npm install`。
+```
+npm install @halllky/editable-grid@X.Y.Z
+```
 
 ## Storybook のデプロイ
 
