@@ -30,7 +30,7 @@
   --halllky-eg2-color-selection-fill: #bae6fd;
 
   position: relative;
-  z-index: 0;
+  isolation: isolate;
   overflow: auto;
   outline: none;
   background-color: var(--halllky-eg2-color-grid-bg);
