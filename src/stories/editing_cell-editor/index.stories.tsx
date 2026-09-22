@@ -5,6 +5,7 @@ import { Meta, StoryObj } from "@storybook/react-vite"
 import { createTextCellEditor } from "./createTextCellEditor"
 import { createSelectCellEditor } from "./createSelectCellEditor"
 import { createDateCellEditor } from "./createDateCellEditor"
+import { Product, ProductCodeCell, useProductSearch } from "./externalRef"
 
 // editor が別のコンポーネント型にならないよう、
 // その場で作らずモジュールスコープの定数として参照を安定させる。
@@ -35,12 +36,71 @@ function CellEditorExample() {
     callback: onChange,
   }), [subscribe])
 
+  // 商品コードの照合と検索ダイアログ（外部参照の実装例。詳細は externalRef.tsx）。
+  // どちらの経路で商品が決まっても、グリッドを経由せず画面側が行に反映する。
+  const productSearch = useProductSearch((rowKey, product) => {
+    const rowIndex = rowKeys.indexOf(rowKey)
+    if (rowIndex !== -1) setValue(`rows.${rowIndex}.product`, product)
+  })
+
   // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
   const handleRowsChange = React.useCallback((updates: EditableGridRowUpdate<TestRow>[]) => {
     for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
-  }, [setValue])
+
+    // 商品コードが変わった行は、確定した時点でサーバーに照合をかける
+    for (const { rowKey, row, changedColumnIds } of updates) {
+      if (changedColumnIds.includes("productCode")) productSearch.lookup(rowKey, row.product?.code)
+    }
+  }, [setValue, productSearch.lookup])
 
   const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
+    columnId: "productCode",
+    // 外部参照（コード） エディタ用設定 ここから
+    // コードの入力自体はただのテキスト入力なので、改行なしテキストのエディタをそのまま使う
+    editor: SingleLineEditor,
+    cellToText: row => row.product?.code ?? "",
+    textToCell: (row, text) => {
+      const code = text.replace(/[\r\n\u2028\u2029]/g, '').trim()
+      // 値が変わっていない場合は引数の行をそのまま返し、照合し直さないようにする
+      if (code === (row.product?.code ?? "")) return row
+      // コードが変わった時点で名称は当てにならなくなるので、照合されるまで空にしておく
+      return { ...row, product: code === "" ? undefined : { code, name: "" } }
+    },
+    // 外部参照（コード） エディタ用設定 ここまで
+
+    renderHeader: () => <CellText>商品コード（※1）</CellText>,
+    getValuesForRender: row => [row.product?.code],
+
+    // 虫眼鏡ボタンはセルエディタではなくセルの描画側に置く。
+    // セルエディタは編集中のセルにしか現れないため、編集していないセルにボタンを出せない。
+    renderBody: ({ deps: [code], rowKey }) => (
+      <ProductCodeCell code={code} onSearchButtonClick={() => productSearch.openSearchDialog(rowKey)} />
+    ),
+    defaultWidth: 152,
+  }), col.leaf({
+    columnId: "productName",
+    // 外部参照（名称） 読み取り専用列の設定 ここから
+    // 名称はコードの照合結果として決まるので読み取り専用。
+    // editor と textToCell が無いため、そもそも編集は始まらない。
+    isReadOnly: true,
+    cellToText: row => row.product?.name ?? "",
+    // 外部参照（名称） 読み取り専用列の設定 ここまで
+
+    renderHeader: () => <CellText>商品名</CellText>,
+
+    // 照合中であることやエラーメッセージは行の値ではないが、
+    // 変わったときにセルを描画し直させる必要があるのでここに含める。
+    getValuesForRender: (row, _, rowKey) => {
+      const lookup = productSearch.getLookup(rowKey)
+      return [row.product?.name, lookup?.searching, lookup?.error] as const
+    },
+    renderBody: ({ deps: [name, searching, error] }) => (
+      <CellText className={error ? "text-rose-600" : searching ? "text-gray-500" : ""}>
+        {error ?? (searching ? "検索中..." : name)}
+      </CellText>
+    ),
+    defaultWidth: 180,
+  }), col.leaf({
     columnId: "singleLine",
     // 改行なしテキスト エディタ用設定 ここから
     editor: SingleLineEditor,
@@ -61,7 +121,7 @@ function CellEditorExample() {
     textToCell: (row, text) => ({ ...row, multiLine: text }),
     // 改行ありテキスト エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>改行あり（※1）</CellText>,
+    renderHeader: () => <CellText>改行あり（※2）</CellText>,
     getValuesForRender: row => [row.multiLine],
     renderBody: ({ deps: [multiLine] }) => <CellText wrap>{multiLine}</CellText>,
     defaultWidth: 224,
@@ -81,7 +141,7 @@ function CellEditorExample() {
     },
     // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>選択肢（※2）</CellText>,
+    renderHeader: () => <CellText>選択肢（※3）</CellText>,
     getValuesForRender: row => [row.option],
     renderBody: ({ deps: [option] }) => <CellText>{option}</CellText>,
     defaultWidth: 120,
@@ -101,7 +161,7 @@ function CellEditorExample() {
     },
     // 日付 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>日付（※2）</CellText>,
+    renderHeader: () => <CellText>日付（※3）</CellText>,
     getValuesForRender: row => [row.date],
     renderBody: ({ deps: [date] }) => <CellText>{date}</CellText>,
     defaultWidth: 124,
@@ -120,7 +180,7 @@ function CellEditorExample() {
     },
     // チェックボックス エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>チェックボックス（※3）</CellText>,
+    renderHeader: () => <CellText>チェックボックス（※4）</CellText>,
     getValuesForRender: row => [!!row.checkbox],
     renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
       <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
@@ -137,7 +197,7 @@ function CellEditorExample() {
       </label>
     ),
     defaultWidth: 188,
-  })], [setValue])
+  })], [setValue, productSearch.getLookup, productSearch.openSearchDialog])
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -149,10 +209,14 @@ function CellEditorExample() {
         columns={columns}
         className="border border-gray-500 resize-y"
       />
+
+      {productSearch.searchDialog}
+
       <ul className="text-sm">
-        <li>※1：エディタ内で Shift + Enter で改行可能</li>
-        <li>※2：ここではHTML標準のドロップダウンや日付ピッカーを使用している。使用感が気になる場合はこの例を参考にせず利用側で独自に作りこむこと。</li>
-        <li>※3：セルエディタなしの例。スペースキーやクリックで値をトグルできる。</li>
+        <li>※1：外部参照の例。コードの編集を確定すると非同期でマスタを照合して名称を埋め、見つからない場合は名称欄に赤字でその旨を表示する。虫眼鏡ボタンは、セルエディタ以外の経路（検索ダイアログ）で決まった値を画面側から反映する例。</li>
+        <li>※2：エディタ内で Shift + Enter で改行可能</li>
+        <li>※3：ここではHTML標準のドロップダウンや日付ピッカーを使用している。使用感が気になる場合はこの例を参考にせず利用側で独自に作りこむこと。</li>
+        <li>※4：セルエディタなしの例。スペースキーやクリックで値をトグルできる。</li>
       </ul>
     </div>
   )
@@ -161,6 +225,8 @@ function CellEditorExample() {
 /** データ1行分 */
 type TestRow = {
   rowId: string
+  /** 外部参照。コードと名称を持つオブジェクトを行の直下にぶら下げる。 */
+  product?: Product
   singleLine?: string
   multiLine?: string
   option?: "円" | "ドル" | "ユーロ"
@@ -172,6 +238,7 @@ type TestRow = {
 function getDefaultValues(): TestRow[] {
   return Array.from({ length: 3 }).map((_, i) => ({
     rowId: i.toFixed(),
+    product: { code: "P001", name: "りんご" },
     singleLine: "改行なしのテキスト",
     multiLine: "1行目1行目1行目1行目1行目\n2行目2行目2行目2行目2行目",
     option: "円",
@@ -180,14 +247,14 @@ function getDefaultValues(): TestRow[] {
 }
 
 /** セルの基本的スタイルを施したもの */
-function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
+function CellText(props: { wrap?: boolean, className?: string, children?: React.ReactNode }) {
 
   const className = props.wrap
     ? "px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
     : "px-1 py-px border border-transparent text-sm truncate"
 
   return (
-    <span className={className}>
+    <span className={`${className} ${props.className ?? ''}`}>
       {props.children}
     </span>
   )
