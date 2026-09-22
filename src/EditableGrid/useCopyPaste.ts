@@ -67,7 +67,7 @@ export const useCopyPaste = <TRow,>({
         if (colDef && colDef.cellToText) {
           const row = getRowObject(r);
           if (row) {
-            cellValue = colDef.cellToText(row, r);
+            cellValue = colDef.cellToText(row, r, props.rowKeys[r]);
           }
         }
         rowData.push(cellValue);
@@ -139,6 +139,7 @@ export const useCopyPaste = <TRow,>({
       trigger,
       selectedRange: planSelectedRange,
       columnIds,
+      rowKeys: props.rowKeys,
       isCellWritable,
     });
 

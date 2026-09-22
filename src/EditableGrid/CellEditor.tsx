@@ -22,6 +22,8 @@ export type CellEditorProps<TRow> = {
   getPixel: GetPixelFunction
   /** 最新の行データを取得する関数 */
   getRowObject: RowAccessor<TRow>
+  /** 行を一意に識別する文字列の配列。行インデックスから行のキーを引くために使う */
+  rowKeys: string[]
   /** 値の変更の一括反映 */
   batchDispatcher: BatchDispatcher
 }
@@ -52,6 +54,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   gridEditorComponent,
   getPixel,
   getRowObject,
+  rowKeys,
   batchDispatcher,
 }: CellEditorProps<TRow>, ref: React.ForwardedRef<CellEditorRef>) {
 
@@ -68,7 +71,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   /** セルの値をエディタに表示する文字列にする。cellToText が無い列は空文字。 */
   const toEditorText = (cell: CellPosition): string => {
     const columnMeta = visibleLeafColumns[cell.colIndex]?.columnDef.meta
-    return columnMeta?.original?.cellToText?.(getRowObject(cell.rowIndex), cell.rowIndex) ?? ''
+    return columnMeta?.original?.cellToText?.(getRowObject(cell.rowIndex), cell.rowIndex, rowKeys[cell.rowIndex]) ?? ''
   }
 
   // 編集確定

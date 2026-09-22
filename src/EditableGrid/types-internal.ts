@@ -13,7 +13,7 @@ export type ColumnMetadataInternal<TRow> = {
    */
   readonly original: EditableGridLeafColumn<TRow> | null
   /** 呼び出し側の columns が再評価されるたびに最新の値を返す。 */
-  readonly isReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean)
+  readonly isReadOnly: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean)
   isGroupedColumn: boolean
   isRowCheckBox: boolean
 }
@@ -89,7 +89,8 @@ export function normalizeFooterRenderers(
 export function checkIfCellReadOnly<TRow>(
   columnMeta: ColumnMetadataInternal<TRow>,
   rowIndex: number,
-  gridIsReadOnly: boolean | ((row: TRow, rowIndex: number) => boolean) | undefined,
+  rowKey: string,
+  gridIsReadOnly: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean) | undefined,
   originalRow: TRow
 ): boolean {
 
@@ -99,7 +100,7 @@ export function checkIfCellReadOnly<TRow>(
   }
 
   // 行単位の読み取り専用
-  if (typeof gridIsReadOnly === 'function' && gridIsReadOnly(originalRow, rowIndex)) {
+  if (typeof gridIsReadOnly === 'function' && gridIsReadOnly(originalRow, rowIndex, rowKey)) {
     return true
   }
 
@@ -107,7 +108,7 @@ export function checkIfCellReadOnly<TRow>(
   if (columnMeta.isReadOnly === true) {
     return true
   }
-  if (typeof columnMeta.isReadOnly === 'function' && columnMeta.isReadOnly(originalRow, rowIndex)) {
+  if (typeof columnMeta.isReadOnly === 'function' && columnMeta.isReadOnly(originalRow, rowIndex, rowKey)) {
     return true
   }
 

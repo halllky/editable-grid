@@ -85,7 +85,7 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
     // （ヘッダの全選択でその行がチェック済みにならないようにするため）
     enableRowSelection: row => props.showCheckBox === true
       || typeof props.showCheckBox === 'function'
-      && props.showCheckBox(getRowObject(row.index), row.index),
+      && props.showCheckBox(getRowObject(row.index), row.index, row.id),
     // 範囲選択は1つの矩形のみ（ややこしいので Ctrl キーによる複数範囲の選択はしない）
     enableMultiCellRangeSelection: false,
     // data が変わった時に選択範囲をリセットするかどうか
@@ -190,6 +190,7 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
       // チェック後に showCheckBox の判定が変わってチェックボックスが非表示になった行は含めない
       return table.getSelectedRowModel().flatRows.filter(r => r.getCanSelect()).map(r => ({
         rowIndex: r.index,
+        rowKey: r.id,
         row: getRowObject(r.index),
       }))
     },
@@ -197,10 +198,10 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
       const selectedRange = getSelectedRange()
       if (!selectedRange) return []
 
-      const rows: { rowIndex: number, row: TRow }[] = []
+      const rows: { rowIndex: number, rowKey: string, row: TRow }[] = []
       for (let r = selectedRange.startRow; r <= selectedRange.endRow; r++) {
         const row = getRowObject(r)
-        if (row) rows.push({ rowIndex: r, row })
+        if (row) rows.push({ rowIndex: r, rowKey: rowKeys[r], row })
       }
       return rows
     },
@@ -223,6 +224,7 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
         meta.original.onCellKeyDown({
           row: getRowObject(activeCell.rowIndex),
           rowIndex: activeCell.rowIndex,
+          rowKey: rowKeys[activeCell.rowIndex],
           event: e,
           requestEditStart: () => editorRef.current?.requestEditStart(null),
         })
@@ -333,6 +335,7 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
               gridEditorComponent={props.editor}
               getPixel={getPixel}
               getRowObject={getRowObject}
+              rowKeys={rowKeys}
               batchDispatcher={batchDispatcher}
             />
 
@@ -669,10 +672,10 @@ const MemorizedTD = React.memo<{
   // useDataChangeSelector の第2引数の戻り値の変化有無判定の都合上、オブジェクトでなく配列の方がよい。
   const snapshot = useDataChangeSelector(dataChange, () => {
     const row = getRowObject(rowIndex)
-    const isReadOnly = checkIfCellReadOnly(cellMeta, rowIndex, rowDependentPropsRef.current.isReadOnly, row)
+    const isReadOnly = checkIfCellReadOnly(cellMeta, rowIndex, rowKey, rowDependentPropsRef.current.isReadOnly, row)
     return cellMeta.isRowCheckBox
       ? [isReadOnly, cell.row.getCanSelect()]
-      : [isReadOnly, ...(cellMeta.original?.getValuesForRender?.(row, rowIndex) ?? [])]
+      : [isReadOnly, ...(cellMeta.original?.getValuesForRender?.(row, rowIndex, rowKey) ?? [])]
   })
   const isReadOnly = snapshot[0] as boolean
 

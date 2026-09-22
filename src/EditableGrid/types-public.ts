@@ -85,13 +85,21 @@ export type EditableGridProps<TRow> = {
   /**
    * 行ヘッダのチェックボックスを表示するかどうか。
    * 関数を渡す場合は `useCallback` 等で参照を安定させること。
+   *
+   * @param row 行の値
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  showCheckBox?: boolean | ((row: TRow, rowIndex: number) => boolean)
+  showCheckBox?: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean)
   /**
    * trueの場合はグリッド全体が読み取り専用。関数を設定した場合は行単位で判定される。
    * 関数を渡す場合は `useCallback` 等で参照を安定させること。
+   *
+   * @param row 行の値
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  isReadOnly?: boolean | ((row: TRow, rowIndex: number) => boolean)
+  isReadOnly?: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean)
   /** スタイル調整用 */
   className?: string
   /**
@@ -153,9 +161,9 @@ export type EditableGridRef<TRow> = {
   /** セルエディタによる編集が行われているかどうか */
   isEditing: boolean
   /** 選択されている行の取得 */
-  getSelectedRows: () => { row: TRow, rowIndex: number }[]
+  getSelectedRows: () => { row: TRow, rowIndex: number, rowKey: string }[]
   /** 行頭のチェックボックスで選択されている行を取得する。チェックボックスが表示されていない行は含まれない。 */
-  getCheckedRows: () => { row: TRow, rowIndex: number }[]
+  getCheckedRows: () => { row: TRow, rowIndex: number, rowKey: string }[]
   /**
    * 指定した範囲の行を選択する。
    * 選択した行が表示範囲の外にある場合は、その行が見えるようスクロールする。
@@ -247,8 +255,12 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
    *   中身が直接書き換えられうる場合は、描画に使う末端の値（例: `row.ref?.code, row.ref?.name`）を並べること。
    * - 他の行の値に依存する値（構成比など）を返してもよい。ただし描画中のセルの数だけ呼ばれるため、
    *   全行の合計のような重い計算は呼び出し側でキャッシュすること。
+   *
+   * @param row 行の値
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  getValuesForRender?: (row: TRow, rowIndex: number) => TDeps
+  getValuesForRender?: (row: TRow, rowIndex: number, rowKey: string) => TDeps
   /**
    * セルのボディのレンダリング処理をカスタマイズする関数。
    * 
@@ -282,8 +294,12 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
    * セルエディタの初期値と、クリップボードへのコピーに使われる。
    * 数値の書式化や、外部参照オブジェクトからコード値を取り出すといった変換はここで行う。
    * 指定しない場合、この列のセルは空文字としてコピーされ、セルエディタの初期値も空文字になる。
+   *
+   * @param row 行の値
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  cellToText?: (row: TRow, rowIndex: number) => string
+  cellToText?: (row: TRow, rowIndex: number, rowKey: string) => string
   /**
    * 文字列を行に反映した新しい行オブジェクトを返す関数。
    * セル編集の確定・貼り付け・Deleteキーによるクリアで使われる。
@@ -294,14 +310,23 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
    * - 文字列を解釈できない場合など、そのセルへの書き込みをやめる場合は undefined を返す。
    * - 同じ行の複数のセルへ貼り付ける場合は、前の列の textToCell の戻り値が次の列の引数に渡される。
    * - 指定しない場合、この列は編集不可。
+   *
+   * @param row 行の値。同じ行の複数のセルへ貼り付ける場合、前の列の textToCell の戻り値が渡される。
+   * @param text 書き込まれる文字列
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  textToCell?: (row: TRow, text: string, rowIndex: number) => TRow | undefined
+  textToCell?: (row: TRow, text: string, rowIndex: number, rowKey: string) => TRow | undefined
   /**
    * 列が読み取り専用かどうか。
    * trueの場合はセルの背景色が変わるのと、
    * 編集開始系のイベントが発生しなくなる。
+   *
+   * @param row 行の値
+   * @param rowIndex 行インデックス
+   * @param rowKey 行のキー（{@link EditableGridProps.rowKeys} の rowIndex 番目の要素）
    */
-  isReadOnly?: boolean | ((row: TRow, rowIndex: number) => boolean)
+  isReadOnly?: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean)
   /** 列の幅を変更できなくする場合はtrue */
   disableResizing?: boolean
   /** 列が非表示になるかどうか */
@@ -321,7 +346,10 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
   onCellKeyDown?: (args: {
     /** キーが押された時点での行の最新の値 */
     row: TRow
+    /** 行インデックス。画面表示範囲外も含めたデータ全体内での配列内の位置。 */
     rowIndex: number
+    /** 行のキー。ダイアログを開くなど、非同期処理の後で行を特定し直すときに使う。 */
+    rowKey: string
     event: React.KeyboardEvent
     /** 編集開始を要求する関数。呼び出すとセル編集が開始される。 */
     requestEditStart: () => void
@@ -428,6 +456,11 @@ export type EditableGridPastePlanner = (args: {
   selectedRange: EditableGridCellRange
   /** 可視データ列の columnId。colIndex の並び順と一致する。 */
   columnIds: string[]
+  /**
+   * 行のキー（{@link EditableGridProps.rowKeys}）。rowIndex の並び順と一致する。
+   * 貼り付け先の行をキーで判別したい場合に使う。
+   */
+  rowKeys: string[]
   /**
    * そのセルに書き込めるかどうか。
    * グリッド全体・行単位・列単位の読み取り専用設定と、列定義の textToCell の有無を

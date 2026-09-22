@@ -41,7 +41,7 @@ export const useBatchDispatcher = <TRow,>(
     const meta = visibleLeafColumns[colIndex]?.columnDef.meta
     if (!meta?.original?.textToCell) return false
 
-    return !checkIfCellReadOnly(meta, rowIndex, props.isReadOnly, getRowObject(rowIndex))
+    return !checkIfCellReadOnly(meta, rowIndex, rowKeys[rowIndex], props.isReadOnly, getRowObject(rowIndex))
   }
 
   /**
@@ -58,7 +58,7 @@ export const useBatchDispatcher = <TRow,>(
       const meta = visibleLeafColumns[colIndex].columnDef.meta!
       const changed = changedRows.get(rowIndex)
       const current = changed?.row ?? getRowObject(rowIndex)
-      const next = meta.original!.textToCell!(current, text, rowIndex)
+      const next = meta.original!.textToCell!(current, text, rowIndex, rowKeys[rowIndex])
 
       // 書き込み不可、または値に変化が無い
       if (next === undefined || next === current) continue
