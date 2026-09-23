@@ -36,71 +36,27 @@ function CellEditorExample() {
     callback: onChange,
   }), [subscribe])
 
-  // 商品コードの照合と検索ダイアログ（外部参照の実装例。詳細は externalRef.tsx）。
+  // 商品コードの照合と検索ダイアログ。
   // どちらの経路で商品が決まっても、グリッドを経由せず画面側が行に反映する。
   const productSearch = useProductSearch((rowKey, product) => {
     const rowIndex = rowKeys.indexOf(rowKey)
     if (rowIndex !== -1) setValue(`rows.${rowIndex}.product`, product)
   })
 
-  // グリッドの操作（編集・貼り付け・Delete）による変更を React Hook Form に反映する
+  // グリッドの操作（編集・貼り付け・Delete）によるセルの値変更時処理
   const handleRowsChange = React.useCallback((updates: EditableGridRowUpdate<TestRow>[]) => {
-    for (const { rowIndex, row } of updates) setValue(`rows.${rowIndex}`, row)
+    for (const { rowIndex, rowKey, row, changedColumnIds } of updates) {
+      // 変更を React Hook Form に反映する
+      setValue(`rows.${rowIndex}`, row)
 
-    // 商品コードが変わった行は、確定した時点でサーバーに照合をかける
-    for (const { rowKey, row, changedColumnIds } of updates) {
-      if (changedColumnIds.includes("productCode")) productSearch.lookup(rowKey, row.product?.code)
+      // 商品コードが変わった場合は、そのコードでのサーバー側検索を開始する
+      if (changedColumnIds.includes("productCode")) {
+        productSearch.lookup(rowKey, row.product?.code)
+      }
     }
   }, [setValue, productSearch.lookup])
 
   const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
-    columnId: "productCode",
-    // 外部参照（コード） エディタ用設定 ここから
-    // コードの入力自体はただのテキスト入力なので、改行なしテキストのエディタをそのまま使う
-    editor: SingleLineEditor,
-    cellToText: row => row.product?.code ?? "",
-    textToCell: (row, text) => {
-      const code = text.replace(/[\r\n\u2028\u2029]/g, '').trim()
-      // 値が変わっていない場合は引数の行をそのまま返し、照合し直さないようにする
-      if (code === (row.product?.code ?? "")) return row
-      // コードが変わった時点で名称は当てにならなくなるので、照合されるまで空にしておく
-      return { ...row, product: code === "" ? undefined : { code, name: "" } }
-    },
-    // 外部参照（コード） エディタ用設定 ここまで
-
-    renderHeader: () => <CellText>商品コード（※1）</CellText>,
-    getValuesForRender: row => [row.product?.code],
-
-    // 虫眼鏡ボタンはセルエディタではなくセルの描画側に置く。
-    // セルエディタは編集中のセルにしか現れないため、編集していないセルにボタンを出せない。
-    renderBody: ({ deps: [code], rowKey }) => (
-      <ProductCodeCell code={code} onSearchButtonClick={() => productSearch.openSearchDialog(rowKey)} />
-    ),
-    defaultWidth: 152,
-  }), col.leaf({
-    columnId: "productName",
-    // 外部参照（名称） 読み取り専用列の設定 ここから
-    // 名称はコードの照合結果として決まるので読み取り専用。
-    // editor と textToCell が無いため、そもそも編集は始まらない。
-    isReadOnly: true,
-    cellToText: row => row.product?.name ?? "",
-    // 外部参照（名称） 読み取り専用列の設定 ここまで
-
-    renderHeader: () => <CellText>商品名</CellText>,
-
-    // 照合中であることやエラーメッセージは行の値ではないが、
-    // 変わったときにセルを描画し直させる必要があるのでここに含める。
-    getValuesForRender: (row, _, rowKey) => {
-      const lookup = productSearch.getLookup(rowKey)
-      return [row.product?.name, lookup?.searching, lookup?.error] as const
-    },
-    renderBody: ({ deps: [name, searching, error] }) => (
-      <CellText className={error ? "text-rose-600" : searching ? "text-gray-500" : ""}>
-        {error ?? (searching ? "検索中..." : name)}
-      </CellText>
-    ),
-    defaultWidth: 180,
-  }), col.leaf({
     columnId: "singleLine",
     // 改行なしテキスト エディタ用設定 ここから
     editor: SingleLineEditor,
@@ -121,7 +77,7 @@ function CellEditorExample() {
     textToCell: (row, text) => ({ ...row, multiLine: text }),
     // 改行ありテキスト エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>改行あり（※2）</CellText>,
+    renderHeader: () => <CellText>改行あり（※1）</CellText>,
     getValuesForRender: row => [row.multiLine],
     renderBody: ({ deps: [multiLine] }) => <CellText wrap>{multiLine}</CellText>,
     defaultWidth: 224,
@@ -141,7 +97,7 @@ function CellEditorExample() {
     },
     // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>選択肢（※3）</CellText>,
+    renderHeader: () => <CellText>選択肢（※2）</CellText>,
     getValuesForRender: row => [row.option],
     renderBody: ({ deps: [option] }) => <CellText>{option}</CellText>,
     defaultWidth: 120,
@@ -161,7 +117,7 @@ function CellEditorExample() {
     },
     // 日付 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>日付（※3）</CellText>,
+    renderHeader: () => <CellText>日付（※2）</CellText>,
     getValuesForRender: row => [row.date],
     renderBody: ({ deps: [date] }) => <CellText>{date}</CellText>,
     defaultWidth: 124,
@@ -180,7 +136,7 @@ function CellEditorExample() {
     },
     // チェックボックス エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>チェックボックス（※4）</CellText>,
+    renderHeader: () => <CellText>チェックボックス（※3）</CellText>,
     getValuesForRender: row => [!!row.checkbox],
     renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
       <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
@@ -197,7 +153,50 @@ function CellEditorExample() {
       </label>
     ),
     defaultWidth: 188,
-  })], [setValue, productSearch.getLookup, productSearch.openSearchDialog])
+  }), col.group({
+    columnId: "product",
+    renderHeader: () => <CellText>外部検索（※4）</CellText>,
+    columns: [
+      col.leaf({
+        columnId: "productCode",
+        // 外部参照（コード） エディタ用設定 ここから
+        // コードの入力自体はただのテキスト入力なので、改行なしテキストのエディタをそのまま使う
+        editor: SingleLineEditor,
+        cellToText: row => row.product?.code ?? "",
+        textToCell: (row, text) => {
+          const trimmed = text.replace(/[\r\n\u2028\u2029]/g, '').trim()
+          // 値が変わっていない場合は引数の行をそのまま返し、照合し直さないようにする
+          if (trimmed === (row.product?.code ?? "")) return row
+          // コードが変わった時点で名称は当てにならなくなるので、照合されるまで空にしておく
+          return { ...row, product: trimmed === "" ? undefined : { code: trimmed, name: "" } }
+        },
+        // 外部参照（コード） エディタ用設定 ここまで
+
+        renderHeader: () => <CellText>コード</CellText>,
+        getValuesForRender: row => [row.product?.code],
+        renderBody: ({ deps: [code], rowKey }) => (
+          // 虫眼鏡ボタンはこの中で表示
+          <ProductCodeCell code={code} onSearchButtonClick={() => productSearch.openSearchDialog(rowKey)} />
+        ),
+        defaultWidth: 72,
+      }), col.leaf({
+        columnId: "productName",
+        isReadOnly: true,
+        cellToText: row => row.product?.name ?? "",
+        renderHeader: () => <CellText>商品名</CellText>,
+        getValuesForRender: (row, _, rowKey) => {
+          const lookup = productSearch.getLookup(rowKey)
+          return [row.product?.name, lookup?.searching, lookup?.error] as const
+        },
+        renderBody: ({ deps: [name, searching, error] }) => (
+          <CellText className={error ? "text-rose-600" : searching ? "text-gray-500" : ""}>
+            {error ?? (searching ? "検索中..." : name)}
+          </CellText>
+        ),
+        defaultWidth: 180,
+      })]
+  })
+  ], [setValue, productSearch.getLookup, productSearch.openSearchDialog])
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -213,10 +212,10 @@ function CellEditorExample() {
       {productSearch.searchDialog}
 
       <ul className="text-sm">
-        <li>※1：外部参照の例。コードの編集を確定すると非同期でマスタを照合して名称を埋め、見つからない場合は名称欄に赤字でその旨を表示する。虫眼鏡ボタンは、セルエディタ以外の経路（検索ダイアログ）で決まった値を画面側から反映する例。</li>
-        <li>※2：エディタ内で Shift + Enter で改行可能</li>
-        <li>※3：ここではHTML標準のドロップダウンや日付ピッカーを使用している。使用感が気になる場合はこの例を参考にせず利用側で独自に作りこむこと。</li>
-        <li>※4：セルエディタなしの例。スペースキーやクリックで値をトグルできる。</li>
+        <li>※1：エディタ内で Shift + Enter で改行可能</li>
+        <li>※2：ここではHTML標準のドロップダウンや日付ピッカーを使用している。使用感が気になる場合はこの例を参考にせず利用側で独自に作りこむこと。</li>
+        <li>※3：セルエディタなしの例。スペースキーやクリックで値をトグルできる。</li>
+        <li>※4：外部参照の実装例。コードの手入力と検索ダイアログからの選択の両方が可能。</li>
       </ul>
     </div>
   )
@@ -240,7 +239,7 @@ function getDefaultValues(): TestRow[] {
     rowId: i.toFixed(),
     product: { code: "P001", name: "りんご" },
     singleLine: "改行なしのテキスト",
-    multiLine: "1行目1行目1行目1行目1行目\n2行目2行目2行目2行目2行目",
+    multiLine: i === 2 ? "1行目1行目1行目1行目1行目\n2行目2行目2行目2行目2行目" : "",
     option: "円",
     date: "2024-01-01",
   }))
