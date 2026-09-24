@@ -1,4 +1,4 @@
-import { EditableGridCellRange, EditableGridPastePlanner } from "./types-public"
+import { EditableGridCellRange, EditableGridPastePlanner } from "../types-public"
 
 /**
  * 既定のペースト処理

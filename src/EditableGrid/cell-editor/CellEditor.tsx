@@ -1,9 +1,8 @@
 import React from "react"
-import { EditableGridCellEditor, EditableGridCellEditorProps, EditableGridCellEditorRef } from "./types-public"
-import { GridColumn } from "./types-internal"
-import { CellPosition } from "./useSelection"
-import { GetPixelFunction } from "./useGetPixel"
-import { RowAccessor } from "./useRowAccessor"
+import { EditableGridCellEditor, EditableGridCellEditorProps, EditableGridCellEditorRef } from "../types-public"
+import { GridColumn } from "../types-internal"
+import { CellPosition } from "../selecting-cell"
+import { GetPixelFunction, RowAccessor } from "../rendering"
 import { BatchDispatcher } from "./useBatchDispatcher"
 
 export type CellEditorProps<TRow> = {

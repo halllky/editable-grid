@@ -1,5 +1,5 @@
 import React from "react"
-import { GetPixelFunction } from "./useGetPixel"
+import { GetPixelFunction } from "../rendering"
 import { CellPosition, CellSelectionRange } from "./useSelection"
 
 export type SelectedRangeProps = {

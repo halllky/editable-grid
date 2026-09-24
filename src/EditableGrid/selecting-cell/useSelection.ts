@@ -1,7 +1,7 @@
 import React from "react"
 import * as TanStack from "@tanstack/react-table"
-import { GridCell, GridColumn, GridTable } from "./types-internal"
-import { EditableGridProps, EditableGridSelectRowOptions } from "./types-public"
+import { GridCell, GridColumn, GridTable } from "../types-internal"
+import { EditableGridProps, EditableGridSelectRowOptions } from "../types-public"
 import { ScrollToCellFunction } from "./useScrollToCell"
 
 /**

@@ -1,6 +1,6 @@
 import React from "react"
 import * as TanStackVirtual from "@tanstack/react-virtual"
-import { GridHeader, GridTable } from "./types-internal"
+import { GridHeader, GridTable } from "../types-internal"
 
 /**
  * 列の仮想化の結果。1行の中で非固定列のどの要素を描画するかを決める。

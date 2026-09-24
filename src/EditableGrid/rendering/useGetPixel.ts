@@ -1,6 +1,6 @@
 import React from "react"
 import * as TanStackVirtual from "@tanstack/react-virtual"
-import { GridColumn } from "./types-internal"
+import { GridColumn } from "../types-internal"
 
 /**
  * rowIndexやcolIndexから、スクロールエリア内でのx, y座標のピクセルを導出する関数。

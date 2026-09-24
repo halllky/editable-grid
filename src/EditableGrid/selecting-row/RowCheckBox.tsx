@@ -1,4 +1,4 @@
-import { GridColumnDef, GridColumnHelper } from "./types-internal"
+import { GridColumnDef, GridColumnHelper } from "../types-internal"
 
 /** 行ヘッダー列のID */
 export const ROW_HEADER_COLUMN_ID = "hallky-eg2-row-header"

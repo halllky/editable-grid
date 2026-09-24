@@ -1,4 +1,4 @@
-import { EditableGridClipboardFormat } from "./types-public"
+import { EditableGridClipboardFormat } from "../types-public"
 
 /**
  * 既定のクリップボード文字列変換。TSV（タブ区切りテキスト）形式。

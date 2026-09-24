@@ -1,7 +1,7 @@
 import React from "react"
 import { CellPosition } from "./useSelection"
-import { GridColumn } from "./types-internal"
-import { GetPixelFunction } from "./useGetPixel"
+import { GridColumn } from "../types-internal"
+import { GetPixelFunction } from "../rendering"
 
 /**
  * セルが見えるようにスクロールする関数

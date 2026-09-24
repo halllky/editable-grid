@@ -1,9 +1,9 @@
 import React from "react";
-import { EditableGridCellRange, EditableGridProps } from "./types-public";
-import { CellSelectionRange } from "./useSelection";
-import { GridTable } from "./types-internal";
-import { RowAccessor } from "./useRowAccessor";
-import { BatchDispatcher } from "./useBatchDispatcher";
+import { EditableGridCellRange, EditableGridProps } from "../types-public";
+import { CellSelectionRange } from "../selecting-cell";
+import { GridTable } from "../types-internal";
+import { RowAccessor } from "../rendering";
+import { BatchDispatcher } from "../cell-editor";
 import { defaultCopyPasteFormat } from "./default-copy-paste-format";
 import { defaultPastePlanner } from "./default-paste-planner";
 

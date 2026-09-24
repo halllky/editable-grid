@@ -1,6 +1,6 @@
-import { EditableGridProps, EditableGridRowUpdate } from "./types-public"
-import { checkIfCellReadOnly, GridColumn } from "./types-internal"
-import { RowAccessor } from "./useRowAccessor"
+import { EditableGridProps, EditableGridRowUpdate } from "../types-public"
+import { checkIfCellReadOnly, GridColumn } from "../types-internal"
+import { RowAccessor } from "../rendering"
 
 /**
  * セルへの文字列の書き込み1件。
