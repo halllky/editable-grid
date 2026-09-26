@@ -105,7 +105,14 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
     count: rowModel.rows.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
-    measureElement: element => element?.getBoundingClientRect().height,
+    // 行の高さは小数のまま測る。
+    // TanStack Virtual 標準の measureElement は Math.round や offsetHeight で整数に丸めるため、
+    // ブラウザ拡大率や OS の表示スケーリングで行の高さが小数（例: 19.5px）になると、
+    // 各行を絶対配置する top と実際の行の高さがずれ、行間に隙間や重なりができる。
+    // ResizeObserver 経由の呼び出しでは entry の値を使い、DOM の読み取り（強制レイアウト）を避ける。
+    // entry.borderBoxSize は transform の影響を受けないので、祖先に scale() がかかっていても正しい高さになる。
+    // ref 経由（entry なし）の初回測定だけは getBoundingClientRect を使うが、直後に届く ResizeObserver の値で上書きされる。
+    measureElement: (element, entry) => entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height,
     overscan: props.rowOverscan ?? 10,
     // 行が追加・削除・移動されたときに正しく再計算されるようにする
     getItemKey: React.useCallback((index: number) => {
