@@ -15,8 +15,6 @@ export type CellEditorProps<TRow> = {
   visibleLeafColumns: GridColumn[]
   /** 編集状態が変わったときに呼ばれるコールバック */
   onEditingStateChanged: (isEditing: boolean) => void
-  /** グリッド全体のpropsで指定される標準コンポーネント */
-  gridEditorComponent?: EditableGridCellEditor
   /** 座標計算関数 */
   getPixel: GetPixelFunction
   /** 最新の行データを取得する関数 */
@@ -50,7 +48,6 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
   scrollContainerScrollLeft,
   visibleLeafColumns,
   onEditingStateChanged,
-  gridEditorComponent,
   getPixel,
   getRowObject,
   rowKeys,
@@ -59,7 +56,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
 
   const editorTextareaRef = React.useRef<EditableGridCellEditorRef>(null)
 
-  const [editorComponent, setEditorComponent] = React.useState<EditableGridCellEditor>(gridEditorComponent ?? NoopEditor)
+  const [editorComponent, setEditorComponent] = React.useState<EditableGridCellEditor>(NoopEditor)
   const [edittingCell, setEdittingCell] = React.useState<CellPosition | null>(null)
 
   const isGridActiveRef = React.useRef(isGridActive)
@@ -176,7 +173,7 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
     let value = ''
     if (columnMeta?.original?.textToCell) {
       value = toEditorText(activeCell)
-      setEditorComponent(columnMeta.original.editor ?? gridEditorComponent ?? NoopEditor)
+      setEditorComponent(columnMeta.original.editor ?? NoopEditor)
     } else {
       // 編集できない列の場合
       setEditorComponent(NoopEditor)

@@ -120,8 +120,6 @@ export type EditableGridProps<TRow> = {
   columnOverscan?: number
   /** 偶数の行と奇数の行で背景色を交互に変更するかどうか */
   striped?: boolean
-  /** セルエディタ。列定義で指定がある場合はそちらが優先される。 */
-  editor?: EditableGridCellEditor
   /** データが無い時に表示される。既定では「データがありません。」と表示される。 */
   whenNoData?: React.ReactNode
   /**
@@ -280,7 +278,7 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
   /** 画面初期表示時の列の幅（pxで指定） */
   defaultWidth?: number
   /**
-   * セルエディタ。未指定の場合はグリッドのプロパティで指定されたものが使われる。
+   * セルエディタ。未指定の場合、この列はエディタによる編集ができない。
    *
    * エディタコンポーネントの参照は安定させること。
    * 列定義の中でその場でコンポーネントを生成する（例: `editor: createTextCellEditor()`）と、
@@ -475,7 +473,7 @@ export type EditableGridPastePlanner = (args: {
 
 /**
  * セル編集エディタのコンポーネント。
- * EditableGridProps.editor または列定義の editor として渡す。
+ * 列定義の editor として渡す。
  *
  * このコンポーネントは編集対象セルが存在する限り、編集中かどうかに関わらず常にDOM上にマウントされ続け、
  * かつグリッドがアクティブな間は常にフォーカスを保持する（キーボード入力・IME変換を横取りするため）。

@@ -332,7 +332,6 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
               scrollContainerScrollLeft={tableContainerRef.current?.scrollLeft ?? 0}
               visibleLeafColumns={visibleLeafColumns}
               onEditingStateChanged={setIsEditing}
-              gridEditorComponent={props.editor}
               getPixel={getPixel}
               getRowObject={getRowObject}
               rowKeys={rowKeys}
