@@ -139,7 +139,15 @@ export const CellEditor = React.forwardRef(function CellEditor<TRow>({
       pointerEvents: edittingCell ? undefined : 'none',
     }
 
-    if (!activeCell) return style
+    // アクティブセルが無い（行が0件など）ときは大きさを0にする。
+    // 指定しないとブラウザ既定のテキストエリアの大きさになり、ヘッダだけのグリッドからはみ出してスクロールが発生するため。
+    if (!activeCell) {
+      style.left = 0
+      style.top = 0
+      style.width = 0
+      style.height = 0
+      return style
+    }
 
     // エディタを編集対象セルの位置に移動させる
     const left = getPixel({ position: 'left', colIndex: activeCell.colIndex })

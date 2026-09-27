@@ -1,0 +1,22 @@
+import { Meta, Source, Canvas } from "@storybook/addon-docs/blocks"
+import * as NoDataStories from "./index.stories"
+import NoDataStoriesTsx from "./index.stories.tsx?raw"
+
+<Meta of={NoDataStories} />
+
+# データが無いときの表示
+
+行が1件も無いとき、グリッドは既定ではボディに何も表示しません。
+メッセージなどを表示したい場合は `whenNoData` に表示内容を指定してください。
+
+<Source language="tsx" code={`
+  <EditableGrid
+    whenNoData={<span>商品が登録されていません</span>}
+  />
+`} />
+
+<Canvas
+  of={NoDataStories.データが無いときの表示}
+  layout="fullscreen"
+  source={{ language: "tsx", code: NoDataStoriesTsx }}
+/>

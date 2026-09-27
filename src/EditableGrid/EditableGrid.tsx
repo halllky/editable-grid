@@ -453,13 +453,10 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
           })}
 
           {/* データが空の場合のメッセージ */}
-          {rowModel.rows.length === 0 && (
-            <tr className="halllky-eg2-row">
-              <td
-                colSpan={visibleLeafColumns.length}
-                className="halllky-eg2-empty-cell"
-              >
-                {props.whenNoData ?? "データがありません"}
+          {rowModel.rows.length === 0 && props.whenNoData && (
+            <tr>
+              <td colSpan={visibleLeafColumns.length}>
+                {props.whenNoData}
               </td>
             </tr>
           )}

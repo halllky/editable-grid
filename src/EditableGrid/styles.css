@@ -43,7 +43,6 @@
 .halllky-eg2-tfoot,
 .halllky-eg2-footer-row,
 .halllky-eg2-tf,
-.halllky-eg2-empty-cell,
 .halllky-eg2-spacer,
 .halllky-eg2-resize-handle,
 .halllky-eg2-selection-fixed-layer,
@@ -187,15 +186,6 @@
 .halllky-eg2-tf--fixed {
   position: sticky;
   z-index: 10;
-}
-
-.halllky-eg2-empty-cell {
-  display: flex;
-  width: 100%;
-  margin: 0;
-  padding: 1rem;
-  text-align: center;
-  user-select: none;
 }
 
 /* 列の仮想化で描画を省略した列の幅を埋める要素 */

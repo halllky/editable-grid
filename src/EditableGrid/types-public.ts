@@ -120,7 +120,7 @@ export type EditableGridProps<TRow> = {
    * その挙動を嫌う場合はこの値をとても大きくすることで回避できる。
    */
   columnOverscan?: number
-  /** データが無い時に表示される。既定では「データがありません。」と表示される。 */
+  /** データが無い時に表示される。 */
   whenNoData?: React.ReactNode
   /**
    * クリップボードとの文字列変換方法。
