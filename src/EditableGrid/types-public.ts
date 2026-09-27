@@ -101,6 +101,8 @@ export type EditableGridProps<TRow> = {
    */
   isReadOnly?: boolean | ((row: TRow, rowIndex: number, rowKey: string) => boolean)
   /** スタイル調整用 */
+  style?: React.CSSProperties
+  /** スタイル調整用 */
   className?: string
   /**
    * 行のclassNameを取得する関数。基本的にその行のテキスト色を変更する程度の想定。
@@ -118,8 +120,6 @@ export type EditableGridProps<TRow> = {
    * その挙動を嫌う場合はこの値をとても大きくすることで回避できる。
    */
   columnOverscan?: number
-  /** 偶数の行と奇数の行で背景色を交互に変更するかどうか */
-  striped?: boolean
   /** データが無い時に表示される。既定では「データがありません。」と表示される。 */
   whenNoData?: React.ReactNode
   /**
@@ -317,8 +317,8 @@ export type EditableGridLeafColumn<TRow, TDeps extends EditableGridDeps = Editab
   textToCell?: (row: TRow, text: string, rowIndex: number, rowKey: string) => TRow | undefined
   /**
    * 列が読み取り専用かどうか。
-   * trueの場合はセルの背景色が変わるのと、
-   * 編集開始系のイベントが発生しなくなる。
+   * trueの場合は編集開始系のイベントが発生しなくなる。
+   * 見た目は変わらないため、読み取り専用であることを表示したい場合は独自に実装すること。
    *
    * @param row 行の値
    * @param rowIndex 行インデックス

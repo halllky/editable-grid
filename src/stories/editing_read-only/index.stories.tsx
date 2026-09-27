@@ -69,18 +69,18 @@ function ReadOnlyExample() {
     // グリッド全体が読み取り専用のときだけ明示的に disabled にしている。
     columnId: "lock",
     getValuesForRender: row => [row.rowId],
-    renderBody: ({ deps: [rowId] }) => (
+    renderBody: ({ deps: [rowId], isReadOnly }) => (
       <button
         type="button"
         disabled={isGridReadOnly}
         onMouseDown={e => e.stopPropagation()}
         onClick={() => toggleLock(rowId)}
-        className="w-full text-xs text-sky-700 underline cursor-pointer disabled:text-gray-400 disabled:no-underline disabled:cursor-default"
+        className={`w-full text-xs text-sky-700 underline cursor-pointer disabled:text-gray-400 disabled:no-underline disabled:cursor-default ${isReadOnly ? "" : "bg-white"}`}
       >
         {lockedRowIds.has(rowId) ? "解除" : "確定"}
       </button>
     ),
-    renderHeader: () => <CellText>行ロック</CellText>,
+    renderHeader: () => <HeaderText>行ロック</HeaderText>,
     defaultWidth: 76,
     disableResizing: true,
     isFixed: true,
@@ -90,9 +90,9 @@ function ReadOnlyExample() {
     editor: TextEditor,
     cellToText: row => row.name ?? "",
     textToCell: (row, text) => ({ ...row, name: text }),
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 128,
     isFixed: true,
   }), col.leaf({
@@ -107,9 +107,9 @@ function ReadOnlyExample() {
       const parsed = Number(text)
       return text.trim() !== "" && Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
-    renderHeader: () => <CellText>単価（※1）</CellText>,
+    renderHeader: () => <HeaderText>単価（※1）</HeaderText>,
     getValuesForRender: row => [row.unitPrice],
-    renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
+    renderBody: ({ deps: [unitPrice], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{unitPrice}</CellText>,
     defaultWidth: 96,
     // 単価（列単位の読み取り専用） ここまで
   }), col.leaf({
@@ -122,9 +122,9 @@ function ReadOnlyExample() {
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, quantity: parsed } : undefined
     },
-    renderHeader: () => <CellText>数量</CellText>,
+    renderHeader: () => <HeaderText>数量</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{quantity}</CellText>,
     defaultWidth: 72,
     // 数量 エディタ用設定 ここまで
   }), col.leaf({
@@ -139,9 +139,9 @@ function ReadOnlyExample() {
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, discountRate: parsed } : undefined
     },
-    renderHeader: () => <CellText>割引率%（※2）</CellText>,
+    renderHeader: () => <HeaderText>割引率%（※2）</HeaderText>,
     getValuesForRender: row => [row.discountRate],
-    renderBody: ({ deps: [discountRate] }) => <CellText>{discountRate}</CellText>,
+    renderBody: ({ deps: [discountRate], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{discountRate}</CellText>,
     defaultWidth: 120,
     // 割引率（セル単位の読み取り専用） ここまで
   }), col.leaf({
@@ -149,9 +149,9 @@ function ReadOnlyExample() {
     columnId: "amount",
     isReadOnly: true,
     cellToText: row => String(calcAmount(row)),
-    renderHeader: () => <CellText>金額（※1）</CellText>,
+    renderHeader: () => <HeaderText>金額（※1）</HeaderText>,
     getValuesForRender: row => [calcAmount(row)],
-    renderBody: ({ deps: [amount] }) => <CellText>{amount}</CellText>,
+    renderBody: ({ deps: [amount], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{amount}</CellText>,
     defaultWidth: 96,
     // 金額（読み取り専用・計算列） ここまで
   }), col.leaf({
@@ -161,7 +161,7 @@ function ReadOnlyExample() {
     columnId: "urgent",
     getValuesForRender: row => [row.urgent ?? false],
     renderBody: ({ deps: [urgent], rowIndex, isReadOnly }) => (
-      <label className={`flex items-center justify-center w-full ${isReadOnly ? "" : "cursor-pointer"}`}>
+      <label className={`flex items-center justify-center w-full ${isReadOnly ? "" : "bg-white cursor-pointer"}`}>
         <input
           type="checkbox"
           checked={urgent}
@@ -172,7 +172,7 @@ function ReadOnlyExample() {
         />
       </label>
     ),
-    renderHeader: () => <CellText>至急（※3）</CellText>,
+    renderHeader: () => <HeaderText>至急（※3）</HeaderText>,
     defaultWidth: 92,
     // 至急（セル内コントロール） ここまで
   }), col.leaf({
@@ -180,9 +180,9 @@ function ReadOnlyExample() {
     editor: TextEditor,
     cellToText: row => row.note ?? "",
     textToCell: (row, text) => ({ ...row, note: text }),
-    renderHeader: () => <CellText>備考</CellText>,
+    renderHeader: () => <HeaderText>備考</HeaderText>,
     getValuesForRender: row => [row.note],
-    renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
+    renderBody: ({ deps: [note], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{note}</CellText>,
     defaultWidth: 160,
   })], [isGridReadOnly, lockedRowIds, toggleLock, setValue])
 
@@ -250,10 +250,19 @@ function getDefaultValues(): TestRow[] {
   ]
 }
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
   return (
     <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, children?: React.ReactNode }) {
+  return (
+    <span className={`flex-1 px-1 py-px border border-transparent text-sm truncate ${props.isReadOnly ? "" : "bg-white"}`}>
       {props.children}
     </span>
   )

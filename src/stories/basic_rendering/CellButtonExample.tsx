@@ -24,27 +24,27 @@ export function CellButtonExample() {
 
   const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 160,
   }), col.leaf({
     columnId: "quantity",
-    renderHeader: () => <CellText>数量</CellText>,
+    renderHeader: () => <HeaderText>数量</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText align="right">{quantity}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{quantity}</CellText>,
     defaultWidth: 64,
   }), col.leaf({
     // 描画内容が行の値に依存しない列では getValuesForRender を省略できる
     columnId: "addWithStopPropagation",
-    renderHeader: () => <CellText>数量+1（※1）</CellText>,
-    renderBody: ({ rowKey }) => (
+    renderHeader: () => <HeaderText>数量+1（※1）</HeaderText>,
+    renderBody: ({ rowKey, isReadOnly }) => (
       <button
         type="button"
         // セルの選択が動かないよう、mousedown をグリッドに伝えない
         onMouseDown={e => e.stopPropagation()}
         onClick={() => addQuantity(rowKey)}
-        className="w-full text-sm text-sky-700 underline cursor-pointer"
+        className={`w-full text-sm text-sky-700 underline cursor-pointer ${isReadOnly ? "" : "bg-white"}`}
       >
         ＋1
       </button>
@@ -52,13 +52,13 @@ export function CellButtonExample() {
     defaultWidth: 104,
   }), col.leaf({
     columnId: "addWithoutStopPropagation",
-    renderHeader: () => <CellText>数量+1（※2）</CellText>,
-    renderBody: ({ rowKey }) => (
+    renderHeader: () => <HeaderText>数量+1（※2）</HeaderText>,
+    renderBody: ({ rowKey, isReadOnly }) => (
       <button
         type="button"
         // stopPropagation を呼ばない例。挙動を見比べるために置いているだけなので真似しないこと。
         onClick={() => addQuantity(rowKey)}
-        className="w-full text-sm text-sky-700 underline cursor-pointer"
+        className={`w-full text-sm text-sky-700 underline cursor-pointer ${isReadOnly ? "" : "bg-white"}`}
       >
         ＋1
       </button>
@@ -99,13 +99,23 @@ function getDefaultValues(): Row[] {
   ]
 }
 
-/** セルの基本的なスタイルを施したもの */
-function CellText({ children, align }: {
+/** 列ヘッダの基本的なスタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="flex-1 px-1 py-px text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的なスタイルを施したもの */
+function CellText({ isReadOnly, children, align }: {
+  isReadOnly: boolean
   children?: React.ReactNode
   align?: "right"
 }) {
   return (
-    <span className={`flex-1 px-1 py-px text-sm truncate ${align === "right" ? "text-right" : ""}`}>
+    <span className={`flex-1 px-1 py-px text-sm truncate ${isReadOnly ? "" : "bg-white"} ${align === "right" ? "text-right" : ""}`}>
       {children}
     </span>
   )

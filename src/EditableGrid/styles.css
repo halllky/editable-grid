@@ -10,23 +10,17 @@
 
 .halllky-eg2-root {
   /* --- テーマ変数（利用側から上書き可能） --- */
-  /* gray-200 */
+  /* グリッド全体の背景色、固定列エリアの背景色 */
   --halllky-eg2-color-grid-bg: #e5e7eb;
-  /* white */
-  --halllky-eg2-color-cell-bg: #ffffff;
-  /* gray-50 */
-  --halllky-eg2-color-cell-bg-striped: #f9fafb;
-  /* gray-100 */
+  /* ヘッダ・フッタの背景色 */
   --halllky-eg2-color-header-bg: #f3f4f6;
-  /* gray-300 */
+  /* ヘッダ・フッタのボーダー、固定列と非固定列の境界部分のボーダー　の色 */
   --halllky-eg2-color-border: #d1d5db;
-  /* gray-400 */
+  /* 列リサイズ用ハンドラの色 */
   --halllky-eg2-color-resize-handle-hover: #9ca3af;
-  /* gray-500 */
-  --halllky-eg2-color-empty-text: #6b7280;
-  /* sky-500 */
+  /* 選択範囲の枠の色 */
   --halllky-eg2-color-selection-border: #0ea5e9;
-  /* sky-200 */
+  /* 選択範囲の背景色 */
   --halllky-eg2-color-selection-fill: #bae6fd;
 
   position: relative;
@@ -149,14 +143,6 @@
   user-select: none;
 }
 
-.halllky-eg2-td--bg-default {
-  background-color: var(--halllky-eg2-color-cell-bg);
-}
-
-.halllky-eg2-td--bg-striped {
-  background-color: var(--halllky-eg2-color-cell-bg-striped);
-}
-
 /* 読み取り専用セルは地の色を透かして見せるが、固定列は横スクロール時に
    後ろのセルを隠す必要があるため、同じ地の色で塗りつぶす */
 .halllky-eg2-td--bg-readonly {
@@ -210,7 +196,6 @@
   padding: 1rem;
   text-align: center;
   user-select: none;
-  color: var(--halllky-eg2-color-empty-text);
 }
 
 /* 列の仮想化で描画を省略した列の幅を埋める要素 */

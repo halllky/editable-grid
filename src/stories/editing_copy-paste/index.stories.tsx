@@ -54,9 +54,9 @@ function CopyPasteExample() {
     textToCell: (row, text) => ({ ...row, name: text.replace(/[\r\n\u2028\u2029]/g, '') }),
     // 商品名 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 160,
   }), col.leaf({
     columnId: "unitPrice",
@@ -72,9 +72,9 @@ function CopyPasteExample() {
     },
     // 単価 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>単価（※1）</CellText>,
+    renderHeader: () => <HeaderText>単価（※1）</HeaderText>,
     getValuesForRender: row => [row.unitPrice],
-    renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
+    renderBody: ({ deps: [unitPrice], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{unitPrice}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "quantity",
@@ -88,9 +88,9 @@ function CopyPasteExample() {
     },
     // 数量 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>数量（※1）</CellText>,
+    renderHeader: () => <HeaderText>数量（※1）</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{quantity}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "amount",
@@ -102,10 +102,10 @@ function CopyPasteExample() {
     cellToText: row => String((row.unitPrice ?? 0) * (row.quantity ?? 0)),
     // 金額（読み取り専用・計算列） ここまで
 
-    renderHeader: () => <CellText>金額（※2）</CellText>,
+    renderHeader: () => <HeaderText>金額（※2）</HeaderText>,
     // 計算結果そのものを返すと、単価・数量のどちらが変わっても計算結果が変わったときだけ描画し直される
     getValuesForRender: row => [(row.unitPrice ?? 0) * (row.quantity ?? 0)],
-    renderBody: ({ deps: [amount] }) => <CellText>{amount}</CellText>,
+    renderBody: ({ deps: [amount], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{amount}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "category",
@@ -122,9 +122,9 @@ function CopyPasteExample() {
     },
     // 区分 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>区分（※3）</CellText>,
+    renderHeader: () => <HeaderText>区分（※3）</HeaderText>,
     getValuesForRender: row => [row.category],
-    renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
+    renderBody: ({ deps: [category], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{category}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "note",
@@ -136,9 +136,9 @@ function CopyPasteExample() {
     textToCell: (row, text) => ({ ...row, note: text }),
     // 備考（改行あり） エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>備考（※4）</CellText>,
+    renderHeader: () => <HeaderText>備考（※4）</HeaderText>,
     getValuesForRender: row => [row.note],
-    renderBody: ({ deps: [note] }) => <CellText wrap>{note}</CellText>,
+    renderBody: ({ deps: [note], isReadOnly }) => <CellText isReadOnly={isReadOnly} wrap>{note}</CellText>,
     defaultWidth: 200,
   })], [])
 
@@ -183,15 +183,24 @@ function getDefaultValues(): TestRow[] {
   ]
 }
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { wrap?: boolean, children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
+  return (
+    <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, wrap?: boolean, children?: React.ReactNode }) {
 
   const className = props.wrap
-    ? "px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
-    : "px-1 py-px border border-transparent text-sm truncate"
+    ? "flex-1 px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
+    : "flex-1 px-1 py-px border border-transparent text-sm truncate"
 
   return (
-    <span className={className}>
+    <span className={`${className} ${props.isReadOnly ? "" : "bg-white"}`}>
       {props.children}
     </span>
   )

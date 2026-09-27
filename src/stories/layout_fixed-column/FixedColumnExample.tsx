@@ -20,34 +20,34 @@ export function FixedColumnExample() {
   const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     // isFixed を指定していないが、右隣の商品名列が固定のため固定される（※1）
     columnId: "code",
-    renderHeader: () => <CellText>商品コード（※1）</CellText>,
+    renderHeader: () => <HeaderText>商品コード（※1）</HeaderText>,
     getValuesForRender: row => [row.code],
-    renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
+    renderBody: ({ deps: [code], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{code}</CellText>,
     defaultWidth: 136,
   }), col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名（※2）</CellText>,
+    renderHeader: () => <HeaderText>商品名（※2）</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 136,
     isFixed: true,
   }), col.leaf({
     columnId: "supplier",
-    renderHeader: () => <CellText>仕入先</CellText>,
+    renderHeader: () => <HeaderText>仕入先</HeaderText>,
     getValuesForRender: row => [row.supplier],
-    renderBody: ({ deps: [supplier] }) => <CellText>{supplier}</CellText>,
+    renderBody: ({ deps: [supplier], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{supplier}</CellText>,
     defaultWidth: 240,
   }), col.leaf({
     columnId: "location",
-    renderHeader: () => <CellText>保管場所</CellText>,
+    renderHeader: () => <HeaderText>保管場所</HeaderText>,
     getValuesForRender: row => [row.location],
-    renderBody: ({ deps: [location] }) => <CellText>{location}</CellText>,
+    renderBody: ({ deps: [location], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{location}</CellText>,
     defaultWidth: 240,
   }), col.leaf({
     columnId: "note",
-    renderHeader: () => <CellText>備考</CellText>,
+    renderHeader: () => <HeaderText>備考</HeaderText>,
     getValuesForRender: row => [row.note],
-    renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
+    renderBody: ({ deps: [note], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{note}</CellText>,
     defaultWidth: 480,
   })], [])
 
@@ -91,10 +91,19 @@ function getDefaultValues(): Row[] {
   ]
 }
 
-/** セルの基本的なスタイルを施したもの */
-function CellText({ children }: { children?: React.ReactNode }) {
+/** 列ヘッダの基本的なスタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
   return (
     <span className="flex-1 px-1 py-px text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的なスタイルを施したもの */
+function CellText({ isReadOnly, children }: { isReadOnly: boolean, children?: React.ReactNode }) {
+  return (
+    <span className={`flex-1 px-1 py-px text-sm truncate ${isReadOnly ? "" : "bg-white"}`}>
       {children}
     </span>
   )

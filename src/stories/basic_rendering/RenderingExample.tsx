@@ -34,9 +34,9 @@ export function RenderingExample() {
 
   const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     // 配列を渡すと上から1段ずつ描画される
     renderFooter: [
       () => <FooterText>合計（※1）</FooterText>,
@@ -46,15 +46,15 @@ export function RenderingExample() {
   }), col.leaf({
     // フッタを指定していない列。足りない段は空のセルになる
     columnId: "unitPrice",
-    renderHeader: () => <CellText>単価</CellText>,
+    renderHeader: () => <HeaderText>単価</HeaderText>,
     getValuesForRender: row => [row.unitPrice],
-    renderBody: ({ deps: [unitPrice] }) => <CellText align="right">{unitPrice.toLocaleString()}</CellText>,
+    renderBody: ({ deps: [unitPrice], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{unitPrice.toLocaleString()}</CellText>,
     defaultWidth: 72,
   }), col.leaf({
     columnId: "quantity",
-    renderHeader: () => <CellText>数量</CellText>,
+    renderHeader: () => <HeaderText>数量</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText align="right">{quantity.toLocaleString()}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{quantity.toLocaleString()}</CellText>,
     renderFooter: [
       () => <FooterText align="right">{sum(rowsRef.current, row => row.quantity)}</FooterText>,
       () => <FooterText align="right">{average(rowsRef.current, row => row.quantity)}</FooterText>,
@@ -63,14 +63,14 @@ export function RenderingExample() {
   }), col.leaf({
     // 描画内容が行の値に依存しない列では getValuesForRender を省略できる
     columnId: "addWithStopPropagation",
-    renderHeader: () => <CellText>数量+1</CellText>,
-    renderBody: ({ rowKey }) => (
+    renderHeader: () => <HeaderText>数量+1</HeaderText>,
+    renderBody: ({ rowKey, isReadOnly }) => (
       <button
         type="button"
         // セルの選択が動かないよう、mousedown をグリッドに伝えない
         onMouseDown={e => e.stopPropagation()}
         onClick={() => addQuantity(rowKey)}
-        className="w-full text-sm text-sky-700 underline cursor-pointer"
+        className={`w-full text-sm text-sky-700 underline cursor-pointer ${isReadOnly ? "" : "bg-white"}`}
       >
         ＋1
       </button>
@@ -79,9 +79,9 @@ export function RenderingExample() {
   }), col.leaf({
     // includeTax を参照している列。ヘッダも金額も includeTax によって変わる。
     columnId: "amount",
-    renderHeader: () => <CellText>{includeTax ? "金額（税込）（※2）" : "金額（税抜）（※2）"}</CellText>,
+    renderHeader: () => <HeaderText>{includeTax ? "金額（税込）（※2）" : "金額（税抜）（※2）"}</HeaderText>,
     getValuesForRender: row => [calcAmount(row, includeTax)],
-    renderBody: ({ deps: [amount] }) => <CellText align="right">{amount.toLocaleString()}</CellText>,
+    renderBody: ({ deps: [amount], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{amount.toLocaleString()}</CellText>,
     renderFooter: [
       () => <FooterText align="right">{sum(rowsRef.current, row => calcAmount(row, includeTax))}</FooterText>,
       () => <FooterText align="right">{average(rowsRef.current, row => calcAmount(row, includeTax))}</FooterText>,
@@ -153,13 +153,23 @@ function average(rows: Row[], pick: (row: Row) => number): string {
   return (total / rows.length).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
-/** セルの基本的なスタイルを施したもの */
-function CellText({ children, align }: {
+/** 列ヘッダの基本的なスタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="flex-1 px-1 py-px text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的なスタイルを施したもの */
+function CellText({ isReadOnly, children, align }: {
+  isReadOnly: boolean
   children?: React.ReactNode
   align?: "right"
 }) {
   return (
-    <span className={`flex-1 px-1 py-px text-sm truncate ${align === "right" ? "text-right" : ""}`}>
+    <span className={`flex-1 px-1 py-px text-sm truncate ${isReadOnly ? "" : "bg-white"} ${align === "right" ? "text-right" : ""}`}>
       {children}
     </span>
   )

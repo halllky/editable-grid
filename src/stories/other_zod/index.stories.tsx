@@ -117,20 +117,20 @@ function ZodExample() {
 
   const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     // エラーメッセージも deps に含める。含めない場合、
     // 値が変わっていないのにエラーだけが変わったときにセルの表示が古いままになる。
     getValuesForRender: row => [row.name, getCellError(row, "name")],
-    renderBody: ({ deps: [name, error] }) => <CellText error={error}>{name}</CellText>,
+    renderBody: ({ deps: [name, error], isReadOnly }) => <CellText isReadOnly={isReadOnly} error={error}>{name}</CellText>,
     editor: TextEditor,
     cellToText: row => row.name,
     textToCell: (row, text) => ({ ...row, name: text }),
     defaultWidth: 160,
   }), col.leaf({
     columnId: "quantity",
-    renderHeader: () => <CellText>数量</CellText>,
+    renderHeader: () => <HeaderText>数量</HeaderText>,
     getValuesForRender: row => [row.quantity, getCellError(row, "quantity")],
-    renderBody: ({ deps: [quantity, error] }) => <CellText error={error}>{quantity}</CellText>,
+    renderBody: ({ deps: [quantity, error], isReadOnly }) => <CellText isReadOnly={isReadOnly} error={error}>{quantity}</CellText>,
     editor: TextEditor,
     cellToText: row => String(row.quantity ?? ""),
     // スキーマに渡す前に数値にしておく。セルエディタやクリップボードから渡ってくるのは文字列のため。
@@ -138,9 +138,9 @@ function ZodExample() {
     defaultWidth: 96,
   }), col.leaf({
     columnId: "unitPrice",
-    renderHeader: () => <CellText>単価</CellText>,
+    renderHeader: () => <HeaderText>単価</HeaderText>,
     getValuesForRender: row => [row.unitPrice, getCellError(row, "unitPrice")],
-    renderBody: ({ deps: [unitPrice, error] }) => <CellText error={error}>{unitPrice}</CellText>,
+    renderBody: ({ deps: [unitPrice, error], isReadOnly }) => <CellText isReadOnly={isReadOnly} error={error}>{unitPrice}</CellText>,
     editor: TextEditor,
     cellToText: row => String(row.unitPrice ?? ""),
     textToCell: (row, text) => toNumberCell(row, "unitPrice", text),
@@ -195,20 +195,30 @@ const TextEditor = createTextCellEditor(false)
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = createColumnHelper<TestRow>()
 
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="flex-1 min-w-0 px-1 py-px border border-transparent text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
 /**
  * セル表示コンポーネント。
  * エラーがある場合は枠線と文字色を変え、メッセージをツールチップで表示する。
  */
-function CellText({ children, error }: {
+function CellText({ children, error, isReadOnly }: {
   children?: React.ReactNode
   error?: string
+  isReadOnly: boolean
 }) {
   return (
     <span
       title={error}
       className={`flex-1 min-w-0 px-1 py-px border text-sm truncate ${error
         ? "border-rose-600 text-rose-600"
-        : "border-transparent"}`}
+        : "border-transparent"} ${isReadOnly ? "" : "bg-white"}`}
     >
       {children}
     </span>

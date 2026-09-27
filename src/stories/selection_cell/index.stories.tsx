@@ -55,8 +55,8 @@ function CellSelectionExample() {
 
   const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "no",
-    renderHeader: () => <CellText>No.</CellText>,
-    renderBody: ({ rowIndex }) => <CellText>{rowIndex + 1}</CellText>,
+    renderHeader: () => <HeaderText>No.</HeaderText>,
+    renderBody: ({ rowIndex, isReadOnly }) => <CellText isReadOnly={isReadOnly}>{rowIndex + 1}</CellText>,
     defaultWidth: 48,
     disableResizing: true,
     isFixed: true,
@@ -65,9 +65,9 @@ function CellSelectionExample() {
     editor: TextEditor,
     cellToText: row => row.name ?? "",
     textToCell: (row, text) => ({ ...row, name: text }),
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 128,
     isFixed: true,
   }), col.leaf({
@@ -75,9 +75,9 @@ function CellSelectionExample() {
     editor: TextEditor,
     cellToText: row => row.category ?? "",
     textToCell: (row, text) => ({ ...row, category: text }),
-    renderHeader: () => <CellText>区分</CellText>,
+    renderHeader: () => <HeaderText>区分</HeaderText>,
     getValuesForRender: row => [row.category],
-    renderBody: ({ deps: [category] }) => <CellText>{category}</CellText>,
+    renderBody: ({ deps: [category], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{category}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "unitPrice",
@@ -88,9 +88,9 @@ function CellSelectionExample() {
       const parsed = Number(text)
       return Number.isFinite(parsed) ? { ...row, unitPrice: parsed } : undefined
     },
-    renderHeader: () => <CellText>単価</CellText>,
+    renderHeader: () => <HeaderText>単価</HeaderText>,
     getValuesForRender: row => [row.unitPrice],
-    renderBody: ({ deps: [unitPrice] }) => <CellText>{unitPrice}</CellText>,
+    renderBody: ({ deps: [unitPrice], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{unitPrice}</CellText>,
     defaultWidth: 88,
   }), col.leaf({
     columnId: "quantity",
@@ -111,36 +111,36 @@ function CellSelectionExample() {
       setValue(`rows.${rowIndex}.quantity`, Math.max(0, current + (event.key === "+" ? 1 : -1)))
     },
     // 数量（キー操作のカスタマイズ） ここまで
-    renderHeader: () => <CellText>数量（※1）</CellText>,
+    renderHeader: () => <HeaderText>数量（※1）</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{quantity}</CellText>,
     defaultWidth: 96,
   }), col.leaf({
     columnId: "supplier",
     editor: TextEditor,
     cellToText: row => row.supplier ?? "",
     textToCell: (row, text) => ({ ...row, supplier: text }),
-    renderHeader: () => <CellText>仕入先</CellText>,
+    renderHeader: () => <HeaderText>仕入先</HeaderText>,
     getValuesForRender: row => [row.supplier],
-    renderBody: ({ deps: [supplier] }) => <CellText>{supplier}</CellText>,
+    renderBody: ({ deps: [supplier], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{supplier}</CellText>,
     defaultWidth: 128,
   }), col.leaf({
     columnId: "location",
     editor: TextEditor,
     cellToText: row => row.location ?? "",
     textToCell: (row, text) => ({ ...row, location: text }),
-    renderHeader: () => <CellText>保管場所</CellText>,
+    renderHeader: () => <HeaderText>保管場所</HeaderText>,
     getValuesForRender: row => [row.location],
-    renderBody: ({ deps: [location] }) => <CellText>{location}</CellText>,
+    renderBody: ({ deps: [location], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{location}</CellText>,
     defaultWidth: 112,
   }), col.leaf({
     columnId: "note",
     editor: TextEditor,
     cellToText: row => row.note ?? "",
     textToCell: (row, text) => ({ ...row, note: text }),
-    renderHeader: () => <CellText>備考</CellText>,
+    renderHeader: () => <HeaderText>備考</HeaderText>,
     getValuesForRender: row => [row.note],
-    renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
+    renderBody: ({ deps: [note], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{note}</CellText>,
     defaultWidth: 240,
   })], [setValue])
 
@@ -227,10 +227,19 @@ function getDefaultValues(): TestRow[] {
   }))
 }
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
   return (
     <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, children?: React.ReactNode }) {
+  return (
+    <span className={`flex-1 px-1 py-px border border-transparent text-sm truncate ${props.isReadOnly ? "" : "bg-white"}`}>
       {props.children}
     </span>
   )

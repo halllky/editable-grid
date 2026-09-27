@@ -155,7 +155,7 @@ function PerformanceExample() {
       columnId: "no",
       renderHeader: () => <HeaderText>No.</HeaderText>,
       // 行インデックスしか使わないので getValuesForRender は不要
-      renderBody: ({ rowIndex }) => <CellText align="right">{rowIndex + 1}</CellText>,
+      renderBody: ({ rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{rowIndex + 1}</CellText>,
       defaultWidth: 64,
       disableResizing: true,
       isFixed: true,
@@ -164,7 +164,7 @@ function PerformanceExample() {
       columnId: "code",
       renderHeader: () => <HeaderText>品目コード</HeaderText>,
       getValuesForRender: row => [row.code],
-      renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
+      renderBody: ({ deps: [code], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly}>{code}</CellText>,
       cellToText: row => row.code, // コピーはできるが編集・貼り付けはできない列
       defaultWidth: 88,
       isFixed: true,
@@ -175,7 +175,7 @@ function PerformanceExample() {
       renderHeader: () => <HeaderText>品目名</HeaderText>,
       // 自分のセルの値だけに依存する。他の列が編集されてもこのセルは描画し直されない。
       getValuesForRender: row => [row.name],
-      renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+      renderBody: ({ deps: [name], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly}>{name}</CellText>,
       cellToText: row => row.name,
       textToCell: (row, text) => ({ ...row, name: text }),
       defaultWidth: 120,
@@ -188,7 +188,7 @@ function PerformanceExample() {
       editor: TextEditor,
       renderHeader: () => <HeaderText>単価</HeaderText>,
       getValuesForRender: row => [row.unitPrice],
-      renderBody: ({ deps: [unitPrice] }) => <CellText align="right">{formatNumber(unitPrice)}</CellText>,
+      renderBody: ({ deps: [unitPrice], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(unitPrice)}</CellText>,
       cellToText: row => String(row.unitPrice),
       textToCell: (row, text) => {
         const parsed = parseNumber(text)
@@ -201,7 +201,7 @@ function PerformanceExample() {
       // 計算結果そのものを比較対象にするので、どのセルに依存するかを列挙する必要は無い。
       renderHeader: () => <HeaderText>年間計画</HeaderText>,
       getValuesForRender: row => [store.getPlanTotal(row)],
-      renderBody: ({ deps: [planTotal] }) => <CellText align="right">{formatNumber(planTotal)}</CellText>,
+      renderBody: ({ deps: [planTotal], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(planTotal)}</CellText>,
       cellToText: row => String(store.getPlanTotal(row)),
       defaultWidth: 88,
       isReadOnly: true,
@@ -210,7 +210,7 @@ function PerformanceExample() {
       // 【同じ行の他の列への波及】12ヶ月の実績セルのいずれかが編集されると変化する
       renderHeader: () => <HeaderText>年間実績</HeaderText>,
       getValuesForRender: row => [store.getActualTotal(row)],
-      renderBody: ({ deps: [actualTotal] }) => <CellText align="right">{formatNumber(actualTotal)}</CellText>,
+      renderBody: ({ deps: [actualTotal], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(actualTotal)}</CellText>,
       cellToText: row => String(store.getActualTotal(row)),
       defaultWidth: 88,
       isReadOnly: true,
@@ -219,7 +219,7 @@ function PerformanceExample() {
       // 【同じ行の他の列への波及】単価と12ヶ月の計画セルのいずれかが編集されると変化する
       renderHeader: () => <HeaderText>年間計画金額</HeaderText>,
       getValuesForRender: row => [store.getAmount(row)],
-      renderBody: ({ deps: [amount] }) => <CellText align="right">{formatNumber(amount)}</CellText>,
+      renderBody: ({ deps: [amount], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(amount)}</CellText>,
       cellToText: row => String(store.getAmount(row)),
       defaultWidth: 112,
       isReadOnly: true,
@@ -231,7 +231,7 @@ function PerformanceExample() {
       // 表示する桁数に丸めた文字列を比較対象にすると、表示が変わらないセルは描画し直されない。
       renderHeader: () => <HeaderText>構成比</HeaderText>,
       getValuesForRender: row => [store.getShare(row).toFixed(6)],
-      renderBody: ({ deps: [share] }) => <CellText align="right">{share} %</CellText>,
+      renderBody: ({ deps: [share], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{share} %</CellText>,
       cellToText: row => store.getShare(row).toFixed(6),
       defaultWidth: 104,
       isReadOnly: true,
@@ -242,7 +242,7 @@ function PerformanceExample() {
       // 1セルの編集でも他の行の値がはっきり動くのが目で見て分かる。
       renderHeader: () => <HeaderText>累計構成比</HeaderText>,
       getValuesForRender: (_, rowIndex) => [store.getCumulativeShare(rowIndex).toFixed(3)],
-      renderBody: ({ deps: [cumulativeShare] }) => <CellText align="right">{cumulativeShare} %</CellText>,
+      renderBody: ({ deps: [cumulativeShare], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{cumulativeShare} %</CellText>,
       cellToText: (_, rowIndex) => store.getCumulativeShare(rowIndex).toFixed(3),
       defaultWidth: 104,
       isReadOnly: true,
@@ -262,7 +262,7 @@ function PerformanceExample() {
           editor: TextEditor,
           renderHeader: () => <HeaderText>計画</HeaderText>,
           getValuesForRender: row => [row.plan[month]],
-          renderBody: ({ deps: [plan] }) => <CellText align="right">{formatNumber(plan)}</CellText>,
+          renderBody: ({ deps: [plan], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(plan)}</CellText>,
           cellToText: row => String(row.plan[month]),
           textToCell: (row, text) => {
             const parsed = parseNumber(text)
@@ -277,7 +277,7 @@ function PerformanceExample() {
           editor: TextEditor,
           renderHeader: () => <HeaderText>実績</HeaderText>,
           getValuesForRender: row => [row.actual[month]],
-          renderBody: ({ deps: [actual] }) => <CellText align="right">{formatNumber(actual)}</CellText>,
+          renderBody: ({ deps: [actual], rowIndex, isReadOnly }) => <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right">{formatNumber(actual)}</CellText>,
           cellToText: row => String(row.actual[month]),
           textToCell: (row, text) => {
             const parsed = parseNumber(text)
@@ -293,8 +293,8 @@ function PerformanceExample() {
           // マイナスのときだけ赤くすることで、値の波及を目で追いやすくしている。
           renderHeader: () => <HeaderText>差異</HeaderText>,
           getValuesForRender: row => [store.getDiff(row, month)],
-          renderBody: ({ deps: [diff] }) => (
-            <CellText align="right" className={diff < 0 ? "text-rose-600" : undefined}>
+          renderBody: ({ deps: [diff], rowIndex, isReadOnly }) => (
+            <CellText rowIndex={rowIndex} isReadOnly={isReadOnly} align="right" textColor={diff < 0 ? "text-rose-500" : undefined}>
               {formatNumber(diff)}
             </CellText>
           ),
@@ -384,7 +384,6 @@ function PerformanceExample() {
         onRowsChange={handleRowsChange}
         columns={columns}
         showCheckBox
-        striped
         className="h-[32rem] border border-gray-500 resize-y"
       />
     </div>
@@ -393,17 +392,24 @@ function PerformanceExample() {
 
 //#region セルのレンダリング
 
-/** セルの基本的スタイルを施したもの */
-function CellText({ align, className, children }: {
+/**
+ * セルの基本的スタイルを施したもの。
+ * 背景は1行おきに色を変え、読み取り専用のセルは文字色を薄くする。
+ */
+function CellText({ rowIndex, isReadOnly, align, textColor, children }: {
+  rowIndex: number
+  isReadOnly: boolean
   align?: "right"
-  className?: string
+  /** 文字色のクラス。指定した場合は読み取り専用の文字色より優先される */
+  textColor?: string
   children?: React.ReactNode
 }) {
   return (
     <span className={[
-      "px-1 py-px border border-transparent text-sm truncate",
+      "flex-1 px-1 py-px border border-transparent text-sm truncate",
+      rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50",
+      textColor ?? (isReadOnly ? "text-gray-500" : ""),
       align === "right" ? "text-right" : "",
-      className ?? "",
     ].join(" ")}>
       {children}
     </span>

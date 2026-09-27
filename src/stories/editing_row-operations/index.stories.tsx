@@ -190,17 +190,17 @@ function useColumns(onCellKeyDown?: EditableGridLeafColumn<TestRow>["onCellKeyDo
     col.leaf({
       columnId: "id",
       isReadOnly: true,
-      renderHeader: () => <CellText>行のキー</CellText>,
+      renderHeader: () => <HeaderText>行のキー</HeaderText>,
       getValuesForRender: row => [row.id],
-      renderBody: ({ deps: [id] }) => <CellText>{id}</CellText>,
+      renderBody: ({ deps: [id], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{id}</CellText>,
       defaultWidth: 136,
       onCellKeyDown,
     }),
     col.leaf({
       columnId: "name",
-      renderHeader: () => <CellText>商品名</CellText>,
+      renderHeader: () => <HeaderText>商品名</HeaderText>,
       getValuesForRender: row => [row.name],
-      renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+      renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
       editor: TextEditor,
       cellToText: row => row.name,
       textToCell: (row, text) => ({ ...row, name: text }),
@@ -209,9 +209,9 @@ function useColumns(onCellKeyDown?: EditableGridLeafColumn<TestRow>["onCellKeyDo
     }),
     col.leaf({
       columnId: "quantity",
-      renderHeader: () => <CellText>数量</CellText>,
+      renderHeader: () => <HeaderText>数量</HeaderText>,
       getValuesForRender: row => [row.quantity],
-      renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+      renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{quantity}</CellText>,
       editor: TextEditor,
       cellToText: row => String(row.quantity ?? ""),
       textToCell: (row, text) => {
@@ -224,9 +224,9 @@ function useColumns(onCellKeyDown?: EditableGridLeafColumn<TestRow>["onCellKeyDo
     }),
     col.leaf({
       columnId: "note",
-      renderHeader: () => <CellText>備考</CellText>,
+      renderHeader: () => <HeaderText>備考</HeaderText>,
       getValuesForRender: row => [row.note],
-      renderBody: ({ deps: [note] }) => <CellText>{note}</CellText>,
+      renderBody: ({ deps: [note], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{note}</CellText>,
       editor: TextEditor,
       cellToText: row => row.note ?? "",
       textToCell: (row, text) => ({ ...row, note: text }),
@@ -253,10 +253,19 @@ const TextEditor = createTextCellEditor(false)
 // 列定義の型推論の補助
 const col = createColumnHelper<TestRow>()
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
   return (
     <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, children?: React.ReactNode }) {
+  return (
+    <span className={`flex-1 px-1 py-px border border-transparent text-sm truncate ${props.isReadOnly ? "" : "bg-white"}`}>
       {props.children}
     </span>
   )

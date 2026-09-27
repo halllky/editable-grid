@@ -300,13 +300,13 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
     lastFixedIndex,
     rowSelection,
     props.columns,
-    props.striped,
   ])
 
   return (
     <div
       ref={tableContainerRef}
       className={`halllky-eg2-root ${props.className ?? ""}`}
+      style={props.style}
       tabIndex={0} // 1行も無い場合であってもキーボード操作を受け付けるようにするため
 
       onKeyDown={handleKeyDown}
@@ -420,7 +420,6 @@ const EditableGrid = React.forwardRef(function EditableGrid<TRow,>(
                 size={cell.column.getSize()}
                 minHeight={ESTIMATED_ROW_HEIGHT}
                 start={cell.column.getStart()}
-                propsStriped={props.striped}
                 columnsTrigger={props.columns}
               />
             )
@@ -657,12 +656,11 @@ const MemorizedTD = React.memo<{
   size: number
   minHeight: number
   start: number
-  propsStriped: boolean | undefined
   /** レンダリングのトリガーにのみ使用 */
   isChecked: unknown
   /** レンダリングのトリガーにのみ使用 */
   columnsTrigger: unknown
-}>(function MemorizedTD({ cell, cellMeta, rowKey, getRowObject, rowDependentPropsRef, dataChange, isFixed, size, minHeight, start, propsStriped, isLastFixedColumn }) {
+}>(function MemorizedTD({ cell, cellMeta, rowKey, getRowObject, rowDependentPropsRef, dataChange, isFixed, size, minHeight, start, isLastFixedColumn }) {
 
   const rowIndex: number = cell.row.index
 
@@ -680,11 +678,7 @@ const MemorizedTD = React.memo<{
 
   let className = 'halllky-eg2-td'
 
-  if (!isReadOnly) {
-    className += !propsStriped || rowIndex % 2 === 0
-      ? ' halllky-eg2-td--bg-default'
-      : ' halllky-eg2-td--bg-striped'
-  } else if (isFixed) {
+  if (isFixed) {
     className += ' halllky-eg2-td--bg-readonly'
   }
 

@@ -7,18 +7,22 @@ import Link from "../Link"
 
 ## 配色を変える
 
-配色は `.halllky-eg2-root` に定義された CSS 変数を上書きして変更します。以下は既定値です。
+グリッドの地・ヘッダ・罫線・選択範囲など、利用側でのカスタマイズを想定していない部分の配色は
+`.halllky-eg2-root` に定義された CSS 変数を上書きして変更します。以下は既定値です。
 
 <Source language="css" code={`
   .halllky-eg2-root {
+    /* グリッド全体の背景色、固定列エリアの背景色 */
     --halllky-eg2-color-grid-bg: #e5e7eb;
-    --halllky-eg2-color-cell-bg: #ffffff;
-    --halllky-eg2-color-cell-bg-striped: #f9fafb;
+    /* ヘッダ・フッタの背景色 */
     --halllky-eg2-color-header-bg: #f3f4f6;
+    /* ヘッダ・フッタのボーダー、固定列と非固定列の境界部分のボーダー　の色 */
     --halllky-eg2-color-border: #d1d5db;
+    /* 列リサイズ用ハンドラの色 */
     --halllky-eg2-color-resize-handle-hover: #9ca3af;
-    --halllky-eg2-color-empty-text: #6b7280;
+    /* 選択範囲の枠の色 */
     --halllky-eg2-color-selection-border: #0ea5e9;
+    /* 選択範囲の背景色 */
     --halllky-eg2-color-selection-fill: #bae6fd;
   }
 `} />
@@ -35,9 +39,8 @@ import Link from "../Link"
   />
 `} />
 
-`getRowClassName` の戻り値は行（`tr`）に付きますが、背景色はセルが自前で持っているため、
-行に背景色のクラスを当てても隠れて見えません。行ごとの色分けには文字色を使ってください。
-行の背景色を変えたい場合は上記の CSS 変数で、グリッド全体の配色として指定します。
+`getRowClassName` の戻り値は行（`tr`）に付きます。
+行に当てた背景色は、`renderBody` で背景色を付けたセルでは隠れて見えません。
 
 `getRowClassName` の参照は `useCallback` 等で安定させてください。
 理由は <Link to="その他/パフォーマンス">パフォーマンス</Link> を参照してください。

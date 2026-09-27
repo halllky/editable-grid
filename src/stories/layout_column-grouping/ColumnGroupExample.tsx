@@ -18,40 +18,40 @@ export function ColumnGroupExample() {
   const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     // グループに属さず、renderHeaderPlaceholder も指定していない列（※1）
     columnId: "code",
-    renderHeader: () => <CellText>商品コード（※1）</CellText>,
+    renderHeader: () => <HeaderText>商品コード（※1）</HeaderText>,
     getValuesForRender: row => [row.code],
-    renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
+    renderBody: ({ deps: [code], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{code}</CellText>,
     defaultWidth: 136,
   }), col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名（※2）</CellText>,
+    renderHeader: () => <HeaderText>商品名（※2）</HeaderText>,
     // 下段に表示する内容。文言はデモのためのもの。
-    renderHeaderPlaceholder: () => <CellText>ここが下段</CellText>,
+    renderHeaderPlaceholder: () => <HeaderText>ここが下段</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 136,
   }), col.group({
     // 単価・数量・金額の3列をまとめるグループ列
     columnId: "price",
-    renderHeader: () => <CellText>価格</CellText>,
+    renderHeader: () => <HeaderText>価格</HeaderText>,
     columns: [col.leaf({
       columnId: "unitPrice",
-      renderHeader: () => <CellText>単価</CellText>,
+      renderHeader: () => <HeaderText>単価</HeaderText>,
       getValuesForRender: row => [row.unitPrice],
-      renderBody: ({ deps: [unitPrice] }) => <CellText align="right">{unitPrice.toLocaleString()}</CellText>,
+      renderBody: ({ deps: [unitPrice], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{unitPrice.toLocaleString()}</CellText>,
       defaultWidth: 80,
     }), col.leaf({
       columnId: "quantity",
-      renderHeader: () => <CellText>数量</CellText>,
+      renderHeader: () => <HeaderText>数量</HeaderText>,
       getValuesForRender: row => [row.quantity],
-      renderBody: ({ deps: [quantity] }) => <CellText align="right">{quantity.toLocaleString()}</CellText>,
+      renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{quantity.toLocaleString()}</CellText>,
       defaultWidth: 80,
     }), col.leaf({
       columnId: "amount",
-      renderHeader: () => <CellText>金額</CellText>,
+      renderHeader: () => <HeaderText>金額</HeaderText>,
       getValuesForRender: row => [row.unitPrice, row.quantity],
-      renderBody: ({ deps: [unitPrice, quantity] }) => (
-        <CellText align="right">{(unitPrice * quantity).toLocaleString()}</CellText>
+      renderBody: ({ deps: [unitPrice, quantity], isReadOnly }) => (
+        <CellText isReadOnly={isReadOnly} align="right">{(unitPrice * quantity).toLocaleString()}</CellText>
       ),
       defaultWidth: 96,
     })],
@@ -92,13 +92,23 @@ function getDefaultValues(): Row[] {
   ]
 }
 
-/** セルの基本的なスタイルを施したもの */
-function CellText({ children, align }: {
+/** 列ヘッダの基本的なスタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="flex-1 px-1 py-px text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的なスタイルを施したもの */
+function CellText({ isReadOnly, children, align }: {
+  isReadOnly: boolean
   children?: React.ReactNode
   align?: "right"
 }) {
   return (
-    <span className={`flex-1 px-1 py-px text-sm truncate ${align === "right" ? "text-right" : ""}`}>
+    <span className={`flex-1 px-1 py-px text-sm truncate ${isReadOnly ? "" : "bg-white"} ${align === "right" ? "text-right" : ""}`}>
       {children}
     </span>
   )

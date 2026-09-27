@@ -65,9 +65,9 @@ function CellEditorExample() {
     textToCell: (row, text) => ({ ...row, singleLine: text.replace(/[\r\n\u2028\u2029]/g, '') }),
     // 改行なしテキスト エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>改行なし</CellText>,
+    renderHeader: () => <HeaderText>改行なし</HeaderText>,
     getValuesForRender: row => [row.singleLine],
-    renderBody: ({ deps: [singleLine] }) => <CellText>{singleLine}</CellText>,
+    renderBody: ({ deps: [singleLine], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{singleLine}</CellText>,
     defaultWidth: 152,
   }), col.leaf({
     columnId: "multiLine",
@@ -77,9 +77,9 @@ function CellEditorExample() {
     textToCell: (row, text) => ({ ...row, multiLine: text }),
     // 改行ありテキスト エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>改行あり（※1）</CellText>,
+    renderHeader: () => <HeaderText>改行あり（※1）</HeaderText>,
     getValuesForRender: row => [row.multiLine],
-    renderBody: ({ deps: [multiLine] }) => <CellText wrap>{multiLine}</CellText>,
+    renderBody: ({ deps: [multiLine], isReadOnly }) => <CellText isReadOnly={isReadOnly} wrap>{multiLine}</CellText>,
     defaultWidth: 224,
   }), col.leaf({
     columnId: "option",
@@ -97,9 +97,9 @@ function CellEditorExample() {
     },
     // 選択肢（ドロップダウン） エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>選択肢（※2）</CellText>,
+    renderHeader: () => <HeaderText>選択肢（※2）</HeaderText>,
     getValuesForRender: row => [row.option],
-    renderBody: ({ deps: [option] }) => <CellText>{option}</CellText>,
+    renderBody: ({ deps: [option], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{option}</CellText>,
     defaultWidth: 120,
   }), col.leaf({
     columnId: "date",
@@ -117,9 +117,9 @@ function CellEditorExample() {
     },
     // 日付 エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>日付（※2）</CellText>,
+    renderHeader: () => <HeaderText>日付（※2）</HeaderText>,
     getValuesForRender: row => [row.date],
-    renderBody: ({ deps: [date] }) => <CellText>{date}</CellText>,
+    renderBody: ({ deps: [date], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{date}</CellText>,
     defaultWidth: 124,
   }), col.leaf({
     columnId: "checkbox",
@@ -136,7 +136,7 @@ function CellEditorExample() {
     },
     // チェックボックス エディタ用設定 ここまで
 
-    renderHeader: () => <CellText>チェックボックス（※3）</CellText>,
+    renderHeader: () => <HeaderText>チェックボックス（※3）</HeaderText>,
     getValuesForRender: row => [!!row.checkbox],
     renderBody: ({ deps: [checked], rowIndex, isReadOnly }) => (
       <label className={`flex items-start w-full h-full px-1 ${isReadOnly ? '' : 'cursor-pointer'}`}>
@@ -155,7 +155,7 @@ function CellEditorExample() {
     defaultWidth: 188,
   }), col.group({
     columnId: "product",
-    renderHeader: () => <CellText>外部検索（※4）</CellText>,
+    renderHeader: () => <HeaderText>外部検索（※4）</HeaderText>,
     columns: [
       col.leaf({
         columnId: "productCode",
@@ -172,9 +172,9 @@ function CellEditorExample() {
         },
         // 外部参照（コード） エディタ用設定 ここまで
 
-        renderHeader: () => <CellText>コード</CellText>,
+        renderHeader: () => <HeaderText>コード</HeaderText>,
         getValuesForRender: row => [row.product?.code],
-        renderBody: ({ deps: [code], rowKey }) => (
+        renderBody: ({ deps: [code], rowKey, isReadOnly }) => (
           // 虫眼鏡ボタンはこの中で表示
           <ProductCodeCell code={code} onSearchButtonClick={() => productSearch.openSearchDialog(rowKey)} />
         ),
@@ -183,13 +183,13 @@ function CellEditorExample() {
         columnId: "productName",
         isReadOnly: true,
         cellToText: row => row.product?.name ?? "",
-        renderHeader: () => <CellText>商品名</CellText>,
+        renderHeader: () => <HeaderText>商品名</HeaderText>,
         getValuesForRender: (row, _, rowKey) => {
           const lookup = productSearch.getLookup(rowKey)
           return [row.product?.name, lookup?.searching, lookup?.error] as const
         },
-        renderBody: ({ deps: [name, searching, error] }) => (
-          <CellText className={error ? "text-rose-600" : searching ? "text-gray-500" : ""}>
+        renderBody: ({ deps: [name, searching, error], isReadOnly }) => (
+          <CellText isReadOnly={isReadOnly} className={error ? "text-rose-600" : searching ? "text-gray-400" : "text-gray-600"}>
             {error ?? (searching ? "検索中..." : name)}
           </CellText>
         ),
@@ -245,15 +245,24 @@ function getDefaultValues(): TestRow[] {
   }))
 }
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { wrap?: boolean, className?: string, children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
+  return (
+    <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, wrap?: boolean, className?: string, children?: React.ReactNode }) {
 
   const className = props.wrap
-    ? "px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
-    : "px-1 py-px border border-transparent text-sm truncate"
+    ? "flex-1 px-1 py-px border border-transparent text-sm truncate whitespace-pre-wrap"
+    : "flex-1 px-1 py-px border border-transparent text-sm truncate"
 
   return (
-    <span className={`${className} ${props.className ?? ''}`}>
+    <span className={`${className} ${props.isReadOnly ? '' : 'bg-white'} ${props.className ?? ''}`}>
       {props.children}
     </span>
   )

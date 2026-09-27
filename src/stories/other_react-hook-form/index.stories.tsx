@@ -52,17 +52,17 @@ function ReactHookFormExample() {
 
   const columns = React.useMemo((): EditableGridColumn<TestRow>[] => [col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名</CellText>,
+    renderHeader: () => <HeaderText>商品名</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     editor: TextEditor,
     cellToText: row => row.name,
     textToCell: (row, text) => ({ ...row, name: text }),
   }), col.leaf({
     columnId: "quantity",
-    renderHeader: () => <CellText>数量</CellText>,
+    renderHeader: () => <HeaderText>数量</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText>{quantity}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{quantity}</CellText>,
     editor: TextEditor,
     cellToText: row => String(row.quantity ?? ""),
     textToCell: (row, text) => {
@@ -145,10 +145,19 @@ const TextEditor = createTextCellEditor(false)
 // 列定義の型推論の補助（getValuesForRender の戻り値の型が renderBody の deps に引き継がれる）
 const col = createColumnHelper<TestRow>()
 
-/** セルの基本的スタイルを施したもの */
-function CellText(props: { children?: React.ReactNode }) {
+/** 列ヘッダの基本的スタイルを施したもの */
+function HeaderText(props: { children?: React.ReactNode }) {
   return (
     <span className="px-1 py-px border border-transparent text-sm truncate">
+      {props.children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的スタイルを施したもの */
+function CellText(props: { isReadOnly: boolean, children?: React.ReactNode }) {
+  return (
+    <span className={`flex-1 px-1 py-px border border-transparent text-sm truncate ${props.isReadOnly ? "" : "bg-white"}`}>
       {props.children}
     </span>
   )

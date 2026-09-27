@@ -18,20 +18,20 @@ export function ColumnWidthExample() {
   const columns = React.useMemo((): EditableGridColumn<Row>[] => [col.leaf({
     // defaultWidth を指定していない列。128px になる（※1）
     columnId: "code",
-    renderHeader: () => <CellText>コード（※1）</CellText>,
+    renderHeader: () => <HeaderText>コード（※1）</HeaderText>,
     getValuesForRender: row => [row.code],
-    renderBody: ({ deps: [code] }) => <CellText>{code}</CellText>,
+    renderBody: ({ deps: [code], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{code}</CellText>,
   }), col.leaf({
     columnId: "name",
-    renderHeader: () => <CellText>商品名（※2）</CellText>,
+    renderHeader: () => <HeaderText>商品名（※2）</HeaderText>,
     getValuesForRender: row => [row.name],
-    renderBody: ({ deps: [name] }) => <CellText>{name}</CellText>,
+    renderBody: ({ deps: [name], isReadOnly }) => <CellText isReadOnly={isReadOnly}>{name}</CellText>,
     defaultWidth: 240,
   }), col.leaf({
     columnId: "quantity",
-    renderHeader: () => <CellText>数量（※3）</CellText>,
+    renderHeader: () => <HeaderText>数量（※3）</HeaderText>,
     getValuesForRender: row => [row.quantity],
-    renderBody: ({ deps: [quantity] }) => <CellText align="right">{quantity.toLocaleString()}</CellText>,
+    renderBody: ({ deps: [quantity], isReadOnly }) => <CellText isReadOnly={isReadOnly} align="right">{quantity.toLocaleString()}</CellText>,
     defaultWidth: 96,
     disableResizing: true,
   })], [])
@@ -71,13 +71,23 @@ function getDefaultValues(): Row[] {
   ]
 }
 
-/** セルの基本的なスタイルを施したもの */
-function CellText({ children, align }: {
+/** 列ヘッダの基本的なスタイルを施したもの */
+function HeaderText({ children }: { children?: React.ReactNode }) {
+  return (
+    <span className="flex-1 px-1 py-px text-sm truncate">
+      {children}
+    </span>
+  )
+}
+
+/** ボディセルの基本的なスタイルを施したもの */
+function CellText({ isReadOnly, children, align }: {
+  isReadOnly: boolean
   children?: React.ReactNode
   align?: "right"
 }) {
   return (
-    <span className={`flex-1 px-1 py-px text-sm truncate ${align === "right" ? "text-right" : ""}`}>
+    <span className={`flex-1 px-1 py-px text-sm truncate ${isReadOnly ? "" : "bg-white"} ${align === "right" ? "text-right" : ""}`}>
       {children}
     </span>
   )
