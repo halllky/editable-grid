@@ -56,6 +56,7 @@ npm pack --dry-run      # 公開されるファイルの一覧を確認
 ### 2. バージョンを上げる
 
 `package.json` の `version` を更新する（semver）。
+続いて `npm install` を実行して `package-lock.json` のバージョンも書き換える。
 npm に同じバージョンは二度と公開できないため、公開のたびに必ず上げること。
 
 - パッチ: 後方互換のバグ修正
